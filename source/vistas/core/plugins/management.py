@@ -20,38 +20,33 @@ def load_plugins(path):
 def get_plugins_of_type(cls):
     """ Returns all plugins of a given class """
 
-    return [x for x in plugins if isinstance(x, cls)]
+    return [x for x in get_plugins() if isinstance(x, cls)]
 
 
-@property
-def plugins():
+def get_plugins():
     """ A list of all loaded plugins """
 
     return PluginBase._plugins_by_name.values()
 
 
-@property
-def data_plugins():
+def get_data_plugins():
     """ A list of all data plugins """
 
     return get_plugins_of_type(DataPlugin)
 
 
-@property
-def array_data_plugins():
+def get_array_data_plugins():
     """ A list of all array data plugins """
 
     return get_plugins_of_type(ArrayDataPlugin)
 
 
-@property
-def raster_data_plugins():
+def get_raster_data_plugins():
     """ A list of all raster data plugins """
 
     return get_plugins_of_type(RasterDataPlugin)
 
 
-@property
-def feature_data_plugins():
+def get_feature_data_plugins():
     """ A list of all feature data plugins """
     return get_plugins_of_type(FeatureDataPlugin)
