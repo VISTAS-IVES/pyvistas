@@ -17,3 +17,7 @@ def get_resources_directory():
         return os.path.join(os.getcwd(), '..', 'resources')
     else:
         return os.path.join(os.path.dirname(wx.StandardPaths.Get().ExecutablePath), '..', 'resources')
+
+
+def get_resource_bitmap(name):
+    return wx.Image(os.path.join(get_resources_directory(), 'images', name)).ConvertToBitmap()

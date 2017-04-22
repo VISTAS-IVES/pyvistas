@@ -51,10 +51,27 @@ class AppController(wx.EvtHandler):
 
         if event_id == wx.ID_ABOUT:
             self.on_about_menu_item(event)
-        elif event_id ==wx.ID_EXIT:
+        elif event_id == wx.ID_EXIT:
             self.main_window.Close()
+        elif event_id == MainWindow.MENU_VIEW_ADD_VIEWER:
+            self.main_window.viewer_container_panel.add_viewer()
+        elif event_id == MainWindow.MENU_VIEW_REMOVE_VIEWER:
+            self.main_window.viewer_container_panel.remove_viewer()
 
         # Todo
+
+    def on_about_menu_item(self, event):
+        info = wx.adv.AboutDialogInfo()
+        info.SetName('VISTAS')
+        info.SetVersion(version, 'Version {} (Python)'.format(version))
+        info.SetDescription('VISualization of Terrestrial-Aquatic Systems')
+        info.SetCopyright('(c) 2008-2017 Conservation Biology Institute')
+        info.AddDeveloper('Nikolas Stevenson-Molnar (nik.molnar@consbio.org')
+        info.AddDeveloper('Taylor Mutch')
+        info.AddDeveloper('Viriya Ratanasangpunth')
+        info.AddDeveloper('Lee Zeman')
+
+        wx.adv.AboutBox(info)
 
     def on_window_close(self, event):
         # Todo: check project save status

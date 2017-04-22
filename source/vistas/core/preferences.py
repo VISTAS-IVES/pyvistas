@@ -45,5 +45,5 @@ class Preferences:
         self.preferences[key] = value
         self.save()
 
-    def get(self, key):
-        return self.preferences.get(key)
+    def get(self, key, default=None):
+        return self.preferences.get(key, default)

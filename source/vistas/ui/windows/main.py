@@ -1,10 +1,8 @@
-import os
-
 import wx
 
-from vistas.core import paths
-from vistas.core.paths import get_resources_directory
+from vistas.core.paths import get_resource_bitmap
 from vistas.core.utils import get_platform
+from vistas.ui.controls.viewer_container_panel import ViewerContainerPanel
 
 
 class MainWindow(wx.Frame):
@@ -89,34 +87,34 @@ class MainWindow(wx.Frame):
         toolbar = self.CreateToolBar()
         toolbar.SetToolBitmapSize(wx.Size(20, 20))
         toolbar.AddTool(
-            self.MENU_FILE_NEW, 'New Project', self.get_image_bitmap('new_workspace.png'),
+            self.MENU_FILE_NEW, 'New Project', get_resource_bitmap('new_workspace.png'),
             'Create a new project (Ctrl+N)'
         )
         toolbar.AddTool(
-            self.MENU_FILE_OPEN, 'Open Project', self.get_image_bitmap('open_workspace.png'),
+            self.MENU_FILE_OPEN, 'Open Project', get_resource_bitmap('open_workspace.png'),
             'Open an existing project file (Ctrl+O)'
         )
         toolbar.AddTool(
-            self.MENU_FILE_SAVE, 'Save Project', self.get_image_bitmap('save_workspace.png'),
+            self.MENU_FILE_SAVE, 'Save Project', get_resource_bitmap('save_workspace.png'),
             'Save the current project (Ctrl+S)'
         )
         toolbar.AddSeparator()
         toolbar.AddTool(
-            self.MENU_FILE_ADDDATA, 'Add Data', self.get_image_bitmap('load_data.png'), 'Add data to project'
+            self.MENU_FILE_ADDDATA, 'Add Data', get_resource_bitmap('load_data.png'), 'Add data to project'
         )
         toolbar.AddSeparator()
         toolbar.AddTool(
-            self.MENU_FLYTHROUGH_GENERATE, 'Create Flythrough', self.get_image_bitmap('flythrough.png'),
+            self.MENU_FLYTHROUGH_GENERATE, 'Create Flythrough', get_resource_bitmap('flythrough.png'),
             'Generate flythrough'
         )
         toolbar.AddTool(
-            self.MENU_SYNC_CAMERAS, 'Sync Cameras', self.get_image_bitmap('camera_sync.png'), 'Sync all viewer windows',
+            self.MENU_SYNC_CAMERAS, 'Sync Cameras', get_resource_bitmap('camera_sync.png'), 'Sync all viewer windows',
             wx.ITEM_CHECK
         )
         toolbar.AddSeparator()
         toolbar.AddTool(
             self.MENU_OPEN_TIMELINE_FILTER, 'Open Timeline Filter',
-            self.get_image_bitmap('glyphicons-541-hourglass.png'), 'Set timeline filter options'
+            get_resource_bitmap('glyphicons-541-hourglass.png'), 'Set timeline filter options'
         )
         toolbar.Realize()
 
@@ -128,7 +126,7 @@ class MainWindow(wx.Frame):
         )
         left_panel = wx.Panel(main_splitter, wx.ID_ANY)
         right_panel = wx.Panel(main_splitter, wx.ID_ANY)
-        viewer_container_panel = wx.Panel(right_panel, wx.ID_ANY)  # Todo
+        self.viewer_container_panel = ViewerContainerPanel(right_panel, wx.ID_ANY)
         timeline_panel = wx.Panel(right_panel, wx.ID_ANY)  # Todo
 
         main_splitter.SplitVertically(left_panel, right_panel, 250)
@@ -156,7 +154,7 @@ class MainWindow(wx.Frame):
 
         right_panel_sizer = wx.BoxSizer(wx.VERTICAL)
         right_panel.SetSizer(right_panel_sizer)
-        right_panel_sizer.Add(viewer_container_panel, 1, wx.EXPAND)
+        right_panel_sizer.Add(self.viewer_container_panel, 1, wx.EXPAND)
         right_panel_sizer.Add(timeline_panel, 0, wx.EXPAND)
 
         # Todo: expand button
@@ -200,6 +198,3 @@ class MainWindow(wx.Frame):
 
         if state.get('left_splitter_pos') is not None:
             pass  # Todo
-
-    def get_image_bitmap(self, name):
-        return wx.Image(os.path.join(get_resources_directory(), 'images', name)).ConvertToBitmap()
