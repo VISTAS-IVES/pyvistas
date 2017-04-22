@@ -161,7 +161,7 @@ class MainWindow(wx.Frame):
 
         # Todo: project controller
         
-    def serialize_state(self):
+    def SerializeState(self):
         pos = self.GetPosition()
         size = self.GetSize()
 
@@ -176,7 +176,7 @@ class MainWindow(wx.Frame):
             'left_splitter_pos': None  # Todo
         }
 
-    def load_state(self, state):
+    def LoadState(self, state):
         if state.get('display_index') is not None:
             display_area = wx.Display(state['display_index']).GetClientArea()
         else:

@@ -21,27 +21,27 @@ class ViewerContainerPanel(wx.Panel):
         self.rows = []
 
         self.num_columns = Preferences.app().get('viewer_itemsperrow', 2)
-        self.add_viewer()
+        self.AddViewer()
 
         # Events
-        self.Bind(wx.EVT_SIZE, self.on_size)
+        self.Bind(wx.EVT_SIZE, self.OnSize)
         # Todo: VI_EVENT_CAMERA_MODE_CHANGED
 
     def __del__(self):
         pass  # Todo
 
-    def add_viewer(self, new_viewer=None):
+    def AddViewer(self, new_viewer=None):
         # Add new row if necessary
         if self.num_viewers % self.num_columns == 0:
-            self.add_row()
+            self.AddRow()
 
         last_row = self.rows[-1]
 
         # Create new viewer
         if new_viewer is None:
             new_viewer = ViewerPanel(self, wx.ID_ANY)
-        new_viewer.hide_resize_areas()
-        new_viewer.reset_neighbors()
+        new_viewer.HideResizeAreas()
+        new_viewer.ResetNeighbors()
 
         index = last_row.num_viewers
         last_row.viewers[index] = new_viewer
@@ -57,19 +57,19 @@ class ViewerContainerPanel(wx.Panel):
 
         # Set neighbors
         if last_row.num_viewers > 1:
-            new_viewer.set_neighbor(last_row.viewers[index-1], ViewerPanel.WEST)
-            last_row.viewers[index-1].set_neighbor(new_viewer, ViewerPanel.EAST)
+            new_viewer.SetNeighbor(last_row.viewers[index - 1], ViewerPanel.WEST)
+            last_row.viewers[index-1].SetNeighbor(new_viewer, ViewerPanel.EAST)
 
         if last_row.prev_row is not None and last_row.prev_row.num_viewers >= last_row.num_viewers:
             for viewer in last_row.prev_row.viewers:
-                new_viewer.set_neighbor(viewer, ViewerPanel.NORTH)
-                viewer.set_neighbor(new_viewer, ViewerPanel.SOUTH)
+                new_viewer.SetNeighbor(viewer, ViewerPanel.NORTH)
+                viewer.SetNeighbor(new_viewer, ViewerPanel.SOUTH)
 
-        self.update_viewer_sizes()
+        self.UpdateViewerSizes()
 
         # Todo: observable (?)
 
-    def remove_viewer(self, viewer=None):
+    def RemoveViewer(self, viewer=None):
         # Can't remove the last viewer
         if self.num_viewers < 2:
             return
@@ -85,25 +85,25 @@ class ViewerContainerPanel(wx.Panel):
                 row.viewers[index] = None
                 viewer.Destroy()
                 self.num_viewers -= 1
-                self.rebuild()
+                self.Rebuild()
                 return
 
-    def refresh_all_viewers(self):
+    def RefreshAllViewers(self):
         for row in self.rows:
             for viewer in row.viewers[:row.num_viewers]:
                 viewer.gl_canvas.Refresh()
 
-    def update_viewer_sizes(self):
+    def UpdateViewerSizes(self):
         for row in self.rows:
             for viewer in row.viewers[:row.num_viewers]:
                 x = 0
                 y = 0
 
-                neighbor = viewer.get_neighbor(ViewerPanel.WEST)
+                neighbor = viewer.GetNeighbor(ViewerPanel.WEST)
                 if neighbor:
                     x = neighbor.GetPosition().x + neighbor.GetSize().GetWidth()
 
-                neighbor = viewer.get_neighbor(ViewerPanel.NORTH)
+                neighbor = viewer.GetNeighbor(ViewerPanel.NORTH)
                 if neighbor:
                     y = neighbor.GetPosition().y + neighbor.GetSize().GetHeight()
 
@@ -113,19 +113,19 @@ class ViewerContainerPanel(wx.Panel):
                 )
                 # viewer.gl_canvas.camera_controls.reposition_all()  # Todo
 
-    def on_size(self, event):
-        self.update_viewer_sizes()
+    def OnSize(self, event):
+        self.UpdateViewerSizes()
 
-    def rebuild(self):
+    def Rebuild(self):
         rows = self.rows
         self.rows = []
         self.num_viewers = 0
 
         for row in rows:
             for viewer in (x for x in row.viewers if x is not None):
-                self.add_viewer(viewer)
+                self.AddViewer(viewer)
 
-    def add_row(self):
+    def AddRow(self):
         new_row = self.Row()
         new_row.viewers = list(None for _ in range(self.num_columns))
 
@@ -138,32 +138,32 @@ class ViewerContainerPanel(wx.Panel):
 
         self.rows.append(new_row)
 
-    def project_changed(self, event):
+    def OnProjectChanged(self, event):
         pass  # Todo
 
-    def on_camera_mode_changed(self, event):
+    def OnCameraModeChanged(self, event):
         pass  # Todo
 
-    def get_main_viewer_panel(self):
+    def GetMainViewerPanel(self):
         return self.rows[0].viewers[0]
 
-    def get_all_viewer_panels(self):
+    def GetAllViewerPanels(self):
         return reduce(lambda x, y: x + y, (row.viewers[:row.num_viewers] for row in self.rows))
 
-    def toggle_wireframe(self):
+    def ToggleWireframe(self):
         self.wireframe = not self.wireframe
 
-        for viewer in self.get_all_viewer_panels():
+        for viewer in self.GetAllViewerPanels():
             viewer.camera.wireframe = self.wireframe
             viewer.camera.scene.render_bounding_boxes = self.wireframe
             viewer.Refresh()
 
-    def toggle_selection_view(self):
+    def ToggleSelectionView(self):
         self.selection_view = not self.selection_view
 
-        for viewer in self.get_all_viewer_panels():
+        for viewer in self.GetAllViewerPanels():
             viewer.camera.selection_view = self.selection_view
             viewer.Refresh()
 
-    def sync_all_cameras(self, do_sync, save_state):
+    def SyncAllCameras(self, do_sync, save_state):
         pass  # Todo

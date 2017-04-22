@@ -75,28 +75,28 @@ class ViewerPanel(wx.Panel):
         sizer.Add(self.south_resize_area, 0, wx.EXPAND)
 
         # Event handlers
-        self.scene_choice.Bind(wx.EVT_CHOICE, self.on_scene_choice)
-        self.legend_button.Bind(wx.EVT_BUTTON, self.on_legend_label)
-        self.geodata_button.Bind(wx.EVT_BUTTON, self.on_geographic_label)
+        self.scene_choice.Bind(wx.EVT_CHOICE, self.OnSceneChoice)
+        self.legend_button.Bind(wx.EVT_BUTTON, self.OnLegendLabel)
+        self.geodata_button.Bind(wx.EVT_BUTTON, self.OnGeographicLabel)
 
-        self.north_resize_area.Bind(wx.EVT_LEFT_DOWN, self.on_resize_left_down)
-        self.north_resize_area.Bind(wx.EVT_LEFT_UP, self.on_resize_left_up)
-        self.north_resize_area.Bind(wx.EVT_MOTION, self.on_resize_motion)
+        self.north_resize_area.Bind(wx.EVT_LEFT_DOWN, self.OnResizeLeftDown)
+        self.north_resize_area.Bind(wx.EVT_LEFT_UP, self.OnResizeLeftUp)
+        self.north_resize_area.Bind(wx.EVT_MOTION, self.OnResizeMotion)
 
-        self.east_resize_area.Bind(wx.EVT_LEFT_DOWN, self.on_resize_left_down)
-        self.east_resize_area.Bind(wx.EVT_LEFT_UP, self.on_resize_left_up)
-        self.east_resize_area.Bind(wx.EVT_MOTION, self.on_resize_motion)
+        self.east_resize_area.Bind(wx.EVT_LEFT_DOWN, self.OnResizeLeftDown)
+        self.east_resize_area.Bind(wx.EVT_LEFT_UP, self.OnResizeLeftUp)
+        self.east_resize_area.Bind(wx.EVT_MOTION, self.OnResizeMotion)
 
-        self.south_resize_area.Bind(wx.EVT_LEFT_DOWN, self.on_resize_left_down)
-        self.south_resize_area.Bind(wx.EVT_LEFT_UP, self.on_resize_left_up)
-        self.south_resize_area.Bind(wx.EVT_MOTION, self.on_resize_motion)
+        self.south_resize_area.Bind(wx.EVT_LEFT_DOWN, self.OnResizeLeftDown)
+        self.south_resize_area.Bind(wx.EVT_LEFT_UP, self.OnResizeLeftUp)
+        self.south_resize_area.Bind(wx.EVT_MOTION, self.OnResizeMotion)
 
-        self.west_resize_area.Bind(wx.EVT_LEFT_DOWN, self.on_resize_left_down)
-        self.west_resize_area.Bind(wx.EVT_LEFT_UP, self.on_resize_left_up)
-        self.west_resize_area.Bind(wx.EVT_MOTION, self.on_resize_motion)
+        self.west_resize_area.Bind(wx.EVT_LEFT_DOWN, self.OnResizeLeftDown)
+        self.west_resize_area.Bind(wx.EVT_LEFT_UP, self.OnResizeLeftUp)
+        self.west_resize_area.Bind(wx.EVT_MOTION, self.OnResizeMotion)
 
-        self.gl_canvas.Bind(wx.EVT_LEFT_DCLICK, self.on_canvas_dclick)
-        self.gl_canvas.Bind(wx.EVT_RIGHT_DOWN, self.on_canvas_right_click)
+        self.gl_canvas.Bind(wx.EVT_LEFT_DCLICK, self.OnCanvasDClick)
+        self.gl_canvas.Bind(wx.EVT_RIGHT_DOWN, self.OnCanvasRightClick)
 
         # Todo: VI_EVENT_VIZPLUGIN_HAS_NEW_LEGEND event
 
@@ -106,14 +106,14 @@ class ViewerPanel(wx.Panel):
 
         self.legend_window = object()  # Todo: LegendWindow()
 
-        self.refresh_scenes()
+        self.OnRefreshScenes()
 
         # Todo: observable
 
     def __del__(self):
         pass  # Todo
 
-    def set_neighbor(self, neighbor, direction):
+    def SetNeighbor(self, neighbor, direction):
         if direction == self.NORTH:
             self.north_resize_area.Show()
             self.north.append(neighbor)
@@ -130,7 +130,7 @@ class ViewerPanel(wx.Panel):
             self.west_resize_area.Show()
             self.west = neighbor
 
-    def get_neighbor(self, direction):
+    def GetNeighbor(self, direction):
         if direction == self.NORTH:
             return self.north[0] if self.north else None
 
@@ -143,7 +143,7 @@ class ViewerPanel(wx.Panel):
         elif direction == self.WEST:
             return self.west
 
-    def remove_neighbor(self, neighbor):
+    def RemoveNeighbor(self, neighbor):
         self.north.remove(neighbor)
 
         if self.east == neighbor:
@@ -154,29 +154,29 @@ class ViewerPanel(wx.Panel):
         if self.west == neighbor:
             self.west = None
 
-    def reset_neighbors(self):
+    def ResetNeighbors(self):
         self.north = []
         self.east = None
         self.south = []
         self.west = None
 
-    def hide_resize_areas(self):
+    def HideResizeAreas(self):
         self.north_resize_area.Hide()
         self.east_resize_area.Hide()
         self.south_resize_area.Hide()
         self.west_resize_area.Hide()
 
-    def get_scene_choice(self):
+    def GetSceneChoice(self):
         return self.scene_choice.GetSelection()
 
-    def set_scene_choice(self, choice):
+    def SetSceneChoice(self, choice):
         self.scene_choice.SetSelection(choice)
-        self.update_scene()
+        self.UpdateScene()
 
-    def update_scene(self):
+    def UpdateScene(self):
         pass  # Todo
 
-    def on_resize_left_down(self, event):
+    def OnResizeLeftDown(self, event):
         self.resizing_north = self.resizing_east = self.resizing_south = self.resizing_west = False
 
         if event.GetEventObject() == self.north_resize_area:
@@ -203,7 +203,7 @@ class ViewerPanel(wx.Panel):
 
             self.west_resize_area.CaptureMouse()
 
-    def on_resize_left_up(self, event):
+    def OnResizeLeftUp(self, event):
         self.resizing_north = self.resizing_east = self.resizing_south = self.resizing_west = False
 
         if self.north_resize_area.HasCapture():
@@ -215,7 +215,7 @@ class ViewerPanel(wx.Panel):
         if self.west_resize_area.HasCapture():
             self.west_resize_area.ReleaseMouse()
 
-    def on_resize_motion(self, event):
+    def OnResizeMotion(self, event):
         if self.resizing_north:
             diff = self.last_pos - event.y
             parent_height = self.GetParent().GetSize().GetHeight()
@@ -276,47 +276,47 @@ class ViewerPanel(wx.Panel):
             self.width += prop_diff
             self.west.width -= prop_diff
 
-        self.GetParent().update_viewer_sizes()
+        self.GetParent().UpdateViewerSizes()
 
-    def on_canvas_dclick(self, event):
+    def OnCanvasDClick(self, event):
         pass  # Todo
 
-    def on_canvas_right_click(self, event):
+    def OnCanvasRightClick(self, event):
         pass  # Todo
 
-    def on_canvas_popup_menu(self, event):
+    def OnCanvasPopupMenu(self, event):
         pass  # Todo
 
-    def refresh_scenes(self):
+    def OnRefreshScenes(self):
         pass  # Todo
 
-    def fetch_scene_names(self, root):
+    def OnFetchSceneNames(self, root):
         pass  # Todo
 
-    def project_changed(self, event):
+    def OnProjectChanged(self, event):
         pass  # Todo
 
-    def on_scene_choice(self, event):
-        self.update_scene()
+    def OnSceneChoice(self, event):
+        self.UpdateScene()
 
-    def on_legend_label(self, event):
+    def OnLegendLabel(self, event):
         pass  # Todo
 
-    def on_geographic_label(self, event):
+    def OnGeographicLabel(self, event):
         pass  # Todo
 
-    def on_viz_has_new_legend(self, event):
+    def OnVizHasNewLegend(self, event):
         pass  # Todo
 
-    def update_legend(self):
+    def UpdateLegend(self):
         pass  # Todo
 
-    def reset_camera_interactor(self):
+    def ResetCameraInteractor(self):
         pass  # Todo
 
-    def update(self):
+    def Update(self):
         pass  # Todo
 
-    def update_geocoder_info(self):
+    def UpdateGeocoderInfo(self):
         pass  # Todo
 

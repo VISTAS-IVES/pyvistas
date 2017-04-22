@@ -19,10 +19,10 @@ class AppController(wx.EvtHandler):
 
         main_window_state = Preferences.app().get('main_window_state')
         if main_window_state:
-            self.main_window.load_state(main_window_state)
+            self.main_window.LoadState(main_window_state)
 
-        self.main_window.Bind(wx.EVT_MENU, self.on_window_menu)
-        self.main_window.Bind(wx.EVT_CLOSE, self.on_window_close)
+        self.main_window.Bind(wx.EVT_MENU, self.OnWindowMenu)
+        self.main_window.Bind(wx.EVT_CLOSE, self.OnWindowClose)
 
         splash_background = wx.Image(
             os.path.join(paths.get_resources_directory(), 'images', 'splash.png'), wx.BITMAP_TYPE_ANY
@@ -46,21 +46,21 @@ class AppController(wx.EvtHandler):
             splash_composite, wx.adv.SPLASH_TIMEOUT | wx.adv.SPLASH_CENTRE_ON_PARENT, 5000, self.main_window, wx.ID_ANY
         )
 
-    def on_window_menu(self, event):
+    def OnWindowMenu(self, event):
         event_id = event.GetId()
 
         if event_id == wx.ID_ABOUT:
-            self.on_about_menu_item(event)
+            self.OnAboutMenuItem(event)
         elif event_id == wx.ID_EXIT:
             self.main_window.Close()
         elif event_id == MainWindow.MENU_VIEW_ADD_VIEWER:
-            self.main_window.viewer_container_panel.add_viewer()
+            self.main_window.viewer_container_panel.AddViewer()
         elif event_id == MainWindow.MENU_VIEW_REMOVE_VIEWER:
-            self.main_window.viewer_container_panel.remove_viewer()
+            self.main_window.viewer_container_panel.RemoveViewer()
 
         # Todo
 
-    def on_about_menu_item(self, event):
+    def OnAboutMenuItem(self, event):
         info = wx.adv.AboutDialogInfo()
         info.SetName('VISTAS')
         info.SetVersion(version, 'Version {} (Python)'.format(version))
@@ -73,7 +73,7 @@ class AppController(wx.EvtHandler):
 
         wx.adv.AboutBox(info)
 
-    def on_window_close(self, event):
+    def OnWindowClose(self, event):
         # Todo: check project save status
         wx.Exit()
 
