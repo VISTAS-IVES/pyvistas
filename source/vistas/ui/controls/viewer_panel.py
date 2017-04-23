@@ -1,6 +1,9 @@
 import wx
 
+from vistas.core.color import RGBColor
+from vistas.core.graphics.camera import Camera
 from vistas.core.paths import get_resource_bitmap
+from vistas.ui.controls.gl_canvas import GLCanvas
 
 
 class ViewerPanel(wx.Panel):
@@ -47,10 +50,8 @@ class ViewerPanel(wx.Panel):
         self.legend_button.SetToolTip('Show/hide legend')
         self.geodata_button.SetToolTip('Show place names')
 
-        self.camera = object()  # Todo: Camera()
-        self.gl_canvas = wx.Panel(self, wx.ID_ANY)  # Todo
-        self.gl_canvas.SetBackgroundColour(wx.Colour(0, 0, 0))
-
+        self.camera = Camera()
+        self.gl_canvas = GLCanvas(self, wx.ID_ANY, self.camera)  # Todo: attributes
         self.gl_canvas.Refresh()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
