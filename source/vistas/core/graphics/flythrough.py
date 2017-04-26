@@ -110,8 +110,7 @@ class Flythrough:
         low_value = FlythroughPoint()
         lower_value = FlythroughPoint()
         high_value = FlythroughPoint()
-        higher_value = FlythroughPoint()
-        higher_value_found = False
+        higher_value = None
 
         for p_idx, p in enumerate(self._keyframes):
 
@@ -128,9 +127,6 @@ class Flythrough:
             if index < p_idx < high_index:
                 if num_keyframes >= high_index > index:
                     higher_value = self._keyframes[high_index]
-                    higher_value_found = True
-                else:
-                    higher_value_found = False
                 high_index = p_idx
                 high_value = p
 
@@ -142,7 +138,7 @@ class Flythrough:
             return low_value
         else:
             t = (index - low_index) / (high_index - low_index)
-            if not higher_value_found:
+            if higher_value is None:
                 higher_value = FlythroughPoint(
                     high_value.position + high_value.position - low_value.position,
                     high_value.direction + high_value.direction - low_value.direction,
