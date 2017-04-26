@@ -39,19 +39,14 @@ class FlythroughDialog(wx.Frame):
         # camera controls
         draggable_panel = wx.Panel(main_panel, wx.ID_ANY)
         position_label = wx.StaticText(draggable_panel, wx.ID_ANY, "Position: ")
-        self.position_x = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
-        self.position_y = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
-        self.position_z = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
-
         direction_label = wx.StaticText(draggable_panel, wx.ID_ANY, "Direction: ")
-        self.direction_x = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
-        self.direction_y = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
-        self.direction_z = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
-
         up_label = wx.StaticText(draggable_panel, wx.ID_ANY, "Up: ")
-        self.up_x = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
-        self.up_y = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
-        self.up_z = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
+
+        # setup all draggable controls and init with 0 value
+        self.position_x, self.position_y, self.position_z, \
+        self.direction_x, self.direction_y, self.direction_z, \
+        self.up_x, self.up_y, self.up_z = [DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
+                                           for _ in range(9)]
 
         # playback
         playback_panel = wx.Panel(main_panel, wx.ID_ANY)
@@ -144,6 +139,9 @@ class FlythroughDialog(wx.Frame):
         self.UpdateDraggablesFromCamera()
         # Todo: Reset camera interactor position?
 
+    def __del__(self):
+        self.timer.Stop()
+
     def UpdateDraggablesFromCamera(self):
         self.position_x.value, self.position_y.value, self.position_z.value, _ = self.flythrough.camera.get_position().v
         self.direction_x.value, self.direction_y.value, self.direction_z.value, _ = self.flythrough.camera.get_direction().v
@@ -173,6 +171,9 @@ class FlythroughDialog(wx.Frame):
     def OnForward(self, event):
         pass
 
+    def RecalculateKeyframeIndices(self):
+        pass
+
     def OnFPSChange(self, event):
         pass
 
@@ -188,3 +189,5 @@ class FlythroughDialog(wx.Frame):
     def OnCanvasMotion(self, event):
         pass
 
+    def OnPopupMenu(self, event):
+        pass
