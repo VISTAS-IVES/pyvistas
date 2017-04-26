@@ -105,7 +105,7 @@ class FlythroughDialog(wx.Frame):
         draggable_sizer.Add(self.up_z, 0, wx.RIGHT, 5)
         draggable_panel.SetSizer(draggable_sizer)
 
-        playback_sizer = new wx.BoxSizer(wx.HORIZONTAL)
+        playback_sizer = wx.BoxSizer(wx.HORIZONTAL)
         playback_sizer.Add(record_button, 0, wx.ALIGN_CENTRE_VERTICAL | wx.ALL, 5)
         playback_sizer.Add(backward_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         playback_sizer.Add(self.play_pause_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
@@ -128,15 +128,15 @@ class FlythroughDialog(wx.Frame):
         self.Bind(wx.EVT_TIMER, self.OnTimer)
         self.Bind(wx.EVT_SIZE, self.OnSize)
 
-        self.Bind(wx.EVT_COMMAND_BUTTON_CLICKED, self.RecordKeyframe, id=self.FLYTHROUGH_ADD_POINT)
-        self.Bind(wx.EVT_COMMAND_BUTTON_CLICKED, self.OnPlayPause, id=self.FLYTHROUGH_PLAY)
-        self.Bind(wx.EVT_COMMAND_BUTTON_CLICKED, self.OnReset, id=self.FLYTHROUGH_RESET)
-        self.Bind(wx.EVT_COMMAND_BUTTON_CLICKED, self.OnBackward, id=self.FLYTHROUGH_BACKWARD)
-        self.Bind(wx.EVT_COMMAND_BUTTON_CLICKED, self.OnForward, id=self.FLYTHROUGH_FORWARD)
+        self.Bind(wx.EVT_BUTTON, self.RecordKeyframe, id=self.FLYTHROUGH_ADD_POINT)
+        self.Bind(wx.EVT_BUTTON, self.OnPlayPause, id=self.FLYTHROUGH_PLAY)
+        self.Bind(wx.EVT_BUTTON, self.OnReset, id=self.FLYTHROUGH_RESET)
+        self.Bind(wx.EVT_BUTTON, self.OnBackward, id=self.FLYTHROUGH_BACKWARD)
+        self.Bind(wx.EVT_BUTTON, self.OnForward, id=self.FLYTHROUGH_FORWARD)
 
-        self.fps_ctrl.Bind(wx.EVT_COMMAND_TEXT_ENTERED, self.OnFPSChange)
+        self.fps_ctrl.Bind(wx.EVT_TEXT_ENTER, self.OnFPSChange)
         self.fps_ctrl.Bind(wx.EVT_KILL_FOCUS, self.OnFPSChange)
-        self.length_ctrl.Bind(wx.EVT_COMMAND_TEXT_ENTERED, self.OnLengthChange)
+        self.length_ctrl.Bind(wx.EVT_TEXT_ENTER, self.OnLengthChange)
         self.length_ctrl.Bind(wx.EVT_KILL_FOCUS, self.OnLengthChange)
 
         # Todo: RecalculateKeyframeIndices?
@@ -144,12 +144,12 @@ class FlythroughDialog(wx.Frame):
         self.UpdateDraggablesFromCamera()
         # Todo: Reset camera interactor position?
 
-    def UpdateDraggablesFromCamera():
+    def UpdateDraggablesFromCamera(self):
         self.position_x.value, self.position_y.value, self.position_z.value, _ = self.flythrough.camera.get_position().v
         self.direction_x.value, self.direction_y.value, self.direction_z.value, _ = self.flythrough.camera.get_direction().v
         self.up_x.value, self.up_y.value, self.up_z.value, _ = self.flythrough.camera.get_up_vector().v
 
-    def UpdateTimeline():
+    def UpdateTimeline(self):
         pass
 
     def OnTimer(self, event):
