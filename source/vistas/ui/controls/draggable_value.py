@@ -1,4 +1,8 @@
 import wx
+import wx.lib.newevent
+
+# Declare draggable event
+DraggableValueEvent, EVT_DRAG_VALUE_EVENT = wx.lib.newevent.NewEvent()
 
 
 class DraggableValue(wx.Window):
@@ -51,11 +55,10 @@ class DraggableValue(wx.Window):
             return
 
         current_mouse_pos = event.GetPosition()
-        self.value = current_mouse_pos.x - self._mouse_pos.x * self._per_px # intential use of value.setter
+
+        # intentional use of value.setter
+        self.value = current_mouse_pos.x - self._mouse_pos.x * self._per_px
         self._mouse_pos = current_mouse_pos
 
-        # TODO - emit draggable event?
-
-
-
-
+        evt = DraggableValueEvent()
+        wx.PostEvent(self, evt)
