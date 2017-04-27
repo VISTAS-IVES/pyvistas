@@ -21,3 +21,7 @@ def get_resources_directory():
 
 def get_resource_bitmap(name):
     return wx.Image(os.path.join(get_resources_directory(), 'images', name)).ConvertToBitmap()
+
+
+def get_icon(name):
+    return wx.Icon(wx.IconLocation(os.path.join(get_resources_directory(), 'images', name)))
