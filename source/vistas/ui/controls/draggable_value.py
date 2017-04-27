@@ -28,8 +28,8 @@ class DraggableValue(wx.Window):
 
     def OnPaint(self, event):
         dc = wx.BufferedPaintDC(self, self.buffer)
-        dc.SetTextForeground(wx.Colour(0,0,255))
-        dc.SetPen(wx.Pen(wx.Colour(0,0,255), 1, wx.DOT))
+        dc.SetTextForeground(wx.Colour(0, 0, 255))
+        dc.SetPen(wx.Pen(wx.Colour(0, 0, 255), 1, wx.DOT))
         dc.DrawText("{:.2f}".format(self._value))
         width, height = self.GetSize().Get()
         dc.DrawLine(0, height - 2, width, height - 2)
