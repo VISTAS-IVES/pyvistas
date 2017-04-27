@@ -138,20 +138,23 @@ class KeyframeTimeline(wx.Window):
     def OnLeftDoubleClick(self, event):
         if self._selected_keyframe is not None:
             self._current_frame = self._selected_keyframe
-            evt = KeyframeTimelineSelectEvent() # Todo: send along time as attribute?
+            evt = KeyframeTimelineSelectEvent()
+            evt.frame = self._current_frame
             evt.SetEventObject(self)
             wx.PostEvent(self, evt)
             self.Refresh()
 
     def OnLeftUp(self, event):
         if self.HasCapture():
-
             if self._dragging and self._scrub_frame != self._current_frame:
                 self._selected_keyframe = self._scrub_frame
-                evt = KeyframeTimelineUpdateEvent()  # Todo: send along time as attribute?
+                evt = KeyframeTimelineUpdateEvent()
+                evt.frame = self._selected_keyframe
+                evt.scrub_frame = self._scrub_frame
             else:
                 self._current_frame = self._current_frame
-                evt = KeyframeTimelineSelectEvent()  # Todo: send along time as attribute?
+                evt = KeyframeTimelineSelectEvent()
+                evt.frame = self._current_frame
             evt.SetEventObject(self)
             wx.PostEvent(self, evt)
             self._dragging = False
@@ -199,6 +202,7 @@ class KeyframeTimeline(wx.Window):
             self.Refresh()
 
             evt = KeyframeTimelineDeleteEvent()
+            evt.frame = self._selected_keyframe
             evt.SetEventObject(self)
             wx.PostEvent(self, evt)
 

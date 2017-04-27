@@ -2,7 +2,8 @@ from vistas.core.paths import get_icon, get_resource_bitmap
 from vistas.core.graphics.vector import Vector
 from vistas.ui.controls.gl_canvas import GLCanvas
 from vistas.ui.controls.draggable_value import DraggableValue, EVT_DRAG_VALUE_EVENT
-from vistas.ui.controls.keyframe_timeline import KeyframeTimeline
+from vistas.ui.controls.keyframe_timeline import KeyframeTimeline, EVT_KEYTIMELINE_DEL, EVT_KEYTIMELINE_SEL, \
+    EVT_KEYTIMELINE_UPDATE
 
 import wx
 
@@ -188,6 +189,21 @@ class FlythroughDialog(wx.Frame):
         # Todo: UIPostRedisplay?
         # Todo: reset camera interactor position?
         self.UpdateTimeline()
+
+    def OnSelectKeyframe(self, event):
+        self.flythrough.update_camera_to_keyframe(event.frame)
+        self.UpdateDraggablesFromCamera()
+        # Todo: reset camera interactor position?
+
+    def OnDeleteKeyframe(self, event):
+        self.flythrough.remove_keyframe(event.frame)
+
+    def OnUpdateKeyframe(self, event):
+        frame = event.frame
+        point = self.flythrough.get_keyframe_at_index(frame)
+        self.flythrough.remove_keyframe(frame)
+        self.flythrough.add_keyframe(event.scrub_frame, point)
+        self.RecalculateKeyframeIndices()
 
     def OnTimer(self, event):
         pass
