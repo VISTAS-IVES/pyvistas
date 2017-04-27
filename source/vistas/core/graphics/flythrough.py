@@ -164,7 +164,7 @@ class Flythrough:
 
     @property
     def keyframe_indices(self):
-        return list(sorted(self._keyframes.keys(), key=lambda x : x[0]))
+        return list(self._keyframes.keys())
 
     def remove_all_keyframes(self):
         self._keyframes = {}

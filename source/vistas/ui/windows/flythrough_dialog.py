@@ -2,6 +2,7 @@ from vistas.core.paths import get_icon, get_resource_bitmap
 from vistas.core.graphics.vector import Vector
 from vistas.ui.controls.gl_canvas import GLCanvas
 from vistas.ui.controls.draggable_value import DraggableValue, EVT_DRAG_VALUE_EVENT
+from vistas.ui.controls.keyframe_timeline import KeyframeTimeline
 
 import wx
 
@@ -36,8 +37,7 @@ class FlythroughDialog(wx.Frame):
 
         keyframe_panel = wx.Panel(main_panel, wx.ID_ANY)
 
-        # Todo: implement KeyframeTimeline, add args [0, flythrough.num_keyframes, 0, flythrough.fps]
-        self.keyframe_timeline = wx.Panel(keyframe_panel, wx.ID_ANY)
+        self.keyframe_timeline = KeyframeTimeline(keyframe_panel, wx.ID_ANY, flythrough.num_keyframes, flythrough.fps)
 
         # camera controls
         draggable_panel = wx.Panel(main_panel, wx.ID_ANY)
@@ -171,7 +171,10 @@ class FlythroughDialog(wx.Frame):
         self.up_x.value, self.up_y.value, self.up_z.value, _ = self.flythrough.camera.get_up_vector().v
 
     def UpdateTimeline(self):
-        pass
+        if self._auto_keyframe:
+            frame = self.keyframe_timeline.current_frame
+            self.RecalculateKeyframeIndices()
+            self.flythrough.add_keyframe(frame)
 
     def OnDragValue(self, event):
         pos = Vector(self.position_x.value, self.position_y.value, self.position_z.value)
@@ -205,7 +208,14 @@ class FlythroughDialog(wx.Frame):
         pass
 
     def RecalculateKeyframeIndices(self):
-        pass
+        old_max_frame = self.keyframe_timeline.max_frame
+        new_max_frame = self.flythrough.num_keyframes
+        old_current_frame = self.keyframe_timeline.current_frame
+        new_current_frame = int((old_current_frame * new_max_frame) / old_max_frame)
+        self.keyframe_timeline.Clear()
+        self.keyframe_timeline.max_frame = new_max_frame
+        self.keyframe_timeline.current_frame = new_current_frame
+        self.keyframe_timeline.keyframes = self.flythrough.keyframes
 
     def OnFPSChange(self, event):
         fps = int(self.fps_ctrl.GetValue())
