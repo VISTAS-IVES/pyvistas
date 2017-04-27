@@ -10,7 +10,7 @@ from vistas.core.graphics.vector import Vector
 
 class ViewMatrix:
     def __init__(self):
-        self.m = numpy.matrix('1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1', dtype='f')  # Identity matrix
+        self.m = numpy.matrix('1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1', dtype=numpy.float32)  # Identity matrix
 
     def __getitem__(self, item):
         return self.m[item]
@@ -31,6 +31,14 @@ class ViewMatrix:
 
         else:
             raise ValueError("Can't multiply matrix with {}".format(other.__class__.__name__))
+
+    @classmethod
+    def from_gl(cls, mode):
+        matrix = glGetFloatv(mode)
+        obj = cls()
+        obj.m = numpy.matrix(matrix.reshape(4, 4), dtype=numpy.float32)
+
+        return obj
 
     def transpose(self):
         t = ViewMatrix()

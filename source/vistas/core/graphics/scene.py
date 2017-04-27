@@ -25,14 +25,14 @@ class Scene:
         if not self.objects:
             return BoundingBox(0, 0, 0, 0, 0, 0)
 
-        bbox = self.objects[0].bounding_box
+        bbox = self.objects[0].bounds
         for obj in self.objects[1:]:
-            bbox.min_x = min(obj.bounding_box.min_x, bbox.min_x)
-            bbox.max_x = max(obj.bounding_box.max_x, bbox.max_x)
-            bbox.min_y = min(obj.bounding_box.min_y, bbox.min_y)
-            bbox.max_y = max(obj.bounding_box.max_y, bbox.max_y)
-            bbox.min_z = min(obj.bounding_box.min_z, bbox.min_z)
-            bbox.max_z = max(obj.bounding_box.max_z, bbox.max_z)
+            bbox.min_x = min(obj.bounds.min_x, bbox.min_x)
+            bbox.max_x = max(obj.bounds.max_x, bbox.max_x)
+            bbox.min_y = min(obj.bounds.min_y, bbox.min_y)
+            bbox.max_y = max(obj.bounds.max_y, bbox.max_y)
+            bbox.min_z = min(obj.bounds.min_z, bbox.min_z)
+            bbox.max_z = max(obj.bounds.max_z, bbox.max_z)
 
         return bbox
 
