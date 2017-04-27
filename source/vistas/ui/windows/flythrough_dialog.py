@@ -206,22 +206,60 @@ class FlythroughDialog(wx.Frame):
         self.RecalculateKeyframeIndices()
 
     def OnTimer(self, event):
-        pass
+        frame = self.keyframe_timeline.current_frame
+        self.flythrough.update_camera_to_keyframe(frame)
+        self.UpdateDraggablesFromCamera()
+        if frame < self.flythrough.num_keyframes:
+            frame = frame + 1
+            self.keyframe_timeline.current_frame = frame
+            self.timer.Start(1000 / self.flythrough.fps, wx.TIMER_ONE_SHOT)
+        else:
+            self.play_pause_button.SetBitmapLabel(self.play_label)
+            # Todo: reset camera interactor position?
 
     def RecordKeyframe(self, event):
-        pass
+        frame = self.keyframe_timeline.current_frame
+        self.flythrough.add_keyframe(frame)
+        self.keyframe_timeline.AddKeyframe(frame)
+        frame = frame + min(self.flythrough.fps, self.flythrough.num_keyframes - frame)
+        self.keyframe_timeline.current_frame = frame
 
     def OnPlayPause(self, event):
-        pass
+        if not self.timer.IsRunning():
+            self.timer.Start(1000 / self.flythrough.fps, wx.TIMER_ONE_SHOT)
+            self.play_pause_button.SetBitmapLabel(self.pause_label)
+        else:
+            self.timer.Stop()
+            self.play_pause_button.SetBitmapLabel(self.play_label)
+            # Todo: reset camera interactor position?
+        event.Skip()
 
     def OnReset(self, event):
-        pass
+        if self.timer.IsRunning():
+            self.timer.Stop()
+            self.play_pause_button.SetBitmapLabel(self.play_label)
+        self.keyframe_timeline.current_frame = 0
+        self.flythrough.update_camera_to_keyframe(0)
+        # Todo: reset camera interactor position?
+        self.UpdateDraggablesFromCamera()
 
     def OnBackward(self, event):
-        pass
+        frame = self.keyframe_timeline.current_frame
+        if frame > 0:
+            frame = frame - 1
+            self.keyframe_timeline.current_frame = frame
+            self.flythrough.update_camera_to_keyframe(frame)
+        self.UpdateDraggablesFromCamera()
+        # Todo: reset camera interactor position?
 
     def OnForward(self, event):
-        pass
+        frame = self.keyframe_timeline.current_frame
+        if frame < self.flythrough.num_keyframes:
+            frame = frame + 1
+            self.keyframe_timeline.current_frame = frame
+            self.flythrough.update_camera_to_keyframe(frame)
+        self.UpdateDraggablesFromCamera()
+        # Todo: reset camera interactor position?
 
     def RecalculateKeyframeIndices(self):
         old_max_frame = self.keyframe_timeline.max_frame
