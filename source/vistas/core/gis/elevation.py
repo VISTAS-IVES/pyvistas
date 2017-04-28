@@ -90,7 +90,7 @@ class ElevationService:
                 # determine position within grid
                 p_x = numpy.floor((lon - w) / (e - w) * self.TILE_SIZE)
                 p_y = numpy.floor((1 - ((lat - s) / (n - s)) * self.TILE_SIZE))
-                height_grid[j][i] = grid[p_y,p_x]
+                height_grid[j][i] = grid[p_y][p_x]
 
         self._write_esri_grid_ascii_file(save_path, height_grid, native_extent, res)
         # Todo: create new RasterDataPlugin from
