@@ -6,7 +6,7 @@ import numpy
 from PIL import Image
 from pyproj import Proj, transform
 from io import BytesIO
-from vistas.core.plugins.data import DataPlugin
+from vistas.core.plugins.data import RasterDataPlugin
 from vistas.core.paths import get_resources_directory
 
 
@@ -60,8 +60,8 @@ class ElevationService:
             asyncio.get_event_loop().run_until_complete(asyncio.gather(*requests))
 
     def create_dem(self, plugin, save_path):
-        if plugin.data_type != DataPlugin.RASTER:
-            raise ValueError("DEM generation only supported for raster based plugins.")
+        if not isinstance(plugin, RasterDataPlugin):
+            raise ValueError("DEM generation only supported for raster-based plugins.")
 
         if plugin.extent.projection is None:
             raise ValueError("Plugin extent has no projection info")
