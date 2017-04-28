@@ -2,10 +2,6 @@ import datetime
 from bisect import insort
 
 
-class TimelineFilter:
-    pass # Todo: implement
-
-
 class Timeline:
     _global_timeline = None
 
@@ -26,18 +22,11 @@ class Timeline:
         self._min_step = None
         self._timestamps = []
 
-        # Todo: implement TimelineFilter
-        # self._filtered_timestamps = []  # potentially unneeded, since we can filter on the fly now
-        # self._use_filter = False
-
-    @property
-    def timestamps(self):
-        # return self._filtered_timestamps if self._use_filter else self._timestamps
-        return self._timestamps
-
-    @property
-    def num_timestamps(self):
-        return len(self._timestamps)
+        # filter settings
+        self.use_filter = False
+        self.filter_start_time = start_time
+        self.filter_end_time = end_time
+        self.filter_interval = self._min_step
 
     @property
     def start_time(self):
@@ -78,9 +67,29 @@ class Timeline:
     def min_step(self):
         return self._min_step
 
+    @property
+    def timestamps(self):
+        if self.use_filter:
+            filtered_steps = []
+            step = self.filter_start_time
+            while step <= self.filter_end_time:
+                if step in self._timestamps:
+                    filtered_steps.append(step)
+                step = step + self.filter_interval
+            return filtered_steps
+        return self._timestamps
+
+    @property
+    def num_timestamps(self):
+        return len(self.timestamps)
+
     def reset(self):
+        zero = datetime.datetime.fromtimestamp(0)
         self._timestamps = []
-        self._start_time, self._end_time, self._current_time = [datetime.datetime.fromtimestamp(0)] * 3
+        self._start_time, self._end_time, self._current_time = [zero] * 3
+        self.filter_start_time, self.filter_end_time, self.filter_interval = [zero] * 3
+        self._min_step, self.filter_interval = [zero] * 2
+        self.use_filter = False
 
     def add_timestamp(self, timestamp: datetime.datetime):
         if timestamp not in self._timestamps:
@@ -97,7 +106,7 @@ class Timeline:
                 self._min_step = diff if diff < self._min_step else self._min_step
 
     def index_at_time(self, time: datetime.datetime):
-        return self._timestamps.index(time)
+        return self.timestamps.index(time)
 
     @property
     def current_index(self):
