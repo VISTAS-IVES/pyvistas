@@ -2,3 +2,7 @@ numpy==1.12.1
 PyOpenGL==3.1.0
 PyOpenGL-accelerate==3.1.1a1
 wxPython==4.0.0a11
+Pillow==4.1.0
+aiohttp==2.0.7
+mercantile
+pyproj==1.9.5.1
