@@ -55,7 +55,7 @@ class ElevationService:
                 z, x, y = str(t.z), str(t.x), str(t.y)
                 path = self._get_tile_path(z, x, y)
                 if not os.path.exists(path):
-                    url = self.AWS_ELEVATION.replace("{z}", z).replace("{x}", x).replace("{y}", y)
+                    url = self.AWS_ELEVATION.format(z=z, x=x, y=y)
                     requests.append(fetch_tile(client, url, path))
             asyncio.get_event_loop().run_until_complete(asyncio.gather(*requests))
 
