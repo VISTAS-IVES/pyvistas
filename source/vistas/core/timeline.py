@@ -1,6 +1,12 @@
 import datetime
 from bisect import insort
 
+import wx
+import wx.lib
+
+TimelineValueChangedEvent, EVT_TIMELINE_VALUE_CHANGED = wx.NewEventType()
+TimelineAttrChangedEvent, EVT_TIMELINE_ATTR_CHANGED = wx.NewEventType()
+
 
 class Timeline:
     _global_timeline = None
@@ -35,7 +41,7 @@ class Timeline:
     @start_time.setter
     def start_time(self, value: datetime.datetime):
         self._start_time = value
-        # Todo: TimelineEvent?
+        wx.PostEvent(self, TimelineAttrChangedEvent(time=self._current_time))
 
     @property
     def end_time(self):
@@ -44,7 +50,7 @@ class Timeline:
     @end_time.setter
     def end_time(self, value):
         self._end_time = value
-        # Todo: TimelineEvent?
+        wx.PostEvent(self, TimelineAttrChangedEvent(time=self._current_time))
 
     @property
     def current_time(self):
@@ -61,7 +67,7 @@ class Timeline:
                 # Go to nearest floor step
                 value = list(filter(lambda x: x > value, self._timestamps))[0]
         self._current_time = value
-        # Todo: TimelineEvent?
+        wx.PostEvent(self, TimelineValueChangedEvent(time=self._current_time))
 
     @property
     def min_step(self):
@@ -114,3 +120,16 @@ class Timeline:
 
     def time_at_index(self, index):
         return self.timestamps[index]
+
+    def forward(self, steps=1):
+        index = self.current_index + steps
+        if index > len(self.timestamps):
+            self._current_time = self.end_time
+        elif index < 0:
+            self._current_time = self.start_time
+        else:
+            self._current_time = self.timestamps[index]
+        wx.PostEvent(self, TimelineValueChangedEvent(time=self._current_time))
+
+    def back(self, steps=1):
+        self.forward(steps * -1)
