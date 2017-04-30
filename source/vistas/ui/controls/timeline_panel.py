@@ -1,6 +1,89 @@
-from vistas.core.timeline import Timeline, EVT_TIMELINE_ATTR_CHANGED, EVT_TIMELINE_VALUE_CHANGED
+import datetime
+
+from vistas.core.timeline import Timeline
+from vistas.core.paths import get_resource_bitmap
+from vistas.ui.controls.static_bitmap_button import StaticBitmapButton
 
 import wx
+
+
+class PlaybackOptionsFrame(wx.Frame):
+
+    def __init__(self, parent, id):
+        super().__init__(parent, id, "Playback Options")
+        self.SetWindowStyle(wx.FRAME_NO_TASKBAR | wx.FRAME_FLOAT_ON_PARENT)
+        self.SetSize(180, 90)
+
+        timeline_panel = parent
+        panel = wx.Panel(self, wx.ID_ANY)
+        panel.SetSize(self.GetSize())
+        panel_sizer = wx.BoxSizer(wx.VERTICAL)
+        self._live_update = wx.CheckBox(panel, wx.ID_ANY, "Live Update")
+        self._show_every_frame = wx.CheckBox(panel, wx.ID_ANY, "Show Every Frame")
+        self._uniform_time_intervals = wx.CheckBox(panel, wx.ID_ANY, "Uniform Time Intervals")
+        label = wx.StaticText(self, wx.ID_ANY, "Animation Speed")
+        # Todo: Add self._animation_slider (Implement EditableSlider)
+
+        self._live_update.SetToolTip("Dragging the timeline cursor automatically updates the scene")
+        self._show_every_frame.SetToolTip("Force the visualization to render every timestep (performace many be affected")
+        self._uniform_time_intervals.SetToolTip("Display timestamps evenly on the timeline")
+
+        panel.SetSizer(panel_sizer)
+        panel_sizer.Add(label)
+        # Todo: Add self._animation_slider (Implement EditableSlider)
+        panel_sizer.Add(self._live_update, 0, wx.ALIGN_LEFT, 5)
+        panel_sizer.AddSpacer(2)
+        panel_sizer.Add(self._show_every_frame, 0, wx.ALIGN_LEFT, 5)
+        panel_sizer.AddSpacer(2)
+        panel_sizer.Add(self._uniform_time_intervals, 0, wx.ALIGN_LEFT, 5)
+
+        # Todo: Bind self._animation_slider (Implement EditableSlider)
+        self._live_update.Bind(wx.EVT_CHECKBOX, timeline_panel.OnLiveUpdate)
+        self._show_every_frame.Bind(wx.EVT_CHECKBOX, timeline_panel.OnShowEveryFrame)
+        self._uniform_time_intervals.Bind(wx.EVT_CHECKBOX, timeline_panel.OnUniformTimeIntervals)
+
+        while parent is not None:
+            parent.Bind(wx.EVT_MOVE, self.OnMove)
+            parent.Bind(wx.EVT_PAINT, self.OnFramePaint)
+            parent = parent.GetParent()
+
+    @property
+    def expanded(self):
+        return self.IsShown()
+
+    @property
+    def live_update(self):
+        return self._live_update.GetValue()
+
+    @property
+    def show_every_frame(self):
+        return self._show_every_frame.GetValue()
+
+    @property
+    def uniform_time_intervals(self):
+        return self._uniform_time_intervals.GetValue()
+
+    def Reposition(self):
+        btn = self.GetParent().playback_options_button
+        pos = btn.GetScreenPosition()
+        btn_width, btn_height = btn.GetSize().Get()
+        w, h = self.GetSize().Get()
+        self.SetPosition(wx.Point(pos.x - w + btn_width, pos.y - h - btn_height / 2))
+
+    def OnMove(self, event):
+        self.Reposition()
+        event.Skip()
+
+    def OnFramePaint(self, event):
+        self.Reposition()
+        event.Skip()
+
+    def ExpandOptions(self):
+        self.SendSizeEvent()
+        self.Show()
+
+    def CollapseOptions(self):
+        self.Hide()
 
 
 class TimelineCtrl(wx.Control):
@@ -190,3 +273,121 @@ class TimelineCtrl(wx.Control):
     def OnAttrChanged(self, event):
         self._calculate_px_ratio()
         self.Refresh()
+
+
+class TimelinePanel(wx.Panel):
+
+    BUTTONS = (("step_to_beginning_button", "Step to beginning"),
+               ("step_backward_button", "Step backward one frame"),
+               ("play_button", "Play animation"),
+               ("step_forward_button", "Step forward one frame"),
+               ("step_to_end_button", "Step to end"),
+               ("playback_options_button", "Expand playback options"))
+
+    def __int__(self, parent, id):
+        super().__init__(parent, id)
+
+        self.SetMinSize(wx.Size(200, 40))
+
+        self.timeline_ctrl = TimelineCtrl(self, wx.ID_ANY, Timeline.app())
+        self.playback_options_frame = PlaybackOptionsFrame(self, wx.ID_ANY) # Todo: Implement PlaybackOptionsWindow
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.SetSizer(sizer)
+
+        for name in self.BUTTONS:
+            setattr(self, name[0], StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap(name),
+                                                      wx.DefaultPosition, wx.Size(20, 20)))
+            btn = getattr(self, name[0])
+            btn.SetToolTip(name[1])
+            if name[0] != self.BUTTONS[-1][0]:
+                sizer.Add(btn, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+            else:
+                sizer.Add(self.timeline_ctrl, 1, wx.LEFT, 8)
+                sizer.Add(btn, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+        self.play_bitmap = self.play_button.label_bitmap
+        self.pause_bitmap = get_resource_bitmap("pause_button")
+
+        self.timer = wx.Timer(self, wx.ID_ANY)
+        self._playing = False
+
+        self.step_to_beginning_button.Bind(wx.EVT_BUTTON, self.OnStepToBeginningButton)
+        self.step_backward_button.Bind(wx.EVT_BUTTON, self.OnStepBackwardButton)
+        self.play_button.Bind(wx.EVT_BUTTON, self.OnPlayButton)
+        self.step_forward_button.Bind(wx.EVT_BUTTON, self.OnStepForwardButton)
+        self.step_to_end_button.Bind(wx.EVT_BUTTON, self.OnStepToEndButton)
+        self.playback_options_button.Bind(wx.EVT_BUTTON, self.OnPlaybackOptionsButton)
+
+        self.Bind(wx.EVT_TIMER, self.OnTimer)
+        self.Fit()
+
+    def _calc_frames_skipped(self, value):
+        now = datetime.datetime.now()
+        diff = self._last_frame - now
+        if value < diff:
+            return int(diff / value)
+        else:
+            return 0
+
+    def OnStepToBeginningButton(self, event):
+        self.timeline_ctrl.timeline.current_time = self.timeline_ctrl.timeline.start_time
+
+    def OnStepBackwardButton(self, event):
+        if self.timeline_ctrl.timeline.current_index > 0:
+            self.timeline_ctrl.timeline.back()
+
+    def OnPlayButton(self, event):
+        self._playing = not self._playing
+
+        if self._playing and not self.timer.IsRunning():
+            self.timer.Start(1, wx.TIMER_ONE_SHOT)
+        elif self.timer.IsRunning():
+            self.timer.Stop()
+
+        if self._playing:
+            bitmap = self.pause_bitmap
+        else:
+            bitmap = self.play_bitmap
+
+        self.play_button.label_bitmap = bitmap
+        event.Skip()
+
+    def OnStepForwardButton(self, event):
+        if self.timeline_ctrl.timeline.current_time < self.timeline_ctrl.timeline.end_time:
+            self.timeline_ctrl.timeline.forward()
+
+    def OnStepToEndButton(self, event):
+        self.timeline_ctrl.timeline.current_time = self.timeline_ctrl.timeline.end_time
+
+    def OnTimer(self, event):
+        if self.timeline_ctrl.timeline.current_time < self.timeline_ctrl.timeline.end_time:
+            speed = 1000 / self.timeline_ctrl.animation_speed
+
+            if self.timeline_ctrl.show_every_frame:
+                self.timeline_ctrl.timeline.forward()
+            else:
+                self.timeline_ctrl.timeline.forward(1 + self._calc_frames_skipped(speed))
+            self._last_frame = datetime.datetime.now()
+            self.timer.Start(speed, wx.TIMER_ONE_SHOT)
+        else:
+            self._playing = False
+            self.play_button.label_bitmap = self.play_bitmap
+
+    def OnAnimationSpeedSlider(self, event):
+        # Todo: Implement EditableSlider
+        pass
+
+    def OnPlaybackOptionsButton(self, event):
+        if self.playback_options_frame.expanded:
+            self.playback_options_frame.CollapseOptions()
+        else:
+            self.playback_options_frame.ExpandOptions()
+
+    def OnLiveUpdate(self, event):
+        self.timeline_ctrl.live_update = self.playback_options_frame.live_update
+
+    def OnShowEveryFrame(self, event):
+        self.timeline_ctrl.show_every_frame = self.playback_options_frame.show_every_frame
+
+    def OnUniformTimeIntervals(self, event):
+        self.timeline_ctrl.uniform_time_intervals = self.playback_options_frame.uniform_time_intervals
