@@ -3,6 +3,7 @@ import datetime
 from vistas.core.timeline import Timeline
 from vistas.core.paths import get_resource_bitmap
 from vistas.ui.controls.static_bitmap_button import StaticBitmapButton
+from vistas.ui.controls.editable_slider import EditableSlider, EVT_SLIDER_CHANGE_EVENT
 
 import wx
 
@@ -21,8 +22,8 @@ class PlaybackOptionsFrame(wx.Frame):
         self._live_update = wx.CheckBox(panel, wx.ID_ANY, "Live Update")
         self._show_every_frame = wx.CheckBox(panel, wx.ID_ANY, "Show Every Frame")
         self._uniform_time_intervals = wx.CheckBox(panel, wx.ID_ANY, "Uniform Time Intervals")
-        label = wx.StaticText(self, wx.ID_ANY, "Animation Speed")
-        # Todo: Add self._animation_slider (Implement EditableSlider)
+        label = wx.StaticText(panel, wx.ID_ANY, "Animation Speed")
+        self._animation_slider = EditableSlider(panel, wx.ID_ANY, 0.5, 20.0, 1.0)
 
         self._live_update.SetToolTip("Dragging the timeline cursor automatically updates the scene")
         self._show_every_frame.SetToolTip("Force the visualization to render every timestep (performace many be affected")
@@ -30,14 +31,14 @@ class PlaybackOptionsFrame(wx.Frame):
 
         panel.SetSizer(panel_sizer)
         panel_sizer.Add(label)
-        # Todo: Add self._animation_slider (Implement EditableSlider)
+        panel_sizer.Add(self._animation_slider, 0, wx.EXPAND | wx.BOTTOM, 5)
         panel_sizer.Add(self._live_update, 0, wx.ALIGN_LEFT, 5)
         panel_sizer.AddSpacer(2)
         panel_sizer.Add(self._show_every_frame, 0, wx.ALIGN_LEFT, 5)
         panel_sizer.AddSpacer(2)
         panel_sizer.Add(self._uniform_time_intervals, 0, wx.ALIGN_LEFT, 5)
 
-        # Todo: Bind self._animation_slider (Implement EditableSlider)
+        self._animation_slider.Bind(EVT_SLIDER_CHANGE_EVENT, timeline_panel.OnAnimationSpeedSlider)
         self._live_update.Bind(wx.EVT_CHECKBOX, timeline_panel.OnLiveUpdate)
         self._show_every_frame.Bind(wx.EVT_CHECKBOX, timeline_panel.OnShowEveryFrame)
         self._uniform_time_intervals.Bind(wx.EVT_CHECKBOX, timeline_panel.OnUniformTimeIntervals)
@@ -50,6 +51,10 @@ class PlaybackOptionsFrame(wx.Frame):
     @property
     def expanded(self):
         return self.IsShown()
+
+    @property
+    def animation_speed(self):
+        return self._animation_slider.value
 
     @property
     def live_update(self):
@@ -374,8 +379,7 @@ class TimelinePanel(wx.Panel):
             self.play_button.label_bitmap = self.play_bitmap
 
     def OnAnimationSpeedSlider(self, event):
-        # Todo: Implement EditableSlider
-        pass
+        self.timeline_ctrl.animation_speed = self.playback_options_frame.animation_speed
 
     def OnPlaybackOptionsButton(self, event):
         if self.playback_options_frame.expanded:
