@@ -88,6 +88,25 @@ class Timeline:
     def num_timestamps(self):
         return len(self.timestamps)
 
+    @property
+    def time_format(self):
+        _format = "%B %d, %Y"
+
+        hours, minutes, seconds = [False] * 3
+        for t in self.timestamps:
+            hours = not hours and t.hours > 0
+            minutes = not minutes and t.minutes > 0
+            seconds = not seconds and t.seconds > 0
+            if hours and minutes and seconds:
+                break
+
+        if hours or minutes or seconds:
+            _format = _format + " %H:%M"
+            if seconds:
+                _format = _format + ":%S"
+
+        return _format
+
     def reset(self):
         zero = datetime.datetime.fromtimestamp(0)
         self._timestamps = []

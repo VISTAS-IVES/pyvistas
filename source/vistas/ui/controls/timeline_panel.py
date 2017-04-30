@@ -159,7 +159,7 @@ class TimelineCtrl(wx.Control):
         start = self.timeline.start_time
         end = self.timeline.end_time
         min_step = self.timeline.min_step
-        format = "%H:%M:%S" # Todo: implment timeline.time_format
+        format = self.timeline.time_format
 
         w = self.GetSize().x - 1
         y_offset = dc.GetTextExtent(current.strftime(format)).y = 5
@@ -224,8 +224,7 @@ class TimelineCtrl(wx.Control):
     def OnSize(self, event):
         dc = wx.WindowDC(self)
 
-        # Todo: format = self.timeline.time_format (Implement self.timeline.time_format as a property)
-        text_size = dc.GetTextExtent(self.timeline.current_time.strftime("%H:%M:%S"))
+        text_size = dc.GetTextExtent(self.timeline.current_time.strftime(self.timeline.time_format))
         if self.timeline.start_time == self.timeline.end_time:
             self.SetMinSize(wx.Size(0, self.HEIGHT + 5 + text_size.y + 5))
         else:
@@ -295,7 +294,7 @@ class TimelinePanel(wx.Panel):
         self.SetMinSize(wx.Size(200, 40))
 
         self.timeline_ctrl = TimelineCtrl(self, wx.ID_ANY, Timeline.app())
-        self.playback_options_frame = PlaybackOptionsFrame(self, wx.ID_ANY) # Todo: Implement PlaybackOptionsWindow
+        self.playback_options_frame = PlaybackOptionsFrame(self, wx.ID_ANY)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.SetSizer(sizer)
 
