@@ -3,6 +3,7 @@ from importlib.util import spec_from_file_location, module_from_spec
 
 from vistas.core.plugins.data import DataPlugin, ArrayDataPlugin, RasterDataPlugin, FeatureDataPlugin
 from vistas.core.plugins.interface import PluginBase
+from vistas.core.plugins.visualization import VisualizationPlugin, VisualizationPlugin3D, VisualizationPlugin2D
 
 
 def load_plugins(path):
@@ -27,6 +28,24 @@ def get_plugins():
     """ A list of all loaded plugins """
 
     return PluginBase._plugins_by_name.values()
+
+
+def get_visualization_plugins():
+    """ A list of all visualization plugins """
+
+    return get_plugins_of_type(VisualizationPlugin)
+
+
+def get_3d_visualization_plugins():
+    """ A list of all 3D visualization plugins """
+
+    return get_plugins_of_type(VisualizationPlugin3D)
+
+
+def get_2d_visualization_plugins():
+    """ A list of all 2D visualization plugins """
+
+    return get_plugins_of_type(VisualizationPlugin2D)
 
 
 def get_data_plugins():

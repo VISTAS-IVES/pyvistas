@@ -17,12 +17,12 @@ class VisualizationPlugin(Plugin):
     def data_roles(self):
         raise NotImplemented
 
-    def SetData(self, data: DataPlugin, role):
+    def set_data(self, data: DataPlugin, role):
         """ Set data in a specific role for the visualization """
 
         raise NotImplemented
 
-    def GetData(self, role) -> DataPlugin:
+    def get_data(self, role) -> DataPlugin:
         """ Get the data associated with a specific role """
 
         raise NotImplemented
