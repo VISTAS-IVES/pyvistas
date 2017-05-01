@@ -1,6 +1,7 @@
 import wx
+import wx.lib.newevent
 
-EditableSliderEvent, EVT_SLIDER_CHANGE_EVENT = wx.NewEventType()
+EditableSliderEvent, EVT_SLIDER_CHANGE_EVENT = wx.lib.newevent.NewEvent()
 
 
 class EditableSlider(wx.Panel):
