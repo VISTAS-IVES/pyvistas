@@ -3,7 +3,7 @@ from vistas.core.graphics.vector import Vector
 # Todo: consider having a default viewmatrix state that does not change between scenes.
 
 
-class CameraInteractorBase:
+class CameraInteractor:
 
     SPHERE = 'sphere'
     FREELOOK = 'freelook'
@@ -11,16 +11,16 @@ class CameraInteractorBase:
 
     camera_type = None
 
-    def __init__(self, scene=None, interactor=None):    # , point=None, object=None): Todo: are these ever used?
+    def __init__(self, camera=None, interactor=None):    # , point=None, object=None): Todo: are these ever used?
 
         self.left_down = False
         self.right_down = False
 
         # camera inherits from scene or interactor
-        if issubclass(type(interactor), CameraInteractorBase):
+        if issubclass(type(interactor), CameraInteractor):
             self.camera = interactor.camera
-        elif scene is not None:
-            self.camera = scene.camera
+        elif camera is not None:
+            self.camera = camera.scene
         else:
             raise ValueError("No valid scene or interactor provided.")
 
@@ -63,11 +63,11 @@ class CameraInteractorBase:
         pass  # implemented by subclasses
 
 
-class SphereInteractor(CameraInteractorBase):
+class SphereInteractor(CameraInteractor):
 
-    def __init__(self, *args):
-        self.camera_type = CameraInteractorBase.SPHERE
-        super().__init__(*args)
+    def __init__(self, camera=None, interactor=None):
+        self.camera_type = CameraInteractor.SPHERE
+        super().__init__(*[camera, interactor])
 
     def mouse_motion(self, dx, dy, shift, alt, ctrl):
         friction = 100
@@ -129,11 +129,11 @@ class SphereInteractor(CameraInteractorBase):
         self.refresh_position()
 
 
-class FreelookInteractor(CameraInteractorBase):
+class FreelookInteractor(CameraInteractor):
 
-    def __init__(self, *args):
-        self.camera_type = CameraInteractorBase.FREELOOK
-        super().__init__(*args)
+    def __init__(self, camera=None, interactor=None):
+        self.camera_type = CameraInteractor.FREELOOK
+        super().__init__(*[camera, interactor])
 
     def mouse_motion(self, dx, dy, shift, alt, ctrl):
         friction = 5.0
@@ -167,9 +167,9 @@ class FreelookInteractor(CameraInteractorBase):
 
 class PanInteractor(SphereInteractor):
 
-    def __init__(self, *args):
-        super().__init__(*args)
-        self.camera_type = CameraInteractorBase.PAN
+    def __init__(self, camera=None, interactor=None):
+        super().__init__(*[camera, interactor])
+        self.camera_type = CameraInteractor.PAN
 
     def mouse_motion(self, dx, dy, shift, alt, ctrl):
         friction = 200
