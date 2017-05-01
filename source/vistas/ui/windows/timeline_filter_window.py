@@ -1,6 +1,6 @@
 import datetime
 
-from vistas.core.timeline import Timeline
+from vistas.core.timeline import Timeline, EVT_TIMELINE_VALUE_CHANGED
 
 import wx
 import wx.lib.calendar
@@ -8,7 +8,7 @@ import wx.adv
 
 
 class TimeIntervalPanel(wx.Panel):
-    def __init__(self, parent, id, interval: datetime.timedelta):
+    def __init__(self, parent, id):
         super().__init__(parent, id)
 
         ctrl_size = wx.Size(69, -1)
@@ -105,7 +105,7 @@ class TimeFilterWindow(wx.Window):
         calendar_sizer.Add(end_sizer, 0, wx.EXPAND | wx.RIGHT | wx.LEFT, 10)
         panel_sizer.Add(calendar_sizer, 0, wx.EXPAND | wx.ALL, 10)
 
-        self.interval_panel = TimeIntervalPanel(main_panel, wx.ID_ANY, self.timeline.filter_interval)
+        self.interval_panel = TimeIntervalPanel(main_panel, wx.ID_ANY)
         panel_sizer.Add(self.interval_panel)
 
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -125,7 +125,7 @@ class TimeFilterWindow(wx.Window):
         self.apply_button.Bind(wx.EVT_BUTTON, self.OnApply)
         self.reset_button.Bind(wx.EVT_BUTTON, self.OnReset)
 
-        # Todo: listen to timeline events
+        self.Bind(EVT_TIMELINE_VALUE_CHANGED, self.OnTimelineChange)
 
         self.Show()
         self.SetFocus()
@@ -210,4 +210,4 @@ class TimeFilterWindow(wx.Window):
         self.Refresh()
 
     def OnTimelineChange(self, event):
-        pass    # Todo: listen to timeline changes?
+        self.UpdateFromTimeline()
