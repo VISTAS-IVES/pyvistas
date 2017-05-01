@@ -51,6 +51,10 @@ class DataPlugin(Plugin):
 
         raise NotImplemented
 
+    @staticmethod
+    def is_valid_file(path):
+        return False
+
 
 class ArrayDataPlugin(DataPlugin):
     """ Base class for 1-dimensional array data """
