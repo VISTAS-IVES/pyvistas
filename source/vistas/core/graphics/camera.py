@@ -64,7 +64,7 @@ class ViewMatrix:
 
     @staticmethod
     def translate(x, y, z):
-        t = ViewMatrix
+        t = ViewMatrix()
         t[3,0] = x
         t[3,1] = y
         t[3,2] = z
