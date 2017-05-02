@@ -2,6 +2,7 @@ import sys
 import wx.lib.newevent
 
 PluginOptionChangedEvent, EVT_PLUGIN_OPTION_CHANGED = wx.lib.newevent.NewEvent()
+PluginNewOptionAvailableEvent, EVT_PLUGIN_NEW_OPTION_AVAILABLE = wx.lib.newevent.NewEvent()
 
 
 class Option:
@@ -14,13 +15,13 @@ class Option:
     FLOAT = 'float'
     COLOR = 'color'
     CHECKBOX = 'checkbox'
-    RADIO = 'radio'
+    RADIOS = 'radios'
     CHOICE = 'choice'
     SLIDER = 'slider'
     FILE = 'file'
 
     TYPES = (NONE, SPACER, LABEL, TEXT, INT, FLOAT, COLOR,
-             CHECKBOX, RADIO, CHOICE, SLIDER, FILE)
+             CHECKBOX, RADIOS, CHOICE, SLIDER, FILE)
 
     def __init__(
         self, plugin=None, option_type=None, name=None, default_value=None, min_value=None, max_value=None, step=None
@@ -35,7 +36,7 @@ class Option:
         self.min_value = sys.float_info.min if min_value is None else min_value
         self.max_value = sys.float_info.max if max_value is None else max_value
         self.step = step
-        self._labels = []
+        self.labels = []
 
     @property
     def value(self):
