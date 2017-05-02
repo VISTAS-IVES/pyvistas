@@ -2,9 +2,10 @@ import datetime
 from bisect import insort
 
 import wx
+import wx.lib.newevent
 
-TimelineValueChangedEvent, EVT_TIMELINE_VALUE_CHANGED = wx.NewEventType()
-TimelineAttrChangedEvent, EVT_TIMELINE_ATTR_CHANGED = wx.NewEventType()
+TimelineValueChangedEvent, EVT_TIMELINE_VALUE_CHANGED = wx.lib.newevent.NewEvent()
+TimelineAttrChangedEvent, EVT_TIMELINE_ATTR_CHANGED = wx.lib.newevent.NewEvent()
 
 
 class Timeline:
