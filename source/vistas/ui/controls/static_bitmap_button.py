@@ -27,87 +27,81 @@ class StaticBitmapButton(wx.Window):
         # trigger update
         self.label_bitmap = label
 
-    def update(self, setter_func):
-        def wrap(*args, **kwargs):
-            # Apply function
-            setter_func(*args, **kwargs)
+    def UpdateBitmap(self):
+        enabled = self.IsEnabled()
+        if enabled and self._click and self._selected_bitmap.IsOk():
+            bitmap = self._selected_bitmap
+        elif enabled and (self._click or self._hover) and self._hover_bitmap.IsOk():
+            bitmap = self._hover_bitmap
+        elif not (enabled and self._disabled_bitmap.IsOk()):
+            bitmap = self._disabled_bitmap
+        else:
+            bitmap = self._label_bitmap
 
-            # update the current bitmap
-            enabled = self.IsEnabled()
-            if enabled and self._click and self._selected_bitmap.IsOk():
-                bitmap = self._selected_bitmap
-            elif enabled and (self._click or self._hover) and self._hover_bitmap.IsOk():
-                bitmap = self._hover_bitmap
-            elif not (enabled and self._disabled_bitmap.IsOk()):
-                bitmap = self._disabled_bitmap
-            else:
-                bitmap = self._label_bitmap
-
-            self.SetSize(bitmap.GetWidth() + 2, bitmap.GetHeight() + 2)
-            self._current_bitmap = bitmap
-            self.Refresh()
-        return wrap
+        self.SetSize(bitmap.GetWidth() + 2, bitmap.GetHeight() + 2)
+        self._current_bitmap = bitmap
+        self.Refresh()
 
     @property
     def disabled_bitmap(self):
         return self._disabled_bitmap
 
-    @update
     @disabled_bitmap.setter
     def disabled_bitmap(self, value):
         self._disabled_bitmap = value
+        self.UpdateBitmap()
 
     @property
     def hover_bitmap(self):
         return self._hover_bitmap
 
-    @update
     @hover_bitmap.setter
     def hover_bitmap(self, value):
         self._hover_bitmap = value
+        self.UpdateBitmap()
 
     @property
     def label_bitmap(self):
         return self._label_bitmap
 
-    @update
     @label_bitmap.setter
     def label_bitmap(self, value):
         self._label_bitmap = value
+        self.UpdateBitmap()
 
     @property
     def selected_bitmap(self):
         return self._selected_bitmap
 
-    @update
     @selected_bitmap.setter
     def selected_bitmap(self, value):
         self._selected_bitmap = value
+        self.UpdateBitmap()
 
     def OnPaint(self, event):
         dc = wx.AutoBufferedPaintDC(self)
         dc.DrawBitmap(self._current_bitmap, 1, 1, True)
 
-    @update
     def OnMouseEnter(self, event):
         if not self.IsEnabled():
             return
         self._hover = True
         if not event.LeftIsDown():
             self._click = False
+        self.UpdateBitmap()
 
-    @update
     def OnMouseLeave(self, event):
         self._hover = False
+        self.UpdateBitmap()
 
-    @update
     def OnLeftDown(self, event):
         self._click = False
+        self.UpdateBitmap()
 
-    @update
     def OnLeftUp(self, event):
         if self._click:
             evt = wx.CommandEvent(wx.EVT_BUTTON)
             evt.SetEventObject(self)
             wx.PostEvent(self, evt)
         self._click = False
+        self.UpdateBitmap()
