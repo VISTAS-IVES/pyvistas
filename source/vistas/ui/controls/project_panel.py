@@ -52,7 +52,7 @@ class ProjectPanel(wx.Panel):
         self.visualization_tree.Expand(self.visualization_tree.GetRootItem())
 
         self.notebook.AddPage(self.data_tree, 'Data')
-        self.notebook.Page(self.visualization_tree, 'Visualizations')
+        self.notebook.AddPage(self.visualization_tree, 'Visualizations')
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(sizer)
