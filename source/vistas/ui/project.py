@@ -264,9 +264,9 @@ class FlythroughNode(ProjectNode):
         return self._flythrough
 
     @flythrough.setter
-    def is_flythrough(self, value):
+    def flythrough(self, value):
         self._flythrough = value
-        self.is_dirty = True
+        self.dirty = True
 
     @classmethod
     def load(cls, data):
