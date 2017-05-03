@@ -4,8 +4,8 @@ from vistas.core.paths import get_resource_bitmap
 
 
 class ProjectTreeCtrl(wx.TreeCtrl):
-    def __init__(self, style=wx.TR_HAS_BUTTONS, *args, **kwargs):
-        super().__init__(style=style, *args, **kwargs)
+    def __init__(self, parent, id, style=wx.TR_HAS_BUTTONS, *args, **kwargs):
+        super().__init__(parent, id, style=style, *args, **kwargs)
 
         images = wx.ImageList(20, 20, True, 5)
         images.Add(get_resource_bitmap('folder_icon.png'))
@@ -42,12 +42,15 @@ class ProjectPanel(wx.Panel):
         self.notebook = wx.Notebook(self, wx.ID_ANY, style=wx.NB_TOP)
 
         tree_style = (
-            wx.TR_EDIT_LABELS | wx.TR_NO_LINES | wx.TR_FULL_ROW_HIGHLIGHT | wx.TR_EXTENDED | wx.TR_HAS_BUTTONS |
-            wx.TR_LINES_AT_ROOT
+            wx.TR_EDIT_LABELS | wx.TR_NO_LINES | wx.TR_FULL_ROW_HIGHLIGHT | wx.TR_HAS_BUTTONS | wx.TR_LINES_AT_ROOT
         )
 
         self.data_tree = ProjectTreeCtrl(self.notebook, wx.ID_ANY, style=tree_style)
         self.visualization_tree = ProjectTreeCtrl(self.notebook, wx.ID_ANY, style=tree_style)
+
+        self.data_tree.AddRoot('Project Data')
+        self.visualization_tree.AddRoot('Project Visualizations')
+
         self.data_tree.Expand(self.data_tree.GetRootItem())
         self.visualization_tree.Expand(self.visualization_tree.GetRootItem())
 
@@ -57,7 +60,3 @@ class ProjectPanel(wx.Panel):
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(sizer)
         sizer.Add(self.notebook, 1, wx.EXPAND)
-
-        self.data_tree.AddRoot('Project Data')
-        self.visualization_tree.AddRoot('Project Visualizations')
-

@@ -2,6 +2,8 @@ import wx
 
 from vistas.core.paths import get_resource_bitmap
 from vistas.core.utils import get_platform
+from vistas.ui.controllers.project import ProjectController
+from vistas.ui.controls.project_panel import ProjectPanel
 from vistas.ui.controls.viewer_container_panel import ViewerContainerPanel
 
 
@@ -142,7 +144,7 @@ class MainWindow(wx.Frame):
         left_splitter = wx.SplitterWindow(
             left_panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.SP_3DSASH | wx.SP_LIVE_UPDATE
         )
-        project_panel = wx.Panel(left_splitter, wx.ID_ANY)  # Todo
+        project_panel = ProjectPanel(left_splitter, wx.ID_ANY)
         options_panel = wx.Panel(left_splitter, wx.ID_ANY)  # Todo
 
         left_splitter.SplitHorizontally(project_panel, options_panel, 0)
@@ -159,7 +161,7 @@ class MainWindow(wx.Frame):
 
         # Todo: expand button
 
-        # Todo: project controller
+        self.project_controller = ProjectController(project_panel)
         
     def SerializeState(self):
         pos = self.GetPosition()

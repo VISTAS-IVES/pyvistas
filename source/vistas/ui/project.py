@@ -235,7 +235,7 @@ class SceneNode(FolderNode):
     def scene(self):
         return self._scene
 
-    @property.setter
+    @scene.setter
     def scene(self, value):
         self._scene = value
         self.dirty = True
@@ -332,7 +332,7 @@ class Project:
         self.data_root = FolderNode.load(data['data_root'])
         self.visualization_root = FolderNode.load(data['visualization_root'])
 
-        # Todo export configuration, timeline filter
+        # Todo: export configuration, timeline filter
 
     @property
     def all_visualizations(self):

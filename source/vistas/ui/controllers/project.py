@@ -12,12 +12,7 @@ from vistas.ui.project import Project, SceneNode, FolderNode, VisualizationNode
 
 logger = logging.getLogger(__name__)
 
-EVT_COMMAND_PROJECT_CHANGED = wx.lib.newevent.NewEvent()[1]
-
-
-class ProjectTreeData(wx.TreeItemData):
-    def __init__(self, node):
-        self.node = node
+ProjectChangedEventBase, EVT_COMMAND_PROJECT_CHANGED = wx.lib.newevent.NewEvent()
 
 
 class ProjectTreeMenu(wx.Menu):
@@ -29,13 +24,13 @@ class ProjectTreeMenu(wx.Menu):
 
 
 class ProjectController(wx.EvtHandler):
-    POPUP_RENAME = 0
-    POPUP_ADD_FOLDER = 1
-    POPUP_ADD_DATA_FILE = 2
-    POPUP_ADD_SCENE = 3
-    POPUP_ADD_VISUALIZATION = 4
-    POPUP_ADD_FLYTHROUGH = 5
-    POPUP_DELETE = 6
+    POPUP_RENAME = 1
+    POPUP_ADD_FOLDER = 2
+    POPUP_ADD_DATA_FILE = 3
+    POPUP_ADD_SCENE = 4
+    POPUP_ADD_VISUALIZATION = 5
+    POPUP_ADD_FLYTHROUGH = 6
+    POPUP_DELETE = 7
 
     scene_count = 0
     flythrough_count = 0
@@ -107,12 +102,12 @@ class ProjectController(wx.EvtHandler):
                 default_scene_node = SceneNode(Scene('Default Scene'), 'Default Scene', self.project.visualization_root)
                 tree_parent = self.project_panel.visualization_tree.GetRootItem()
                 self.project_panel.visualization_tree.AppendSceneItem(
-                    tree_parent, default_scene_node.label, ProjectTreeData(default_scene_node)
+                    tree_parent, default_scene_node.label, default_scene_node
                 )
 
-            data_tree.SetItemData(data_tree.GetRootItem(), ProjectTreeData(self.project.data_root))
+            data_tree.SetItemData(data_tree.GetRootItem(), self.project.data_root)
             visualization_tree.SetItemData(
-                visualization_tree.GetRootItem(), ProjectTreeData(self.project.visualization_root)
+                visualization_tree.GetRootItem(), self.project.visualization_root
             )
             data_tree.SetItemHasChildren(data_tree.GetRootItem(), True)
             visualization_tree.SetItemHasChildren(visualization_tree.GetRootItem(), True)
@@ -234,16 +229,16 @@ class ProjectController(wx.EvtHandler):
                 tree_parent = self.RecursiveFindByNode(
                     self.project_panel.data_tree, self.project_panel.data_tree.GetRootItem(), parent
                 )
-                if not tree_parent.IsOK():
+                if not tree_parent.IsOk():
                     tree_parent = self.project_panel.data_tree.GetRootItem()
 
                 tree = self.project_panel.data_tree
                 node = self.project.add_data(parent, plugin, plugin.data_name)
-                tree.AppendDataItem(tree_parent, node.label, ProjectTreeData(node))
+                tree.AppendDataItem(tree_parent, node.label, node)
 
                 tree.Expand(tree_parent)
 
-                pce = ProjectChangedEvent(node, ProjectChangedEvent.ADDED_DATA)
+                pce = ProjectChangedEvent(node=node, change=ProjectChangedEvent.ADDED_DATA)
                 wx.PostEvent(wx.GetTopLevelParent(self.project_panel), pce)
                 self.UpdateTimeline(self.project.data_root)
 
@@ -267,13 +262,13 @@ class ProjectController(wx.EvtHandler):
 
             node = VisualizationNode(plugin, plugin.name, parent)
             self.project_panel.visualization_tree.AppendVisualizationItem(
-                tree_parent, node.label, ProjectTreeData(node)
+                tree_parent, node.label, node
             )
 
             # Todo: viz dialog show
             # Todo: set options
 
-            pce = ProjectChangedEvent(node, ProjectChangedEvent.ADDED_VISUALIZATION)
+            pce = ProjectChangedEvent(node=node, change=ProjectChangedEvent.ADDED_VISUALIZATION)
             wx.PostEvent(wx.GetTopLevelParent(self.project_panel), pce)
 
     def AddScene(self, parent):
@@ -287,7 +282,7 @@ class ProjectController(wx.EvtHandler):
         if not tree_parent.IsOk():
             tree_parent = self.project_panel.visualization_tree.GetRootItem()
         tree_item = self.project_panel.visualization_tree.AppendSceneItem(
-            tree_parent, node.label, ProjectTreeData(node)
+            tree_parent, node.label, node
         )
 
         self.project_panel.visualization_tree.Collapse(tree_parent)
@@ -298,7 +293,7 @@ class ProjectController(wx.EvtHandler):
         if edit_ctrl is not None:
             edit_ctrl.SetSelection(-1, -1)
 
-        pce = ProjectChangedEvent(node, ProjectChangedEvent.ADDED_SCENE)
+        pce = ProjectChangedEvent(node=node, change=ProjectChangedEvent.ADDED_SCENE)
         wx.PostEvent(wx.GetTopLevelParent(self.project_panel), pce)
 
     def AddFolder(self, parent):
@@ -318,7 +313,7 @@ class ProjectController(wx.EvtHandler):
                 return
 
         node = FolderNode('New Folder', parent)
-        tree_item = tree.AppendFolderItem(tree_parent, node.label, ProjectTreeData(node))
+        tree_item = tree.AppendFolderItem(tree_parent, node.label, node)
 
         tree.Collapse(tree_parent)
         tree.EnsureVisible(tree_item)
@@ -328,7 +323,7 @@ class ProjectController(wx.EvtHandler):
         if edit_ctrl is not None:
             edit_ctrl.SetSelection(-1, -1)
 
-        pce = ProjectChangedEvent(node, ProjectChangedEvent.ADDED_FOLDER)
+        pce = ProjectChangedEvent(node=node, change=ProjectChangedEvent.ADDED_FOLDER)
         wx.PostEvent(wx.GetTopLevelParent(self.project_panel), pce)
 
     def AddFlythrough(self, parent):
@@ -352,7 +347,7 @@ class ProjectController(wx.EvtHandler):
             self.RecursiveDeleteNode(node)
             self.RefreshTimeline()
 
-            pce = ProjectChangedEvent(node, ProjectChangedEvent.DELETED_ITEM)
+            pce = ProjectChangedEvent(node=node, change=ProjectChangedEvent.DELETED_ITEM)
             wx.PostEvent(wx.GetTopLevelParent(self.project_panel), pce)
 
     def OnTreeKeyDown(self, event):
@@ -377,31 +372,28 @@ class ProjectController(wx.EvtHandler):
 
     def OnTreeItemEndEdit(self, event):
         tree = event.GetEventObject()
-        item_data = tree.GetItemData(event.GetItem())
+        node = tree.GetItemData(event.GetItem())
 
-        if item_data is not None:
-            node = item_data.node
+        if node is not None:
             if event.IsEditCancelled():
                 node.label = event.GetLabel()
 
-            pce = ProjectChangedEvent(node, ProjectChangedEvent.RENAMED_ITEM)
+            pce = ProjectChangedEvent(node=node, change=ProjectChangedEvent.RENAMED_ITEM)
             wx.PostEvent(wx.GetTopLevelParent(self.project_panel), pce)
 
     def OnTreeItemRightClick(self, event):
         tree = event.GetEventObject()
-        item_data = tree.GetItemData(event.GetItem())
+        node = tree.GetItemData(event.GetItem())
         popup_menu = ProjectTreeMenu(tree, event.GetItem())
 
-        if item_data is not None:
-            node = item_data.node
-
+        if node is not None:
             if node != self.project.data_root and node != self.project.visualization_root:
                 popup_menu.Append(self.POPUP_RENAME, 'Rename')
 
             if tree == self.project_panel.data_tree and node.is_folder:
                 popup_menu.Append(self.POPUP_ADD_DATA_FILE, 'Add data from file...')
 
-            if tree == self.project_panel.visualization_tree and node.is_folder:
+            if tree == self.project_panel.visualization_tree and node.is_folder and not node.is_scene:
                 popup_menu.Append(self.POPUP_ADD_SCENE, 'Add scene')
 
             if tree == self.project_panel.visualization_tree and not node.is_visualization:
@@ -424,7 +416,7 @@ class ProjectController(wx.EvtHandler):
     def OnTreePopupMenu(self, event):
         tree = event.GetEventObject().tree
         item = event.GetEventObject().item
-        node = tree.GetItemData(item).node
+        node = tree.GetItemData(item)
         event_id = event.GetId()
 
         if event_id == self.POPUP_RENAME:
@@ -460,32 +452,31 @@ class ProjectController(wx.EvtHandler):
             self.drag_item = item
 
     def OnTreeEndDrag(self, event):
-        if self.drag_item.IsOK() and event.GetItem().IsOk():
+        if self.drag_item.IsOk() and event.GetItem().IsOk():
             tree = event.GetEventObject()
-            target_item = tree.GetItemData(event.GetItemData()).node
+            target_item = tree.GetItemData(event.GetItem())
             selections = tree.GetSelections()
 
-            for index in selections:
-                selection = selections[index]
-                drag_item = tree.GetItemData(selection).node
+            for selection in selections:
+                drag_item = tree.GetItemData(selection)
                 parent = tree.GetItemParent(selection)
 
                 if (parent.IsOk() and tree.IsSelected(parent)) or target_item == drag_item:
                     continue
 
                 target_root = target_item
-                while target_root.GetParent() is not None:
-                    target_root = target_root.GetParent()
+                while target_root.parent is not None:
+                    target_root = target_root.parent
 
                     if target_root == drag_item:
                         break
 
-                if target_root == drag_item or target_root.GetParent() is not None:
+                if target_root == drag_item or target_root.parent is not None:
                     continue
 
                 drag_root = drag_item
-                while drag_root.GetParent() is not None:
-                    drag_root = drag_root.GetParent()
+                while drag_root.parent is not None:
+                    drag_root = drag_root.parent
 
                 if drag_root != target_root:
                     continue
@@ -499,11 +490,9 @@ class ProjectController(wx.EvtHandler):
 
     def OnTreeItemActivate(self, event):
         tree = event.GetEventObject()
-        item_data = tree.GetItemData(event.GetItem())
+        proj_item = tree.GetItemData(event.GetItem())
 
-        if item_data is not None:
-            proj_item = item_data.node
-
+        if proj_item is not None:
             if proj_item.is_data:
                 pass  # Todo: DataDialog
 
@@ -517,8 +506,7 @@ class ProjectController(wx.EvtHandler):
                 event.Skip(True)
 
     def OnTreeItemSelected(self, event):
-        item_data = self.project_panel.visualization_tree.GetItemData(event.GetItem())
-        node = item_data.node
+        node = self.project_panel.visualization_tree.GetItemData(event.GetItem())
         main_window = wx.GetTopLevelParent(self.project_panel)
 
         if node.is_visualization:
@@ -534,9 +522,9 @@ class ProjectController(wx.EvtHandler):
             event.Skip()
 
     def RecursiveFindByNode(self, tree, tree_item, node):
-        data = tree.GetItemData(tree_item)
+        tree_node = tree.GetItemData(tree_item)
 
-        if data.node == node:
+        if tree_node == node:
             return tree_item
 
         elif tree.ItemHasChildren(tree_item):
@@ -545,7 +533,7 @@ class ProjectController(wx.EvtHandler):
             while child.IsOk():
                 item = self.RecursiveFindByNode(tree, child, node)
 
-                if item.IsOK():
+                if item.IsOk():
                     return item
 
                 else:
@@ -553,7 +541,7 @@ class ProjectController(wx.EvtHandler):
 
         return wx.TreeItemId()
 
-    def RecursiveDeleteNode(self, node, delete_root):
+    def RecursiveDeleteNode(self, node, delete_root=True):
         if node.is_folder or node.is_scene:
             children = node.children
 
@@ -592,12 +580,12 @@ class ProjectController(wx.EvtHandler):
         pass  # Todo
 
     def RecursiveReparentTreeItem(self, tree, item, new_parent):
-        data = tree.GetItemData(item)
+        node = tree.GetItemData(item)
         new_id = tree.AppendItem(new_parent, tree.GetItemText(item), tree.GetItemImage(item))
 
-        tree.SetItemData(new_id, ProjectTreeData(data.node))
+        tree.SetItemData(new_id, node)
 
-        if data.node.is_folder:
+        if node.is_folder:
             tree.SetItemHasChildren(new_id, True)
 
         child, cookie = tree.GetFirstChild(item)
@@ -613,12 +601,12 @@ class ProjectController(wx.EvtHandler):
         visualization_tree = self.project_panel.visualization_tree
 
         data_tree.DeleteChildren(data_tree.GetRootItem())
-        data_tree.SetItemData(data_tree.GetRootItem(), ProjectTreeData(project.data_root))
+        data_tree.SetItemData(data_tree.GetRootItem(), project.data_root)
         self.AddTreeChildrenFromNode(project, project.data_root, data_tree, data_tree.GetRootItem())
         data_tree.Expand(data_tree.GetRootItem())
 
         visualization_tree.DeleteChildren(visualization_tree.GetRootItem())
-        visualization_tree.SetItemData(visualization_tree.GetRootItem(), ProjectTreeData(project.visualization_root))
+        visualization_tree.SetItemData(visualization_tree.GetRootItem(), project.visualization_root)
         self.AddTreeChildrenFromNode(
             project, project.visualization_root, visualization_tree, visualization_tree.GetRootItem()
         )
@@ -626,31 +614,29 @@ class ProjectController(wx.EvtHandler):
 
     def AddTreeChildrenFromNode(self, project, node, tree, parent):
         for child in node.children:
-            tree_data = ProjectTreeData(child)
-
             if child.is_data:
-                tree.AppendDataItem(parent, child.label, tree_data)
+                tree.AppendDataItem(parent, child.label, child)
 
-                pce = ProjectChangedEvent(node, ProjectChangedEvent.ADDED_DATA)
+                pce = ProjectChangedEvent(node=node, change=ProjectChangedEvent.ADDED_DATA)
                 wx.PostEvent(wx.GetTopLevelParent(self.project_panel), pce)
 
             elif child.is_visualization:
                 tree.AppendVisualizationItem()
 
             elif child.is_scene:
-                tree_item = tree.AppendSceneItem(parent, child.scene.name, tree_data)
+                tree_item = tree.AppendSceneItem(parent, child.scene.name, child)
                 self.AddTreeChildrenFromNode(self.project, child, tree, tree_item)
 
                 ProjectController.scene_count += 1
 
-                pce = ProjectChangedEvent(node, ProjectChangedEvent.ADDED_SCENE)
+                pce = ProjectChangedEvent(node=node, change=ProjectChangedEvent.ADDED_SCENE)
                 wx.PostEvent(wx.GetTopLevelParent(self.project_panel), pce)
 
             elif child.is_folder:
-                tree_item = tree.AppendFolderItem(parent, child.label, tree_data)
+                tree_item = tree.AppendFolderItem(parent, child.label, child)
                 self.AddTreeChildrenFromNode(project, child, tree, tree_item)
 
-class ProjectChangedEvent(wx.PyCommandEvent):
+class ProjectChangedEvent(ProjectChangedEventBase):
     ADDED_VISUALIZATION = 'added_visualization'
     ADDED_FOLDER = 'added_folder'
     ADDED_DATA = 'added_data'
@@ -661,7 +647,4 @@ class ProjectChangedEvent(wx.PyCommandEvent):
     PROJECT_RESET = 'project_reset'
 
     def __init__(self, node=None, change=None):
-        super().__init__(EVT_COMMAND_PROJECT_CHANGED, 0)
-
-        self.node = node
-        self.change = change
+        super().__init__(node=node, change=change)
