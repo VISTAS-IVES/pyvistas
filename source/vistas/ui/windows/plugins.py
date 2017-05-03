@@ -2,25 +2,22 @@ from vistas.core.plugins.management import get_plugins
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.visualization import VisualizationPlugin
 from vistas.core.paths import get_icon
-from vistas.ui.controls.list_ctrl import ListCtrl
 
 import wx
-
+import wx.core
 
 class PluginsWindow(wx.Frame):
-    def __int__(self, parent, id):
+    def __init__(self, parent, id):
         super().__init__(parent, id, "Plugins")
         self.SetSize(500, 400)
         self.SetIcon(get_icon("plugin.ico"))
         self.CenterOnParent()
 
-        self.plugins = []
-
         main_panel = wx.Panel(self)
         main_splitter = wx.SplitterWindow(main_panel)
         main_splitter.SetWindowStyle(wx.SP_3DSASH | wx.SP_LIVE_UPDATE)
 
-        self.plugins_list = ListCtrl(main_splitter, wx.ID_ANY)
+        self.plugins_list = wx.ListCtrl(main_splitter, wx.ID_ANY)
         self.plugins_list.SetWindowStyle(wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.LC_HRULES | wx.LC_AUTOARRANGE)
 
         self.plugin_details_panel = wx.Panel(main_splitter)
@@ -73,10 +70,12 @@ class PluginsWindow(wx.Frame):
         self.HidePluginDetails()
 
         self.Bind(wx.EVT_CLOSE, self.OnWindowClose)
-        # Todo: OnLoadPlugin/VI_EVENT_PLUGIN_LOADED event?
-        self.plugins_list.Bind(wx.wxEVT_LIST_ITEM_SELECTED, self.OnItemSelected)
-        self.plugins_list.Bind(wx.wxEVT_LIST_ITEM_DESELECTED, self.OnItemDeselected)
-        main_splitter.Bind(wx.wxEVT_SPLITTER_SASH_POS_CHANGED, self.OnSashChanged)
+        self.plugins_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnItemSelected)
+        self.plugins_list.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnItemDeselected)
+
+        self.plugins = get_plugins()
+        for p in self.plugins:
+            self.AddPlugin(p)
 
     def HidePluginDetails(self):
         self.no_plugin_static.Show()
@@ -105,7 +104,6 @@ class PluginsWindow(wx.Frame):
         self.description_label_static.Show()
         self.description_static.Show()
         self.plugin_details_panel.Layout()
-        self.Resize()
 
     def SetPluginDetails(self, plugin):
         self.name_static.SetLabel(plugin.name)
@@ -136,25 +134,9 @@ class PluginsWindow(wx.Frame):
     def OnWindowClose(self, event):
         self.Hide()
 
-    def OnLoadPlugin(self, event):
-        #self.AddPlugin(event.plugin_factory)
-        #self.plugins.append(event.plugin_factory)
-        # Todo: plugin factory?
-        pass
-
     def OnItemSelected(self, event):
-        #self.SetPluginDetails(self.plugins[event.index])
-        #self.ShowPluginDetails()
-        pass
+        self.SetPluginDetails(self.plugins[event.index])
+        self.ShowPluginDetails()
 
     def OnItemDeselected(self, event):
         self.HidePluginDetails()
-
-    def OnSashChanged(self, event):
-        self.Resize()
-
-    def Resize(self):
-        window_size = self.GetSize().Get()
-        cur_size = self.plugin_details_panel.GetSize().Get()
-        min_size = self.plugin_details_sizer.GetMinSize().Get()
-        self.SetSize(wx.Size(-1, min_size.y + window_size.y - cur_size.y))

@@ -8,14 +8,19 @@ from vistas.core import paths
 from vistas.core.plugins.management import load_plugins
 from vistas.core.preferences import Preferences
 from vistas.ui.windows.main import MainWindow
+from vistas.ui.windows.plugins import PluginsWindow
 
 
 class AppController(wx.EvtHandler):
     def __init__(self):
+        super().__init__()
         load_plugins(paths.get_builtin_plugins_directory())
 
         self.main_window = MainWindow(None, wx.ID_ANY)
         self.main_window.Show()
+
+        self.plugins_window = PluginsWindow(self.main_window, wx.ID_ANY)
+        self.plugins_window.Hide()
 
         main_window_state = Preferences.app().get('main_window_state')
         if main_window_state:
@@ -57,6 +62,9 @@ class AppController(wx.EvtHandler):
             self.main_window.viewer_container_panel.AddViewer()
         elif event_id == MainWindow.MENU_VIEW_REMOVE_VIEWER:
             self.main_window.viewer_container_panel.RemoveViewer()
+        elif event_id == MainWindow.MENU_WINDOW_PLUGINS:
+            self.plugins_window.Show()
+            self.plugins_window.Raise()
 
         # Todo
 
