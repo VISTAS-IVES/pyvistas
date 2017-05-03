@@ -20,7 +20,7 @@ class CameraInteractor:
         if issubclass(type(interactor), CameraInteractor):
             self.camera = interactor.camera
         elif camera is not None:
-            self.camera = camera.scene
+            self.camera = camera
         else:
             raise ValueError("No valid scene or interactor provided.")
 
