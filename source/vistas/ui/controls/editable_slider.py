@@ -23,8 +23,13 @@ class EditableSlider(wx.Panel):
 
         self._min_value = min_value
         self._max_value = max_value
+        self._value = value
 
-        self._value = None
+        self.Bind(wx.EVT_COMMAND_SCROLL, self.OnScroll)
+        self.Bind(wx.EVT_TEXT, self.OnTextChange)
+        self.Bind(wx.EVT_TEXT_ENTER, self.OnTextEnter)
+        self.Bind(wx.EVT_KILL_FOCUS, self.OnLoseFocus)
+        self.Bind(wx.EVT_TIMER, self.OnTimer)
 
     def _update_slider(self, value, slider=True, text=True, send_event=False):
         if value < self._min_value:
@@ -40,7 +45,8 @@ class EditableSlider(wx.Panel):
             self.text.SetValue("{:.2f}".format(value))
 
         if send_event:
-            evt = EditableSliderEvent(self)
+            evt = EditableSliderEvent()
+            evt.SetEventObject(self)
             evt.value = value
             wx.PostEvent(self, evt)
 
@@ -72,7 +78,7 @@ class EditableSlider(wx.Panel):
 
     def OnScroll(self, event):
         self.timer.Stop()
-        self._update_slider(self._value *(self._max_value - self._min_value) / 100 * self._min_value,
+        self._update_slider(self.slider.GetValue() * (self._max_value - self._min_value) / 100 + self._min_value,
                             False, True, True)
 
     def OnTextChange(self, event):

@@ -22,9 +22,11 @@ class Timeline:
 
     def __init__(self, start_time=None, end_time=None, current_time=None):
 
-        self._start_time = start_time
-        self._end_time = end_time
-        self._current_time = current_time
+        init_time = datetime.datetime.fromtimestamp(0)
+
+        self._start_time = init_time if start_time is None else start_time
+        self._end_time = init_time if end_time is None else end_time
+        self._current_time = init_time if current_time is None else current_time
         self._min_step = None
         self._timestamps = []
 
@@ -33,6 +35,10 @@ class Timeline:
         self.filter_start_time = start_time
         self.filter_end_time = end_time
         self.filter_interval = self._min_step
+
+    @property
+    def enabled(self):
+        return self.start_time != self.end_time
 
     @property
     def start_time(self):
@@ -58,16 +64,17 @@ class Timeline:
 
     @current_time.setter
     def current_time(self, value: datetime.datetime):
-        if value not in self._timestamps:
-            if value > self._timestamps[-1]:
-                value = self._timestamps[-1]
-            elif value < self._timestamps[0]:
-                value = self._timestamps[0]
-            else:
-                # Go to nearest floor step
-                value = list(filter(lambda x: x > value, self._timestamps))[0]
-        self._current_time = value
-        wx.PostEvent(self, TimelineValueChangedEvent(time=self._current_time))
+        if self.enabled:
+            if value not in self._timestamps:
+                if value > self._timestamps[-1]:
+                    value = self._timestamps[-1]
+                elif value < self._timestamps[0]:
+                    value = self._timestamps[0]
+                else:
+                    # Go to nearest floor step
+                    value = list(filter(lambda x: x > value, self._timestamps))[0]
+            self._current_time = value
+            wx.PostEvent(self, TimelineValueChangedEvent(time=self._current_time))
 
     @property
     def min_step(self):

@@ -1,7 +1,8 @@
 import datetime
 
-from vistas.core.timeline import Timeline
+from vistas.core.timeline import Timeline, EVT_TIMELINE_VALUE_CHANGED, EVT_TIMELINE_ATTR_CHANGED
 from vistas.core.paths import get_resource_bitmap
+from vistas.core.utils import get_transparent_paint_dc
 from vistas.ui.controls.static_bitmap_button import StaticBitmapButton
 from vistas.ui.controls.editable_slider import EditableSlider, EVT_SLIDER_CHANGE_EVENT
 
@@ -11,9 +12,8 @@ import wx
 class PlaybackOptionsFrame(wx.Frame):
 
     def __init__(self, parent, id):
-        super().__init__(parent, id, "Playback Options")
-        self.SetWindowStyle(wx.FRAME_NO_TASKBAR | wx.FRAME_FLOAT_ON_PARENT)
-        self.SetSize(180, 90)
+        super().__init__(parent, id, "Playback Options", style=wx.FRAME_NO_TASKBAR | wx.FRAME_FLOAT_ON_PARENT)
+        self.SetSize(180, 95)
 
         timeline_panel = parent
         panel = wx.Panel(self, wx.ID_ANY)
@@ -23,7 +23,7 @@ class PlaybackOptionsFrame(wx.Frame):
         self._show_every_frame = wx.CheckBox(panel, wx.ID_ANY, "Show Every Frame")
         self._uniform_time_intervals = wx.CheckBox(panel, wx.ID_ANY, "Uniform Time Intervals")
         label = wx.StaticText(panel, wx.ID_ANY, "Animation Speed")
-        self._animation_slider = EditableSlider(panel, wx.ID_ANY, 0.5, 20.0, 1.0)
+        self._animation_slider = EditableSlider(panel, wx.ID_ANY, min_value=0.5, max_value=20.0, value=1.0)
 
         self._live_update.SetToolTip("Dragging the timeline cursor automatically updates the scene")
         self._show_every_frame.SetToolTip("Force the visualization to render every timestep (performace many be affected")
@@ -97,8 +97,7 @@ class TimelineCtrl(wx.Control):
     HEIGHT = 10
 
     def __init__(self, parent, id, timeline=None):
-        super().__init__(parent, id)
-        self.SetWindowStyle(wx.BORDER_NONE)
+        super().__init__(parent, id, style=wx.BORDER_NONE)
 
         if timeline is None:
             timeline = Timeline.app()
@@ -113,9 +112,16 @@ class TimelineCtrl(wx.Control):
         self.px_per_step = None
         self._calculate_px_ratio()
 
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(EVT_TIMELINE_VALUE_CHANGED, self.OnValueChanged)
+        self.Bind(EVT_TIMELINE_ATTR_CHANGED, self.OnAttrChanged)
+
     def _calculate_px_ratio(self):
         width = self.GetSize().x - self.CURSOR_WIDTH
-        if self._uniform_time_intervals:
+
+        if self.timeline.start_time == self.timeline.end_time:
+            self.px_per_step = 0
+        elif self._uniform_time_intervals:
             self.px_per_step = width / (self.timeline.num_timestamps - 1)
         else:
             self.px_per_step = width / ((self.timeline.end_time - self.timeline.start_time) / self.timeline.min_step)
@@ -152,9 +158,7 @@ class TimelineCtrl(wx.Control):
         return end
 
     def OnPaint(self, event):
-
-        dc = wx.AutoBufferedPaintDC(self)
-
+        dc = get_transparent_paint_dc(self)
         current = self.timeline.current_time
         start = self.timeline.start_time
         end = self.timeline.end_time
@@ -162,13 +166,10 @@ class TimelineCtrl(wx.Control):
         format = self.timeline.time_format
 
         w = self.GetSize().x - 1
-        y_offset = dc.GetTextExtent(current.strftime(format)).y = 5
+        y_offset = dc.GetTextExtent(current.strftime(format)).y + 5
 
         dc.SetPen(wx.Pen(wx.BLACK, 1))
-        dc.DrawLine(0, y_offset, w, y_offset)
-        dc.DrawLine(0, y_offset + self.HEIGHT, w, y_offset + self.HEIGHT)
-        dc.DrawLine(0, y_offset, 0, y_offset + self.HEIGHT)
-        dc.DrawLine(w, y_offset, w, y_offset + self.HEIGHT)
+        dc.DrawRectangle(0, y_offset, w, self.HEIGHT)
 
         if start == end:
             return
@@ -225,7 +226,7 @@ class TimelineCtrl(wx.Control):
         dc = wx.WindowDC(self)
 
         text_size = dc.GetTextExtent(self.timeline.current_time.strftime(self.timeline.time_format))
-        if self.timeline.start_time == self.timeline.end_time:
+        if self.timeline.enabled:
             self.SetMinSize(wx.Size(0, self.HEIGHT + 5 + text_size.y + 5))
         else:
             self.SetMinSize(wx.Size(text_size.x * 3 + 15, self.HEIGHT + 5 + text_size.y + 5))
@@ -281,16 +282,10 @@ class TimelineCtrl(wx.Control):
 
 class TimelinePanel(wx.Panel):
 
-    BUTTONS = (("step_to_beginning_button", "Step to beginning"),
-               ("step_backward_button", "Step backward one frame"),
-               ("play_button", "Play animation"),
-               ("step_forward_button", "Step forward one frame"),
-               ("step_to_end_button", "Step to end"),
-               ("playback_options_button", "Expand playback options"))
 
-    def __int__(self, parent, id):
+
+    def __init__(self, parent, id):
         super().__init__(parent, id)
-
         self.SetMinSize(wx.Size(200, 40))
 
         self.timeline_ctrl = TimelineCtrl(self, wx.ID_ANY, Timeline.app())
@@ -298,19 +293,57 @@ class TimelinePanel(wx.Panel):
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.SetSizer(sizer)
 
-        for name in self.BUTTONS:
-            setattr(self, name[0], StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap(name),
-                                                      wx.DefaultPosition, wx.Size(20, 20)))
-            btn = getattr(self, name[0])
-            btn.SetToolTip(name[1])
-            if name[0] != self.BUTTONS[-1][0]:
-                sizer.Add(btn, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
-            else:
-                sizer.Add(self.timeline_ctrl, 1, wx.LEFT, 8)
-                sizer.Add(btn, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
+        self.step_to_beginning_button = wx.BitmapButton(
+            self, wx.ID_ANY, bitmap=get_resource_bitmap('step_to_beginning_button.png')
+        )
+        self.step_backward_button = wx.BitmapButton(
+            self, wx.ID_ANY, bitmap=get_resource_bitmap('step_backward_button.png')
+        )
+        self.play_button = wx.BitmapButton(
+            self, wx.ID_ANY, bitmap=get_resource_bitmap('play_button.png')
+        )
+        self.step_forward_button = wx.BitmapButton(
+            self, wx.ID_ANY, bitmap=get_resource_bitmap('step_forward_button.png')
+        )
+        self.step_to_end_button = wx.BitmapButton(
+            self, wx.ID_ANY, bitmap=get_resource_bitmap('step_to_end_button.png')
+        )
+        self.playback_options_button = wx.BitmapButton(
+            self, wx.ID_ANY, bitmap=get_resource_bitmap('playback_options_button.png')
+        )
 
-        self.play_bitmap = self.play_button.label_bitmap
-        self.pause_bitmap = get_resource_bitmap("pause_button")
+        # Todo: fix StaticBitmapButton
+        #self.step_to_beginning_button = StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap('step_to_beginning_button.png'),
+        #                                                   wx.DefaultPosition, wx.Size(20, 20))
+        #self.step_backward_button = StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap('step_backward_button.png'),
+        #                                                   wx.DefaultPosition, wx.Size(20, 20))
+        #self.play_button = StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap('play_button.png'),
+        #                                                   wx.DefaultPosition, wx.Size(20, 20))
+        #self.step_forward_button = StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap('step_forward_button.png'),
+        #                                                   wx.DefaultPosition, wx.Size(20, 20))
+        #self.step_to_end_button = StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap('step_to_end_button.png'),
+        #                                                   wx.DefaultPosition, wx.Size(20, 20))
+        #self.playback_options_button = StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap('playback_options_button.png'),
+        #                                                   wx.DefaultPosition, wx.Size(20, 20))
+
+        # Todo: tooltips
+        tooltips = ("Step to beginning",
+                   "Step backward one frame",
+                   "Play animation",
+                   "Step forward one frame",
+                   "Step to end",
+                   "Expand playback options")
+
+        sizer.Add(self.step_to_beginning_button, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+        sizer.Add(self.step_backward_button, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+        sizer.Add(self.play_button, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+        sizer.Add(self.step_forward_button, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+        sizer.Add(self.step_to_end_button, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+        sizer.Add(self.timeline_ctrl, 1, wx.LEFT, 8)
+        sizer.Add(self.playback_options_button, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+        self.play_bitmap = self.play_button.GetBitmap()
+        self.pause_bitmap = get_resource_bitmap("pause_button.png")
 
         self.timer = wx.Timer(self, wx.ID_ANY)
         self._playing = False
@@ -334,37 +367,42 @@ class TimelinePanel(wx.Panel):
             return 0
 
     def OnStepToBeginningButton(self, event):
-        self.timeline_ctrl.timeline.current_time = self.timeline_ctrl.timeline.start_time
+        if self.timeline_ctrl.timeline.enabled:
+            self.timeline_ctrl.timeline.current_time = self.timeline_ctrl.timeline.start_time
 
     def OnStepBackwardButton(self, event):
-        if self.timeline_ctrl.timeline.current_index > 0:
+        if self.timeline_ctrl.timeline.enabled and self.timeline_ctrl.timeline.current_index > 0:
             self.timeline_ctrl.timeline.back()
 
     def OnPlayButton(self, event):
-        self._playing = not self._playing
+        if self.timeline_ctrl.timeline.enabled:
+            self._playing = not self._playing
 
-        if self._playing and not self.timer.IsRunning():
-            self.timer.Start(1, wx.TIMER_ONE_SHOT)
-        elif self.timer.IsRunning():
-            self.timer.Stop()
+            if self._playing and not self.timer.IsRunning():
+                self.timer.Start(1, wx.TIMER_ONE_SHOT)
+            elif self.timer.IsRunning():
+                self.timer.Stop()
 
-        if self._playing:
-            bitmap = self.pause_bitmap
-        else:
-            bitmap = self.play_bitmap
+            if self._playing:
+                bitmap = self.pause_bitmap
+            else:
+                bitmap = self.play_bitmap
 
-        self.play_button.label_bitmap = bitmap
+            self.play_button.SetBitmap(bitmap)
         event.Skip()
 
     def OnStepForwardButton(self, event):
-        if self.timeline_ctrl.timeline.current_time < self.timeline_ctrl.timeline.end_time:
+        if self.timeline_ctrl.timeline.enabled and \
+                        self.timeline_ctrl.timeline.current_time < self.timeline_ctrl.timeline.end_time:
             self.timeline_ctrl.timeline.forward()
 
     def OnStepToEndButton(self, event):
-        self.timeline_ctrl.timeline.current_time = self.timeline_ctrl.timeline.end_time
+        if self.timeline_ctrl.timeline.enabled:
+            self.timeline_ctrl.timeline.current_time = self.timeline_ctrl.timeline.end_time
 
     def OnTimer(self, event):
-        if self.timeline_ctrl.timeline.current_time < self.timeline_ctrl.timeline.end_time:
+        if self.timeline_ctrl.timeline.enabled and \
+                        self.timeline_ctrl.timeline.current_time < self.timeline_ctrl.timeline.end_time:
             speed = 1000 / self.timeline_ctrl.animation_speed
 
             if self.timeline_ctrl.show_every_frame:

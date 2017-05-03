@@ -5,7 +5,7 @@ from vistas.core.utils import get_platform
 from vistas.ui.controllers.project import ProjectController
 from vistas.ui.controls.project_panel import ProjectPanel
 from vistas.ui.controls.viewer_container_panel import ViewerContainerPanel
-
+from vistas.ui.controls.timeline_panel import TimelinePanel
 
 class MainWindow(wx.Frame):
     MENU_FILE_NEW = 101
@@ -129,7 +129,7 @@ class MainWindow(wx.Frame):
         left_panel = wx.Panel(main_splitter, wx.ID_ANY)
         right_panel = wx.Panel(main_splitter, wx.ID_ANY)
         self.viewer_container_panel = ViewerContainerPanel(right_panel, wx.ID_ANY)
-        timeline_panel = wx.Panel(right_panel, wx.ID_ANY)  # Todo
+        self.timeline_panel = TimelinePanel(right_panel, wx.ID_ANY)
 
         main_splitter.SplitVertically(left_panel, right_panel, 250)
 
@@ -157,7 +157,7 @@ class MainWindow(wx.Frame):
         right_panel_sizer = wx.BoxSizer(wx.VERTICAL)
         right_panel.SetSizer(right_panel_sizer)
         right_panel_sizer.Add(self.viewer_container_panel, 1, wx.EXPAND)
-        right_panel_sizer.Add(timeline_panel, 0, wx.EXPAND)
+        right_panel_sizer.Add(self.timeline_panel, 0, wx.EXPAND)
 
         # Todo: expand button
 
