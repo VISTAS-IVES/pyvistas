@@ -1,3 +1,4 @@
+from vistas.core.utils import get_transparent_paint_dc
 import wx
 
 
@@ -13,19 +14,16 @@ class StaticBitmapButton(wx.Window):
 
         self._click = False
         self._hover = False
-        self._current_bitmap = None
+        self._current_bitmap = label
         self._label_bitmap = label
-        self._disabled_bitmap = None
-        self._hover_bitmap = None
-        self._selected_bitmap = None
+        self._disabled_bitmap = wx.Bitmap()
+        self._hover_bitmap = wx.Bitmap()
+        self._selected_bitmap = wx.Bitmap()
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ENTER_WINDOW, self.OnMouseEnter)
         self.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouseLeave)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
         self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
-
-        # trigger update
-        self.label_bitmap = label
 
     def UpdateBitmap(self):
         enabled = self.IsEnabled()
@@ -37,7 +35,6 @@ class StaticBitmapButton(wx.Window):
             bitmap = self._disabled_bitmap
         else:
             bitmap = self._label_bitmap
-
         self.SetSize(bitmap.GetWidth() + 2, bitmap.GetHeight() + 2)
         self._current_bitmap = bitmap
         self.Refresh()
@@ -79,7 +76,7 @@ class StaticBitmapButton(wx.Window):
         self.UpdateBitmap()
 
     def OnPaint(self, event):
-        dc = wx.AutoBufferedPaintDC(self)
+        dc = get_transparent_paint_dc(self)
         dc.DrawBitmap(self._current_bitmap, 1, 1, True)
 
     def OnMouseEnter(self, event):

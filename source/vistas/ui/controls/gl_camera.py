@@ -10,10 +10,14 @@ CameraChangedEvent, EVT_CAMERA_MODE_CHANGED = wx.lib.newevent.NewEvent()
 
 class GLCameraButtonFrame(wx.Frame):
     def __init__(self, parent):
-        super().__init__(parent)
-        self.SetWindowStyle(wx.FRAME_NO_TASKBAR | wx.FRAME_FLOAT_ON_PARENT)
+        super().__init__(parent, style=wx.FRAME_NO_TASKBAR | wx.FRAME_FLOAT_ON_PARENT)
         self.alpha = 150
         self._selected = False
+
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_ENTER_WINDOW, self.OnEnter)
+        self.Bind(wx.EVT_LEAVE_WINDOW, self.OnLeave)
+        self.SetTransparent(self.alpha)
 
     @property
     def selected(self):
@@ -50,14 +54,18 @@ class GLCameraButtonFrame(wx.Frame):
 
 class GLCameraButton(wx.Frame):
     def __init__(self, parent, id, icon_name):
-        super().__init__(parent, id)
-        self.SetWindowStyle(wx.FRAME_NO_TASKBAR | wx.FRAME_FLOAT_ON_PARENT)
+        super().__init__(parent, id, style=wx.FRAME_NO_TASKBAR | wx.FRAME_FLOAT_ON_PARENT)
+        bitmap = get_resource_bitmap(icon_name)
+        self.SetSize(wx.Size(bitmap.GetWidth()+4, bitmap.GetHeight()+4))
         self.offset = 0
         self.frame = GLCameraButtonFrame(self)
+        self.frame.SetSize(self.GetSize())
+        self.SetTransparent(100)
+        self.Show()
         self.frame.Show()
         main_panel = wx.Panel(self)
         main_panel.SetSize(self.GetSize())
-        self.button = StaticBitmapButton(main_panel, id, get_resource_bitmap(icon_name))
+        self.button = StaticBitmapButton(main_panel, id, bitmap)
 
         self.frame.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
 
@@ -67,7 +75,11 @@ class GLCameraButton(wx.Frame):
             parent = parent.GetParent()
 
     def __del__(self):
-        pass    # Todo: needed?
+        parent = self.GetParent()
+        while parent is not None:
+            wx.GetTopLevelParent(parent).Unbind(wx.EVT_MOVE, self.OnMove)
+            wx.GetTopLevelParent(parent).Unbind(wx.EVT_PAINT, self.OnPaint)
+            parent = parent.GetParent()
 
     def Select(self, select=True):
         self.frame.selected = select
@@ -82,7 +94,7 @@ class GLCameraButton(wx.Frame):
         event.Skip()
 
     def OnClick(self, event):
-        evt = wx.CommandEvent(wx.EVT_BUTTON)
+        evt = wx.CommandEvent()
         evt.SetEventObject(self)
         wx.PostEvent(self, event)
         self.GetParent().SetFocus()
