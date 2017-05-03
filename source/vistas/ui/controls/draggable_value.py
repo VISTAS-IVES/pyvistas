@@ -1,7 +1,8 @@
+from vistas.core.utils import get_transparent_paint_dc
+
 import wx
 import wx.lib.newevent
 
-# Declare draggable event
 DraggableValueEvent, EVT_DRAG_VALUE_EVENT = wx.lib.newevent.NewEvent()
 
 
@@ -27,7 +28,7 @@ class DraggableValue(wx.Window):
         self.Refresh()
 
     def OnPaint(self, event):
-        dc = wx.BufferedPaintDC(self, self.buffer)
+        dc = get_transparent_paint_dc(self)
         dc.SetTextForeground(wx.Colour(0, 0, 255))
         dc.SetPen(wx.Pen(wx.Colour(0, 0, 255), 1, wx.DOT))
         dc.DrawText("{:.2f}".format(self._value))
