@@ -65,7 +65,8 @@ class AppController(wx.EvtHandler):
         elif event_id == MainWindow.MENU_WINDOW_PLUGINS:
             self.plugins_window.Show()
             self.plugins_window.Raise()
-
+        elif event_id == MainWindow.MENU_VIEW_COLLAPSE:
+            self.main_window.ToggleProjectPanel()
         # Todo
 
     def OnAboutMenuItem(self, event):

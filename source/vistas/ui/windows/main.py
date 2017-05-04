@@ -7,6 +7,8 @@ from vistas.ui.controls.project_panel import ProjectPanel
 from vistas.ui.controls.viewer_container_panel import ViewerContainerPanel
 from vistas.ui.controls.timeline_panel import TimelinePanel
 from vistas.ui.controls.main_status_bar import MainStatusBar
+from vistas.ui.controls.expand_button import ExpandButton
+
 
 class MainWindow(wx.Frame):
     MENU_FILE_NEW = 101
@@ -59,14 +61,14 @@ class MainWindow(wx.Frame):
         file_menu.Append(wx.ID_EXIT, '&Quit')
         menu_bar.Append(file_menu, '&File')
 
-        view_menu = wx.Menu()
-        view_menu.Append(self.MENU_VIEW_ADD_VIEWER, '&Add Scene Viewer')
-        view_menu.Append(self.MENU_VIEW_REMOVE_VIEWER, '&Remove Scene Viewer')
-        view_menu.Append(self.MENU_VIEW_ADD_GRAPH, 'Add &Graph Viewer')
-        view_menu.Append(self.MENU_VIEW_REMOVE_GRAPH, 'Remove Graph Viewer')
-        view_menu.AppendSeparator()
-        view_menu.Append(self.MENU_VIEW_COLLAPSE, '&Collapse Project Panel')
-        menu_bar.Append(view_menu, '&View')
+        self.view_menu = wx.Menu()
+        self.view_menu.Append(self.MENU_VIEW_ADD_VIEWER, '&Add Scene Viewer')
+        self.view_menu.Append(self.MENU_VIEW_REMOVE_VIEWER, '&Remove Scene Viewer')
+        self.view_menu.Append(self.MENU_VIEW_ADD_GRAPH, 'Add &Graph Viewer')
+        self.view_menu.Append(self.MENU_VIEW_REMOVE_GRAPH, 'Remove Graph Viewer')
+        self.view_menu.AppendSeparator()
+        self.view_menu.Append(self.MENU_VIEW_COLLAPSE, '&Collapse Project Panel')
+        menu_bar.Append(self.view_menu, '&View')
         
         export_menu = wx.Menu()
         export_menu.Append(self.MENU_EXPORT_EXPORT, '&Export...\tCtrl+e')
@@ -124,26 +126,27 @@ class MainWindow(wx.Frame):
         self.SetStatusBar(MainStatusBar(self, wx.ID_ANY))
 
         main_panel = wx.Panel(self, wx.ID_ANY)
-        main_splitter = wx.SplitterWindow(
+        self.main_splitter = wx.SplitterWindow(
             main_panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.SP_3DSASH | wx.SP_LIVE_UPDATE
         )
-        left_panel = wx.Panel(main_splitter, wx.ID_ANY)
-        right_panel = wx.Panel(main_splitter, wx.ID_ANY)
-        self.viewer_container_panel = ViewerContainerPanel(right_panel, wx.ID_ANY)
-        self.timeline_panel = TimelinePanel(right_panel, wx.ID_ANY)
+        self.main_sash_position = None
+        self.left_panel = wx.Panel(self.main_splitter, wx.ID_ANY)
+        self.right_panel = wx.Panel(self.main_splitter, wx.ID_ANY)
+        self.viewer_container_panel = ViewerContainerPanel(self.right_panel, wx.ID_ANY)
+        self.timeline_panel = TimelinePanel(self.right_panel, wx.ID_ANY)
 
-        main_splitter.SplitVertically(left_panel, right_panel, 250)
+        self.main_splitter.SplitVertically(self.left_panel, self.right_panel, 250)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(main_sizer)
 
         main_panel_sizer = wx.BoxSizer(wx.VERTICAL)
         main_panel.SetSizer(main_panel_sizer)
-        main_panel_sizer.Add(main_splitter, 1, wx.EXPAND)
+        main_panel_sizer.Add(self.main_splitter, 1, wx.EXPAND)
         main_sizer.Add(main_panel, 1, wx.EXPAND)
 
         left_splitter = wx.SplitterWindow(
-            left_panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.SP_3DSASH | wx.SP_LIVE_UPDATE
+            self.left_panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.SP_3DSASH | wx.SP_LIVE_UPDATE
         )
         project_panel = ProjectPanel(left_splitter, wx.ID_ANY)
         options_panel = wx.Panel(left_splitter, wx.ID_ANY)  # Todo
@@ -152,18 +155,21 @@ class MainWindow(wx.Frame):
         left_splitter.Unsplit(options_panel)
 
         left_panel_sizer = wx.BoxSizer(wx.VERTICAL)
-        left_panel.SetSizer(left_panel_sizer)
+        self.left_panel.SetSizer(left_panel_sizer)
         left_panel_sizer.Add(left_splitter, 1, wx.EXPAND | wx.LEFT | wx.BOTTOM, 5)
 
         right_panel_sizer = wx.BoxSizer(wx.VERTICAL)
-        right_panel.SetSizer(right_panel_sizer)
+        self.right_panel.SetSizer(right_panel_sizer)
         right_panel_sizer.Add(self.viewer_container_panel, 1, wx.EXPAND)
         right_panel_sizer.Add(self.timeline_panel, 0, wx.EXPAND)
 
-        # Todo: expand button
+        self.expand_button = ExpandButton(self.right_panel)
 
         self.project_controller = ProjectController(project_panel)
-        
+
+        self.main_splitter.Bind(wx.EVT_SPLITTER_DCLICK, self.OnSplitterDClick)
+        self.expand_button.Bind(wx.EVT_LEFT_DOWN, self.OnExpandButtonClick)
+
     def SerializeState(self):
         pos = self.GetPosition()
         size = self.GetSize()
@@ -201,3 +207,30 @@ class MainWindow(wx.Frame):
 
         if state.get('left_splitter_pos') is not None:
             pass  # Todo
+
+    def ToggleProjectPanel(self):
+        if self.main_splitter.IsSplit():
+            self.CollapseProjectPanel()
+        else:
+            self.RestoreProjectPanel()
+        self.InvalidateBestSize()
+        self.Refresh()
+
+    def CollapseProjectPanel(self):
+        self.main_sash_position = self.main_splitter.GetSashPosition()
+        self.main_splitter.Unsplit(self.left_panel)
+        self.expand_button.expanded = False
+        self.view_menu.SetLabel(self.MENU_VIEW_COLLAPSE, '&Expand Project Panel')
+
+    def RestoreProjectPanel(self):
+        self.main_splitter.SplitVertically(self.left_panel, self.right_panel, self.main_sash_position)
+        self.main_sash_position = None
+        self.expand_button.expanded = True
+        self.view_menu.SetLabel(self.MENU_VIEW_COLLAPSE, '&Collapse Project Panel')
+        self.timeline_panel.Refresh()
+
+    def OnSplitterDClick(self, event):
+        self.CollapseProjectPanel()
+
+    def OnExpandButtonClick(self, event):
+        self.ToggleProjectPanel()
