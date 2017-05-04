@@ -6,6 +6,7 @@ from vistas.ui.controllers.project import ProjectController
 from vistas.ui.controls.project_panel import ProjectPanel
 from vistas.ui.controls.viewer_container_panel import ViewerContainerPanel
 from vistas.ui.controls.timeline_panel import TimelinePanel
+from vistas.ui.controls.main_status_bar import MainStatusBar
 
 class MainWindow(wx.Frame):
     MENU_FILE_NEW = 101
@@ -120,7 +121,7 @@ class MainWindow(wx.Frame):
         )
         toolbar.Realize()
 
-        # Todo: status bar
+        self.SetStatusBar(MainStatusBar(self, wx.ID_ANY))
 
         main_panel = wx.Panel(self, wx.ID_ANY)
         main_splitter = wx.SplitterWindow(
