@@ -1,4 +1,4 @@
-from vistas.core.utils import get_transparent_paint_dc
+from vistas.core.utils import get_paint_dc
 import wx
 
 
@@ -76,7 +76,7 @@ class StaticBitmapButton(wx.Window):
         self.UpdateBitmap()
 
     def OnPaint(self, event):
-        dc = get_transparent_paint_dc(self)
+        dc = get_paint_dc(self)
         dc.DrawBitmap(self._current_bitmap, 1, 1, True)
 
     def OnMouseEnter(self, event):

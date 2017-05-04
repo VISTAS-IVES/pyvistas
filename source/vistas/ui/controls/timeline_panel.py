@@ -3,7 +3,7 @@ import datetime
 from vistas.core.utils import get_platform
 from vistas.core.timeline import Timeline, EVT_TIMELINE_VALUE_CHANGED, EVT_TIMELINE_ATTR_CHANGED
 from vistas.core.paths import get_resource_bitmap
-from vistas.core.utils import get_transparent_paint_dc
+from vistas.core.utils import get_paint_dc
 from vistas.ui.controls.static_bitmap_button import StaticBitmapButton
 from vistas.ui.controls.editable_slider import EditableSlider, EVT_SLIDER_CHANGE_EVENT
 
@@ -161,7 +161,7 @@ class TimelineCtrl(wx.Control):
         return end
 
     def OnPaint(self, event):
-        dc = get_transparent_paint_dc(self)
+        dc = get_paint_dc(self)
         current = self.timeline.current_time
         start = self.timeline.start_time
         end = self.timeline.end_time
