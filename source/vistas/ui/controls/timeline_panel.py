@@ -1,5 +1,6 @@
 import datetime
 
+from vistas.core.utils import get_platform
 from vistas.core.timeline import Timeline, EVT_TIMELINE_VALUE_CHANGED, EVT_TIMELINE_ATTR_CHANGED
 from vistas.core.paths import get_resource_bitmap
 from vistas.core.utils import get_transparent_paint_dc
@@ -113,14 +114,16 @@ class TimelineCtrl(wx.Control):
         self._calculate_px_ratio()
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
+        self.Bind(wx.EVT_SIZE, self.OnSize)
         self.Bind(EVT_TIMELINE_VALUE_CHANGED, self.OnValueChanged)
         self.Bind(EVT_TIMELINE_ATTR_CHANGED, self.OnAttrChanged)
 
     def _calculate_px_ratio(self):
         width = self.GetSize().x - self.CURSOR_WIDTH
 
-        if self.timeline.start_time == self.timeline.end_time:
-            self.px_per_step = 0
+        if not self.timeline.enabled:
+            self.px_per_step = width
         elif self._uniform_time_intervals:
             self.px_per_step = width / (self.timeline.num_timestamps - 1)
         else:
@@ -220,7 +223,9 @@ class TimelineCtrl(wx.Control):
             dc.DrawText(self._scrub_time.strftime(format), tip[0] + 3, tip[1] + 1)
 
     def OnErase(self, event):
-        pass    # Todo: is this needed anymore?
+        if get_platform() == 'windows':
+            return
+        event.Skip()
 
     def OnSize(self, event):
         dc = wx.WindowDC(self)
