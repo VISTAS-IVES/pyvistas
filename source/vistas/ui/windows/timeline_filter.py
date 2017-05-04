@@ -40,11 +40,14 @@ class TimeIntervalPanel(wx.Panel):
 
     def UpdateEnabledInputs(self):
         timeline = Timeline.app()
-        maxstep = timeline.end_time - timeline.start_time
-        minstep = timeline.min_step
-
-        self.days.Enable(maxstep > datetime.timedelta(1, 0, 0) or datetime.timedelta(1, 0, 0) < minstep)
-        self.seconds.Enable(maxstep > datetime.timedelta(0, 1, 0) or datetime.timedelta(1, 0, 0) < minstep)
+        if timeline.enabled:
+            maxstep = timeline.end_time - timeline.start_time
+            minstep = timeline.min_step
+            self.days.Enable(maxstep > datetime.timedelta(1, 0, 0) or datetime.timedelta(1, 0, 0) < minstep)
+            self.seconds.Enable(maxstep > datetime.timedelta(0, 1, 0) or datetime.timedelta(1, 0, 0) < minstep)
+        else:
+            self.days.Disable()
+            self.seconds.Disable()
 
     @property
     def interval(self):
@@ -59,22 +62,24 @@ class TimeIntervalPanel(wx.Panel):
         self.UpdateEnabledInputs()
 
 
-class TimeFilterWindow(wx.Window):
+class TimeFilterWindow(wx.Frame):
     def __init__(self, parent, id):
-        super().__init__(parent, id, "Timeline Filter")
-        self.SetWindowStyle(wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX | wx.FRAME_FLOAT_ON_PARENT)
+        super().__init__(
+            parent, id, name="Timeline Filter",
+            style=wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX | wx.FRAME_FLOAT_ON_PARENT
+        )
         self.timeline = Timeline.app()
         self._filter_has_changed = False
 
         main_panel = wx.Panel(self, wx.ID_ANY)
 
-        self.start_ctrl = wx.adv.CalendarCtrl(main_panel, wx.ID_ANY)
-        self.start_ctrl.SetDate(self.timeline.start_time.timestamp())
-        self.start_ctrl.SetDateRange(self.timeline.start_time.timestamp(), self.timeline.end_time.timestamp())
+        self.start_ctrl = wx.adv.CalendarCtrl(main_panel, wx.ID_ANY, date=wx.pydate2wxdate(self.timeline.start_time))
+        self.start_ctrl.SetDateRange(wx.pydate2wxdate(self.timeline.start_time),
+                                     wx.pydate2wxdate(self.timeline.end_time))
 
-        self.end_ctrl = wx.adv.CalendarCtrl(main_panel, wx.ID_ANY)
-        self.end_ctrl.SetDate(self.timeline.end_time.timestamp())
-        self.end_ctrl.SetDateRange(self.timeline.start_time.timestamp(), self.timeline.end_time.timestamp())
+        self.end_ctrl = wx.adv.CalendarCtrl(main_panel, wx.ID_ANY, date=wx.pydate2wxdate(self.timeline.end_time))
+        self.end_ctrl.SetDateRange(wx.pydate2wxdate(self.timeline.start_time),
+                                   wx.pydate2wxdate(self.timeline.end_time))
 
         self.apply_button = wx.Button(main_panel, wx.ID_ANY, "Apply")
         self.apply_button.SetDefault()
@@ -87,7 +92,7 @@ class TimeFilterWindow(wx.Window):
         main_panel.SetSizer(panel_sizer)
 
         date_range_label = wx.StaticText(main_panel, wx.ID_ANY, "Date Range Settings")
-        panel_sizer.Add(date_range_label)
+        panel_sizer.Add(date_range_label, 0, wx.ALIGN_LEFT | wx.TOP | wx.LEFT, 5)
 
         calendar_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -130,10 +135,6 @@ class TimeFilterWindow(wx.Window):
         self.Show()
         self.SetFocus()
 
-    def __del__(self):
-        pass
-        # Todo: implement?
-
     def ApplyFilter(self):
 
         start = wx.wxdate2pydate(self.start_ctrl.GetDate())
@@ -173,11 +174,14 @@ class TimeFilterWindow(wx.Window):
 
     def UpdateFromTimeline(self):
         self._filter_has_changed = False
-        self.start_ctrl.SetDate(self.timeline.filter_start_time)
-        self.start_ctrl.SetDateRange(self.timeline.start_time.timestamp(), self.timeline.end_time.timestamp())
-        self.end_ctrl.SetDate(self.timeline.filter_end_time)
-        self.end_ctrl.SetDateRange(self.timeline.start_time.timestamp(), self.timeline.end_time.timestamp())
-        self.interval_panel.interval = self.timeline.filter_interval
+        if self.timeline.enabled:
+            self.start_ctrl.SetDate(wx.pydate2wxdate(self.timeline.filter_start_time))
+            self.start_ctrl.SetDateRange(wx.pydate2wxdate(self.timeline.start_time.timestamp()),
+                                         wx.pydate2wxdate(self.timeline.end_time.timestamp()))
+            self.end_ctrl.SetDate(wx.pydate2wxdate(self.timeline.filter_end_time))
+            self.end_ctrl.SetDateRange(wx.pydate2wxdate(self.timeline.start_time.timestamp()),
+                                       wx.pydate2wxdate(self.timeline.end_time.timestamp()))
+            self.interval_panel.interval = self.timeline.filter_interval
 
     def OnShow(self, event):
         self.UpdateFromTimeline()

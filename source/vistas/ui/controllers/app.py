@@ -9,6 +9,7 @@ from vistas.core.plugins.management import load_plugins
 from vistas.core.preferences import Preferences
 from vistas.ui.windows.main import MainWindow
 from vistas.ui.windows.plugins import PluginsWindow
+from vistas.ui.windows.timeline_filter import TimeFilterWindow
 
 
 class AppController(wx.EvtHandler):
@@ -21,6 +22,9 @@ class AppController(wx.EvtHandler):
 
         self.plugins_window = PluginsWindow(self.main_window, wx.ID_ANY)
         self.plugins_window.Hide()
+
+        self.time_filter_window = TimeFilterWindow(self.main_window, wx.ID_ANY)
+        self.time_filter_window.Hide()
 
         main_window_state = Preferences.app().get('main_window_state')
         if main_window_state:
@@ -67,6 +71,9 @@ class AppController(wx.EvtHandler):
             self.plugins_window.Raise()
         elif event_id == MainWindow.MENU_VIEW_COLLAPSE:
             self.main_window.ToggleProjectPanel()
+        elif event_id == MainWindow.MENU_OPEN_TIMELINE_FILTER:
+            if self.time_filter_window.timeline.enabled:
+                self.time_filter_window.Show()
         # Todo
 
     def OnAboutMenuItem(self, event):
