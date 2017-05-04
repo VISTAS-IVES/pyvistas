@@ -266,7 +266,8 @@ class ProjectController(wx.EvtHandler):
             )
 
             # Todo: viz dialog show
-            # Todo: set options
+            main_window = wx.GetTopLevelParent(self.project_panel)
+            main_window.SetOptions(plugin.get_options(), plugin)
 
             if isinstance(plugin, VisualizationPlugin3D):
                 scene_node = node.parent
@@ -505,7 +506,10 @@ class ProjectController(wx.EvtHandler):
                 pass  # Todo: DataDialog
 
             elif proj_item.is_visualization:
-                pass  # Todo: VisualizationDialog
+                plugin = proj_item.visualization
+                main_window = wx.GetTopLevelParent(self.project_panel)
+                main_window.SetOptions(plugin.get_options(), plugin)
+                # Todo: VisualizationDialog
 
             elif proj_item.is_flythrough:
                 pass  # Todo: FlythroughDialog
@@ -519,12 +523,10 @@ class ProjectController(wx.EvtHandler):
 
         if node.is_visualization:
             plugin = node.visualization
-            options = plugin.get_options()
-
-            # Todo: set options
+            main_window.SetOptions(plugin.get_options(), plugin)
 
         elif node.is_folder or node.is_scene:
-            pass  # Todo: empty options
+            main_window.SetOptions()
 
         else:
             event.Skip()

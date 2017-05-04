@@ -4,6 +4,7 @@ from vistas.core.paths import get_resource_bitmap
 from vistas.core.utils import get_platform
 from vistas.ui.controllers.project import ProjectController
 from vistas.ui.controls.project_panel import ProjectPanel
+from vistas.ui.controls.options_panel import OptionsPanel
 from vistas.ui.controls.viewer_container_panel import ViewerContainerPanel
 from vistas.ui.controls.timeline_panel import TimelinePanel
 from vistas.ui.controls.main_status_bar import MainStatusBar
@@ -145,18 +146,19 @@ class MainWindow(wx.Frame):
         main_panel_sizer.Add(self.main_splitter, 1, wx.EXPAND)
         main_sizer.Add(main_panel, 1, wx.EXPAND)
 
-        left_splitter = wx.SplitterWindow(
+        self.left_splitter = wx.SplitterWindow(
             self.left_panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.SP_3DSASH | wx.SP_LIVE_UPDATE
         )
-        project_panel = ProjectPanel(left_splitter, wx.ID_ANY)
-        options_panel = wx.Panel(left_splitter, wx.ID_ANY)  # Todo
+        self.left_sash_position = 0
+        self.project_panel = ProjectPanel(self.left_splitter, wx.ID_ANY)
+        self.options_panel = OptionsPanel(self.left_splitter, wx.ID_ANY)
 
-        left_splitter.SplitHorizontally(project_panel, options_panel, 0)
-        left_splitter.Unsplit(options_panel)
+        self.left_splitter.SplitHorizontally(self.project_panel, self.options_panel, 0)
+        self.left_splitter.Unsplit(self.options_panel)
 
         left_panel_sizer = wx.BoxSizer(wx.VERTICAL)
         self.left_panel.SetSizer(left_panel_sizer)
-        left_panel_sizer.Add(left_splitter, 1, wx.EXPAND | wx.LEFT | wx.BOTTOM, 5)
+        left_panel_sizer.Add(self.left_splitter, 1, wx.EXPAND | wx.LEFT | wx.BOTTOM, 5)
 
         right_panel_sizer = wx.BoxSizer(wx.VERTICAL)
         self.right_panel.SetSizer(right_panel_sizer)
@@ -165,7 +167,7 @@ class MainWindow(wx.Frame):
 
         self.expand_button = ExpandButton(self.right_panel)
 
-        self.project_controller = ProjectController(project_panel)
+        self.project_controller = ProjectController(self.project_panel)
 
         self.main_splitter.Bind(wx.EVT_SPLITTER_DCLICK, self.OnSplitterDClick)
         self.expand_button.Bind(wx.EVT_LEFT_DOWN, self.OnExpandButtonClick)
@@ -234,3 +236,15 @@ class MainWindow(wx.Frame):
 
     def OnExpandButtonClick(self, event):
         self.ToggleProjectPanel()
+
+    def SetOptions(self, options=None, plugin=None):
+        if options and plugin:
+            self.left_splitter.SplitHorizontally(self.project_panel, self.options_panel, self.left_sash_position)
+            self.options_panel.options = options
+            self.options_panel.plugin = plugin
+            self.options_panel.Layout()
+            self.options_panel.FitInside()
+        else:
+            self.options_panel.options = None
+            self.left_sash_position = self.left_splitter.GetSashPosition()
+            self.left_splitter.Unsplit(self.options_panel)

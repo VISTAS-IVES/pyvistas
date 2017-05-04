@@ -24,7 +24,7 @@ class Option:
              CHECKBOX, RADIOS, CHOICE, SLIDER, FILE)
 
     def __init__(
-        self, plugin=None, option_type=None, name=None, default_value=None, min_value=None, max_value=None, step=None
+        self, plugin=None, option_type=NONE, name=None, default_value=None, min_value=None, max_value=None, step=None
     ):
         if option_type not in self.TYPES:
             raise ValueError("{} is not a valid Option type".format(option_type))
@@ -63,7 +63,7 @@ class OptionGroup:
     def __init__(self, layout=VERTICAL, name=''):
         self.layout = layout
         self.name = name
-        self.items = []     # list of OptionGroupItems
+        self.items = []
 
     @property
     def flat_list(self) -> [Option]:

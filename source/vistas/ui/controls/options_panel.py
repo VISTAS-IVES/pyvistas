@@ -136,7 +136,7 @@ class OptionsPanel(wx.ScrolledWindow):
             if type(item) is Option:
                 self.AddOption(item, sizer)
             else:
-                orientation = OptionGroup.VERTICAL if item.layout == OptionGroup.VERTICAL else OptionGroup.HORIZONTAL
+                orientation = wx.VERTICAL if item.layout == OptionGroup.VERTICAL else wx.HORIZONTAL
                 if len(item.name):
                     static_box = wx.StaticBox(self, wx.ID_ANY, item.name)
                     child_sizer = wx.StaticBoxSizer(static_box, orientation)
@@ -154,6 +154,7 @@ class OptionsPanel(wx.ScrolledWindow):
         self.sizer.Clear()
         if value is None or len(value.items) < 1:
             self.AddOption(Option(name="No Options"), self.sizer)
+            self.plugin = None
         else:
             self.AddOptionGroup(value, self.sizer)
 
