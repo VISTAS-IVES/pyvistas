@@ -45,7 +45,7 @@ class ProjectNode:
 
     @property
     def is_scene(self):
-        return isinstance(self, SceneNode)
+        return self.__class__ == SceneNode
 
     @property
     def is_flythrough(self):

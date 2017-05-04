@@ -1,3 +1,8 @@
+import os
+
+import inspect
+
+
 class PluginBase(type):
     """ Plugin metaclass, used to register plugin classes by unique id """
 
@@ -30,6 +35,10 @@ class Plugin(metaclass=PluginBase):
     @classmethod
     def by_name(cls, name):
         return cls._plugins_by_name.get(name)
+
+    @property
+    def plugin_dir(self):
+        return os.path.dirname(inspect.getfile(self.__class__))
 
     def get_options(self):
         return None

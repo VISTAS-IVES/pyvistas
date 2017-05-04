@@ -3,6 +3,8 @@ import wx.glcanvas
 
 from vistas.core.utils import get_platform
 
+from OpenGL.GL import *
+
 
 class GLCanvas(wx.glcanvas.GLCanvas):
     initialized = False
@@ -35,6 +37,8 @@ class GLCanvas(wx.glcanvas.GLCanvas):
 
         size = self.GetSize()
         dc = wx.PaintDC(self)
+
+        print(glGetString(GL_VERSION))
 
         self.SetCurrent(GLCanvas.shared_gl_context)
         self.camera.render(size.GetWidth(), size.GetHeight())
