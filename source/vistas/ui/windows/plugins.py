@@ -73,7 +73,7 @@ class PluginsWindow(wx.Frame):
         self.plugins_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnItemSelected)
         self.plugins_list.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnItemDeselected)
 
-        self.plugins = get_plugins()
+        self.plugins = list(get_plugins())
         for p in self.plugins:
             self.AddPlugin(p)
 
@@ -113,7 +113,7 @@ class PluginsWindow(wx.Frame):
             self.type_static.SetLabel("Visualization Plugin")
         else:
             self.type_static.SetLabel("Unknown plugin type")
-        #self.version_static.SetLabel(plugin.version)
+        #self.version_static.SetLabel(plugin.version)   # Todo: implement plugin.version
         self.author_static.SetLabel(plugin.author)
         self.description_static.SetLabel(plugin.description)
         self.description_static.Wrap(self.plugin_details_panel.GetClientSize().x)
@@ -129,13 +129,13 @@ class PluginsWindow(wx.Frame):
         else:
             label = "Unknown"
         self.plugins_list.SetItem(i, 1, label)
-        #self.plugins_list.SetItem(i, 2, plugin.version)
+        #self.plugins_list.SetItem(i, 2, plugin.version)    # Todo: implement plugin.version
 
     def OnWindowClose(self, event):
         self.Hide()
 
     def OnItemSelected(self, event):
-        self.SetPluginDetails(self.plugins[event.index])
+        self.SetPluginDetails(self.plugins[event.GetIndex()])
         self.ShowPluginDetails()
 
     def OnItemDeselected(self, event):
