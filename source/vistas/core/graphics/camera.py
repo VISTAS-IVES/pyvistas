@@ -276,10 +276,4 @@ class Camera:
         z_near = max(1, c.z - scene_box.diameter / 2)
         z_far = c.z + scene_box.diameter
 
-        glMatrixMode(GL_MODELVIEW)
-        glLoadIdentity()
-        glLoadMatrixf(self.matrix.gl)
-
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-        glLoadMatrixf(ViewMatrix.perspective(80.0, width / height, z_near, z_far).gl)
+        self.proj_matrix = ViewMatrix.perspective(80.0, width / height, z_near, z_far)

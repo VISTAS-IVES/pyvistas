@@ -9,12 +9,20 @@ from vistas.core.paths import get_resources_directory
 
 class MeshRenderable(Renderable):
     def __init__(self, mesh=None):
-        if mesh is None:
-            self.mesh = Mesh()
-        else:
-            self.mesh = mesh
-            self.bounding_box = mesh.bounding_box
-            self.textures_map = {}
+        self._mesh = None
+        self.textures_map = {}
+        self.bounding_box = None
+        self.mesh = Mesh() if mesh is None else mesh
+
+    @property
+    def mesh(self):
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, mesh):
+        self._mesh = mesh
+        self.bounding_box = mesh.bounding_box
+        self.textures_map = {}
 
     def render(self):
         if self.mesh.has_index_array and self.mesh.has_vertex_array:

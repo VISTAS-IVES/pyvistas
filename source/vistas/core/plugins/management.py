@@ -1,6 +1,8 @@
 import os
 from importlib.util import spec_from_file_location, module_from_spec
 
+import sys
+
 from vistas.core.plugins.data import DataPlugin, ArrayDataPlugin, RasterDataPlugin, FeatureDataPlugin
 from vistas.core.plugins.interface import PluginBase
 from vistas.core.plugins.visualization import VisualizationPlugin, VisualizationPlugin3D, VisualizationPlugin2D
@@ -13,15 +15,18 @@ def load_plugins(path):
         module_path = os.path.join(path, directory, 'main.py')
 
         if os.path.exists(module_path):
-            spec = spec_from_file_location('plugin', module_path)
+            module_name = 'plugins.{}'.format(directory)
+
+            spec = spec_from_file_location(module_name, module_path)
             mod = module_from_spec(spec)
+            sys.modules[module_name] = mod
             spec.loader.exec_module(mod)  # Plugins are registered when class definitions are executed
 
 
 def get_plugins_of_type(cls):
     """ Returns all plugins of a given class """
 
-    return [x for x in get_plugins() if isinstance(x, cls)]
+    return [x for x in get_plugins() if issubclass(x, cls)]
 
 
 def get_plugins():

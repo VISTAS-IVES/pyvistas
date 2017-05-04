@@ -29,7 +29,7 @@ class ShaderProgram(wx.PyEvtHandler):
         with open(path) as f:
             return self.attach_shader_source(f.read(), type)
 
-    def attach_shader_souce(self, source, type):
+    def attach_shader_source(self, source, type):
         shader = self.shaders.get(type, -1)
 
         if shader != -1:
@@ -85,9 +85,9 @@ class ShaderProgram(wx.PyEvtHandler):
         camera.matrix = ViewMatrix.from_gl(GL_MODELVIEW_MATRIX)
         position = camera.get_position()
 
-        self.uniform_matrix_4fv(self.get_uniform_location('projectionMatrix'), 1, False, projection_matrix)
-        self.uniform_matrix_4fv(self.get_uniform_location('modelViewMatrix'), 1, False, modelview_matrix)
-        self.uniform_3f(self.get_uniform_location('cameraPosition'), position.x, position.y, position.z)
+        glUniformMatrix4fv(self.get_uniform_location('projectionMatrix'), 1, False, projection_matrix)
+        glUniformMatrix4fv(self.get_uniform_location('modelViewMatrix'), 1, False, modelview_matrix)
+        glUniform3f(self.get_uniform_location('cameraPosition'), position.x, position.y, position.z)
 
     def post_render(self):
         glUseProgram(0)

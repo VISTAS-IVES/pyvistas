@@ -8,7 +8,7 @@ import wx.lib.newevent
 from vistas.core.graphics.scene import Scene
 from vistas.core.plugins.management import get_data_plugins, get_visualization_plugins, get_2d_visualization_plugins
 from vistas.core.plugins.visualization import VisualizationPlugin3D
-from vistas.ui.project import Project, SceneNode, FolderNode, VisualizationNode
+from vistas.ui.project import Project, SceneNode, FolderNode, VisualizationNode, DataNode
 
 logger = logging.getLogger(__name__)
 
@@ -179,7 +179,7 @@ class ProjectController(wx.EvtHandler):
 
     def AddDataFromFile(self, parent: FolderNode):
         plugins = get_data_plugins()
-        extensions = ';'.join('*.{}'.format(x) for x in itertools.chain.from_iterable(x.extensions for x in plugins))
+        extensions = ';'.join('*.{}'.format(x[0]) for x in itertools.chain.from_iterable(x.extensions for x in plugins))
 
         if not extensions:
             wx.MessageDialog(
@@ -197,7 +197,7 @@ class ProjectController(wx.EvtHandler):
 
         if fd.ShowModal() == wx.ID_OK:
             path = fd.GetPath()
-            extension = os.path.splitext(path)[-1].lower()
+            extension = os.path.splitext(path)[-1].lower().strip('.')
             choices = [x for x in plugins if extension in {y[0] for y in x.extensions}]
 
             if len(choices) == 1:
@@ -233,7 +233,7 @@ class ProjectController(wx.EvtHandler):
                     tree_parent = self.project_panel.data_tree.GetRootItem()
 
                 tree = self.project_panel.data_tree
-                node = self.project.add_data(parent, plugin, plugin.data_name)
+                node = DataNode(plugin, plugin.data_name, parent)
                 tree.AppendDataItem(tree_parent, node.label, node)
 
                 tree.Expand(tree_parent)
@@ -267,6 +267,14 @@ class ProjectController(wx.EvtHandler):
 
             # Todo: viz dialog show
             # Todo: set options
+
+            if isinstance(plugin, VisualizationPlugin3D):
+                scene_node = node.parent
+                while not scene_node.is_scene:
+                    scene_node = scene_node.parent
+
+                plugin.scene = scene_node.scene
+                plugin.refresh()
 
             pce = ProjectChangedEvent(node=node, change=ProjectChangedEvent.ADDED_VISUALIZATION)
             wx.PostEvent(wx.GetTopLevelParent(self.project_panel), pce)
@@ -393,7 +401,7 @@ class ProjectController(wx.EvtHandler):
             if tree == self.project_panel.data_tree and node.is_folder:
                 popup_menu.Append(self.POPUP_ADD_DATA_FILE, 'Add data from file...')
 
-            if tree == self.project_panel.visualization_tree and node.is_folder and not node.is_scene:
+            if tree == self.project_panel.visualization_tree and node.is_folder and not isinstance(node, SceneNode):
                 popup_menu.Append(self.POPUP_ADD_SCENE, 'Add scene')
 
             if tree == self.project_panel.visualization_tree and not node.is_visualization:

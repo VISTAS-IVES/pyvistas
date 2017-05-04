@@ -1,3 +1,5 @@
+import os
+
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.interface import Plugin
 
@@ -83,10 +85,20 @@ class VisualizationPlugin2D(VisualizationPlugin):
 
 
 class VisualizationPlugin3D(VisualizationPlugin):
-    def set_scene(self, scene):
+    @property
+    def scene(self):
+        raise NotImplemented
+
+    @scene.setter
+    def scene(self, scene):
         """ Set the scene the visualization exists in. The visualization won't appear until a scene has been set. """
 
         raise NotImplemented
+
+    def get_shader_path(self, name):
+        """ Returns an absolute path to a plugin shader by file name """
+
+        return os.path.join(self.plugin_dir, 'shaders', name)
 
     def refresh(self):
         """ 

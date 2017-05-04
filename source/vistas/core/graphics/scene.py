@@ -38,20 +38,10 @@ class Scene:
 
     def render(self):
         for obj in self.objects:
-            glMatrixMode(GL_PROJECTION)
-            glPushMatrix()
-            glMatrixMode(GL_MODELVIEW)
-            glPushMatrix()
-
             obj.render()
 
             if self.render_bounding_boxes:
                 obj.render_bounding_box(self.bounding_box_color)
-
-            glMatrixMode(GL_MODELVIEW)
-            glPopMatrix()
-            glMatrixMode(GL_PROJECTION)
-            glPopMatrix()
 
     def select_object(self, x, y):
         pass  # Todo

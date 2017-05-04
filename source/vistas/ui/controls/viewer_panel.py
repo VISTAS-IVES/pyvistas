@@ -1,6 +1,7 @@
 import wx
+from wx.glcanvas import WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, WX_GL_CORE_PROFILE, WX_GL_MINOR_VERSION, \
+    WX_GL_MAJOR_VERSION
 
-from vistas.core.color import RGBColor
 from vistas.core.graphics.camera import Camera
 from vistas.core.paths import get_resource_bitmap
 from vistas.ui.controls.gl_canvas import GLCanvas
@@ -51,7 +52,12 @@ class ViewerPanel(wx.Panel):
         self.geodata_button.SetToolTip('Show place names')
 
         self.camera = Camera()
-        self.gl_canvas = GLCanvas(self, wx.ID_ANY, self.camera)  # Todo: attributes
+        self.gl_canvas = GLCanvas(
+            self, wx.ID_ANY, self.camera, attrib_list=[
+                WX_GL_CORE_PROFILE, WX_GL_RGBA, WX_GL_DOUBLEBUFFER,
+                WX_GL_DEPTH_SIZE, 16
+            ]
+        )
         self.gl_canvas.Refresh()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
