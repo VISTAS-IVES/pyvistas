@@ -11,9 +11,6 @@ class Renderable:
         self.rotation = Vector(0, 0, 0)
         self.bounding_box = BoundingBox(0, 0, 0, 0, 0, 0)
 
-    def pre_render(self, camera):
-        pass
-
     def render(self, camera):
         pass
 

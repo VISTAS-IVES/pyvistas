@@ -2,6 +2,7 @@ import os
 
 import wx
 import wx.adv
+from OpenGL.GL import *
 
 from vistas import __version__ as version
 from vistas.core import paths
@@ -33,13 +34,19 @@ class AppController(wx.EvtHandler):
         self.main_window.Bind(wx.EVT_MENU, self.OnWindowMenu)
         self.main_window.Bind(wx.EVT_CLOSE, self.OnWindowClose)
 
+        self.timer = wx.Timer()
+        self.timer.Bind(wx.EVT_TIMER, self.ShowSplashScreen)
+
+        self.timer.Start(1, True)
+
+    def ShowSplashScreen(self, event):
         splash_background = wx.Image(
             os.path.join(paths.get_resources_directory(), 'images', 'splash.png'), wx.BITMAP_TYPE_ANY
         ).ConvertToBitmap()
         splash_composite = wx.Bitmap(500, 225)
         dc = wx.MemoryDC(splash_composite)
         version_string = 'VISTAS Version: {} (Python)'.format(version)
-        opengl_string = 'OpenGL Version: (TODO)'
+        opengl_string = 'OpenGL Version: {}'.format(glGetString(GL_VERSION).decode())
 
         dc.SetFont(wx.Font(12, wx.DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
         version_extent = dc.GetTextExtent(version_string)
@@ -48,7 +55,7 @@ class AppController(wx.EvtHandler):
         dc.DrawBitmap(splash_background, 0, 0, True)
         dc.SetTextForeground(wx.Colour(0, 0, 0))
         dc.DrawText(version_string, 490 - version_extent.x, 210 - opengl_extent.y - version_extent.y)
-        dc.DrawText(opengl_string, 490 - version_extent.x, 215 - opengl_extent.y)
+        dc.DrawText(opengl_string, 490 - opengl_extent.x, 215 - opengl_extent.y)
         dc.SelectObject(wx.Bitmap())
 
         wx.adv.SplashScreen(

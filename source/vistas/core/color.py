@@ -48,7 +48,7 @@ class RGBColor(Color):
 
     @property
     def rgb_list(self):
-        return (self.r, self.g, self.b)
+        return self.r, self.g, self.b
 
     def rgba_list(self):
         return self.rgb_list + (self.a,)

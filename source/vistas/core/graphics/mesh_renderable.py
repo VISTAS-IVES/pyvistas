@@ -31,7 +31,6 @@ class MeshRenderable(Renderable):
             for texture in self.textures_map.values():
                 texture.pre_render(1, camera)
 
-            self.pre_render(camera)
             self.mesh.shader.pre_render(camera)
 
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.mesh.index_buffer)

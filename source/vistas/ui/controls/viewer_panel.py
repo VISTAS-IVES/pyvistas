@@ -320,7 +320,7 @@ class ViewerPanel(wx.Panel):
         if self.scenes and self.selected_scene and self.selected_scene.name != self.scene_choice.GetLabelText():
             self.scene_choice.SetSelection(0)
 
-            scene_choice_event = wx.CommandEvent(wx.EVT_COMMAND_CHOICE_SELECTED, self.GetId())
+            scene_choice_event = wx.CommandEvent(wx.wxEVT_CHOICE, self.GetId())
             self.scene_choice.AddPendingEvent(scene_choice_event)
 
     def FetchScenes(self, root):

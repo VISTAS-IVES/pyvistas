@@ -1,7 +1,6 @@
-from OpenGL.GL import *
-
 from vistas.core.color import RGBColor
 from vistas.core.graphics.bounds import BoundingBox
+from vistas.core.graphics.matrix import ViewMatrix
 
 
 class Scene:
@@ -38,7 +37,10 @@ class Scene:
 
     def render(self, camera):
         for obj in self.objects:
+            camera.matrix.push()
+            camera.matrix *= ViewMatrix.translate(*obj.position.v[:3]) * ViewMatrix.scale(*obj.scale.v[:3])
             obj.render(camera)
+            camera.matrix.pop()
 
             if self.render_bounding_boxes:
                 obj.render_bounding_box(self.bounding_box_color, camera)

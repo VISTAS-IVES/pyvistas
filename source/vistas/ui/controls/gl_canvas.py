@@ -27,9 +27,8 @@ class GLCanvas(wx.glcanvas.GLCanvas):
 
         # self.SetFocus()  # Crashes on Mac
 
-    def OnPaint(self, event: wx.PaintEvent):
+    def OnPaint(self, event):
         if not GLCanvas.initialized:
-            # Todo: VI_Init3D() (maybe not needed?)
             GLCanvas.initialized = True
             GLCanvas.shared_gl_context = wx.glcanvas.GLContext(self)
             self.SetCurrent(GLCanvas.shared_gl_context)
@@ -37,8 +36,6 @@ class GLCanvas(wx.glcanvas.GLCanvas):
 
         size = self.GetSize()
         dc = wx.PaintDC(self)
-
-        print(glGetString(GL_VERSION))
 
         self.SetCurrent(GLCanvas.shared_gl_context)
         self.camera.render(size.GetWidth(), size.GetHeight())
