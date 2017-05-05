@@ -2,7 +2,7 @@ import wx
 
 from vistas.core.paths import get_resource_bitmap
 from vistas.core.utils import get_platform
-from vistas.ui.controllers.project import ProjectController
+from vistas.ui.controllers.project import ProjectController, ProjectChangedEvent, EVT_COMMAND_PROJECT_CHANGED
 from vistas.ui.controls.project_panel import ProjectPanel
 from vistas.ui.controls.options_panel import OptionsPanel
 from vistas.ui.controls.viewer_container_panel import ViewerContainerPanel
@@ -168,9 +168,11 @@ class MainWindow(wx.Frame):
         self.expand_button = ExpandButton(self.right_panel)
 
         self.project_controller = ProjectController(self.project_panel)
-
+        self.Bind(EVT_COMMAND_PROJECT_CHANGED, self.OnProjectChanged)
         self.main_splitter.Bind(wx.EVT_SPLITTER_DCLICK, self.OnSplitterDClick)
         self.expand_button.Bind(wx.EVT_LEFT_DOWN, self.OnExpandButtonClick)
+
+        # Todo: other events
 
     def SerializeState(self):
         pos = self.GetPosition()
@@ -209,6 +211,25 @@ class MainWindow(wx.Frame):
 
         if state.get('left_splitter_pos') is not None:
             pass  # Todo
+
+    def OnProjectChanged(self, event):
+        self.viewer_container_panel.ProjectChanged(event)
+
+        changes = (
+            ProjectChangedEvent.ADDED_VISUALIZATION, ProjectChangedEvent.RENAMED_ITEM, ProjectChangedEvent.DELETED_ITEM
+        )
+
+        if event.change in changes:
+            pass  # Todo: graph panels
+
+            self.project_controller.project.dirty = True
+
+        elif event.change == ProjectChangedEvent.PROJECT_RESET:
+            pass  # Todo: graph panels
+
+            self.project_controller.project.dirty = True
+
+
 
     def ToggleProjectPanel(self):
         if self.main_splitter.IsSplit():

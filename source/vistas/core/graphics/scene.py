@@ -36,12 +36,12 @@ class Scene:
 
         return bbox
 
-    def render(self):
+    def render(self, camera):
         for obj in self.objects:
-            obj.render()
+            obj.render(camera)
 
             if self.render_bounding_boxes:
-                obj.render_bounding_box(self.bounding_box_color)
+                obj.render_bounding_box(self.bounding_box_color, camera)
 
     def select_object(self, x, y):
         pass  # Todo

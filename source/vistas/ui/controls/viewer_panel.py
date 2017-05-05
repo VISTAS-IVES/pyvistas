@@ -1,10 +1,12 @@
 import wx
-from wx.glcanvas import WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, WX_GL_CORE_PROFILE, WX_GL_MINOR_VERSION, \
-    WX_GL_MAJOR_VERSION
+from wx.glcanvas import WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, WX_GL_CORE_PROFILE
 
 from vistas.core.graphics.camera import Camera
 from vistas.core.paths import get_resource_bitmap
+from vistas.core.plugins.visualization import VisualizationPlugin2D
+from vistas.ui.controllers.project import ProjectChangedEvent
 from vistas.ui.controls.gl_canvas import GLCanvas
+from vistas.ui.project import Project
 
 
 class ViewerPanel(wx.Panel):
@@ -29,6 +31,7 @@ class ViewerPanel(wx.Panel):
         self.resizing_west = False
         self.last_pos = None
 
+        self.scenes = []
         self.selected_scene = None
 
         self.parent = parent
@@ -107,13 +110,13 @@ class ViewerPanel(wx.Panel):
 
         # Todo: VI_EVENT_VIZPLUGIN_HAS_NEW_LEGEND event
 
-        # self.gl_canvas.camera.set_wireframe(False)  # Todo
+        self.gl_canvas.camera.wireframe = False
 
         self.gl_canvas.SetFocus()
 
         self.legend_window = object()  # Todo: LegendWindow()
 
-        self.OnRefreshScenes()
+        self.RefreshScenes()
 
         # Todo: observable
 
@@ -181,7 +184,14 @@ class ViewerPanel(wx.Panel):
         self.UpdateScene()
 
     def UpdateScene(self):
-        pass  # Todo
+        for i, scene in enumerate(self.scenes):
+            if i == self.scene_choice.GetSelection():
+                # Todo: interactor
+
+                self.gl_canvas.camera.scene = scene  # Temporary until interactor code is added
+                self.selected_scene = scene
+
+        self.gl_canvas.Refresh()
 
     def OnResizeLeftDown(self, event):
         self.resizing_north = self.resizing_east = self.resizing_south = self.resizing_west = False
@@ -294,14 +304,51 @@ class ViewerPanel(wx.Panel):
     def OnCanvasPopupMenu(self, event):
         pass  # Todo
 
-    def OnRefreshScenes(self):
-        pass  # Todo
+    def RefreshScenes(self):
+        visualization_root = Project.get().visualization_root
+        self.scenes = []
+        self.FetchScenes(visualization_root)
 
-    def OnFetchSceneNames(self, root):
-        pass  # Todo
+        self.scene_choice.Clear()
 
-    def OnProjectChanged(self, event):
-        pass  # Todo
+        for i, scene in enumerate(self.scenes):
+            self.scene_choice.Append(scene.name)
+            if scene == self.selected_scene:
+                self.scene_choice.SetSelection(i)
+
+        # If not valid scene is currently selected and a scene exists, select it
+        if self.scenes and self.selected_scene and self.selected_scene.name != self.scene_choice.GetLabelText():
+            self.scene_choice.SetSelection(0)
+
+            scene_choice_event = wx.CommandEvent(wx.EVT_COMMAND_CHOICE_SELECTED, self.GetId())
+            self.scene_choice.AddPendingEvent(scene_choice_event)
+
+    def FetchScenes(self, root):
+        for node in root.children:
+            if node.is_scene:
+                self.scenes.append(node.scene)
+            elif node.is_folder:
+                self.FetchScenes(node)
+
+
+    def ProjectChanged(self, event):
+        # Recenter camera when a visualization is added to the current scene
+        if event.change == ProjectChangedEvent.ADDED_VISUALIZATION:
+            node = event.node
+            if node is not None and node.is_visualization:
+                if isinstance(node.visualization, VisualizationPlugin2D):
+                    parent = node.parent
+                    while parent is not None and not parent.is_scene:
+                        parent = parent.parent
+
+                    if parent is not None and parent.is_scene:
+                        if parent.scene == self.selected_scene:
+                            pass  # i_canvas->GetCameraInteractor()->ResetPosition()
+
+        else:
+            self.RefreshScenes()
+            self.gl_canvas.Refresh()
+            self.UpdateLegend()
 
     def OnSceneChoice(self, event):
         self.UpdateScene()

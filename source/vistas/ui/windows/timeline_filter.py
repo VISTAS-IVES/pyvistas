@@ -132,7 +132,6 @@ class TimeFilterWindow(wx.Frame):
 
         self.Bind(EVT_TIMELINE_VALUE_CHANGED, self.OnTimelineChange)
 
-        self.Show()
         self.SetFocus()
 
     def ApplyFilter(self):

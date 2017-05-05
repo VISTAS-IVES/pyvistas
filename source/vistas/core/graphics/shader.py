@@ -74,22 +74,17 @@ class ShaderProgram(wx.PyEvtHandler):
 
         return True
 
-    def pre_render(self):
+    def pre_render(self, camera):
         self.link_program()
         glUseProgram(self.program)
 
-        projection_matrix = glGetFloatv(GL_PROJECTION_MATRIX)
-        modelview_matrix = glGetFloatv(GL_MODELVIEW_MATRIX)
-
-        camera = Camera()
-        camera.matrix = ViewMatrix.from_gl(GL_MODELVIEW_MATRIX)
         position = camera.get_position()
 
-        glUniformMatrix4fv(self.get_uniform_location('projectionMatrix'), 1, False, projection_matrix)
-        glUniformMatrix4fv(self.get_uniform_location('modelViewMatrix'), 1, False, modelview_matrix)
+        glUniformMatrix4fv(self.get_uniform_location('projectionMatrix'), 1, False, camera.proj_matrix.gl)
+        glUniformMatrix4fv(self.get_uniform_location('modelViewMatrix'), 1, False, camera.matrix.gl)
         glUniform3f(self.get_uniform_location('cameraPosition'), position.x, position.y, position.z)
 
-    def post_render(self):
+    def post_render(self, camera):
         glUseProgram(0)
 
     def on_notify(self, event):

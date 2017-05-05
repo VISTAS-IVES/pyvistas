@@ -11,13 +11,13 @@ class Renderable:
         self.rotation = Vector(0, 0, 0)
         self.bounding_box = BoundingBox(0, 0, 0, 0, 0, 0)
 
-    def pre_render(self):
+    def pre_render(self, camera):
         pass
 
-    def render(self):
+    def render(self, camera):
         pass
 
-    def render_bounding_box(self, color):
+    def render_bounding_box(self, color, camera):
         pass # Todo
 
     def render_for_selection_hit(self, color):

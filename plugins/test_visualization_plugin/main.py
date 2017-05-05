@@ -2,9 +2,8 @@ from OpenGL.GL import *
 
 from vistas.core.color import RGBColor
 from vistas.core.graphics.bounds import BoundingBox
-from vistas.core.graphics.mesh import Mesh
+from vistas.core.graphics.mesh import Mesh, MeshShaderProgram
 from vistas.core.graphics.mesh_renderable import MeshRenderable
-from vistas.core.graphics.shader import ShaderProgram
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.visualization import VisualizationPlugin3D
 
@@ -62,14 +61,15 @@ class TestVisualizationPlugin(VisualizationPlugin3D):
 
     def refresh(self):
         if self._scene is not None and self.renderable is None:
-            shader = TestShaderProgram()
+            mesh = Mesh(36, 8, True, False, mode=Mesh.TRIANGLES)
+            mesh.bounding_box = BoundingBox(-1, -1, -1, 1, 1, 1)
+
+            shader = TestShaderProgram(mesh)
             shader.color = RGBColor(*(x / 255 for x in self.data.get_data(None))) if self.data else RGBColor(1, 1, 1)
             shader.attach_shader(self.get_shader_path('vert.glsl'), GL_VERTEX_SHADER)
             shader.attach_shader(self.get_shader_path('frag.glsl'), GL_FRAGMENT_SHADER)
 
-            mesh = Mesh(36, 8, True, False, mode=Mesh.TRIANGLES)
             mesh.shader = shader
-            mesh.bounding_box = BoundingBox(-1, -1, -1, 1, 1, 1)
 
             mesh_index_array = mesh.acquire_index_array()
             mesh_index_array[:] = [
@@ -118,13 +118,13 @@ class TestVisualizationPlugin(VisualizationPlugin3D):
             self.scene.add_object(self.renderable)
 
 
-class TestShaderProgram(ShaderProgram):
-    def __init__(self):
-        super().__init__()
+class TestShaderProgram(MeshShaderProgram):
+    def __init__(self, mesh):
+        super().__init__(mesh)
 
         self.color = RGBColor(1, 1, 1)
 
-    def pre_render(self):
-        super().pre_render()
+    def pre_render(self, camera):
+        super().pre_render(camera)
 
-        glUniform3fv(self.get_uniform_location('color'), 3, self.color.rgb.rgb_list)
+        glUniform3fv(self.get_uniform_location('color'), 1, self.color.rgb.rgb_list)

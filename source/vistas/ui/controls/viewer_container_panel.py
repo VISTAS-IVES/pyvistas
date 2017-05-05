@@ -3,6 +3,7 @@ from functools import reduce
 import wx
 
 from vistas.core.preferences import Preferences
+from vistas.ui.controllers.project import ProjectChangedEvent
 from vistas.ui.controls.viewer_panel import ViewerPanel
 
 
@@ -138,8 +139,17 @@ class ViewerContainerPanel(wx.Panel):
 
         self.rows.append(new_row)
 
-    def OnProjectChanged(self, event):
-        pass  # Todo
+    def ProjectChanged(self, event):
+        if event.change == ProjectChangedEvent.PROJECT_RESET:
+            while self.num_viewers > 1:
+                self.RemoveViewer()
+            self.GetMainViewerPanel().RefreshScenes()
+            self.GetMainViewerPanel().UpdateLegend()
+
+        else:
+            for row in self.rows:
+                for i in range(row.num_viewers):
+                    row.viewers[i].ProjectChanged(event)
 
     def OnCameraModeChanged(self, event):
         pass  # Todo

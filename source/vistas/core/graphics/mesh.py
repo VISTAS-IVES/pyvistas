@@ -36,6 +36,8 @@ class Mesh:
         self.has_color_array = has_color_array
         self.use_rgba = use_rgba
 
+        self.vertex_array_object = glGenVertexArrays(1)
+
         if self.has_index_array:
             self.index_buffer = glGenBuffers(1)
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.index_buffer)
@@ -117,30 +119,31 @@ class Mesh:
 
 class MeshShaderProgram(ShaderProgram):
     def __init__(self, mesh):
+        super().__init__()
+
         self.mesh = mesh
 
-    def pre_render(self):
-        super().pre_render()
+    def pre_render(self, camera):
+        super().pre_render(camera)
 
         if self.mesh.has_vertex_array:
             position_loc = self.get_attrib_location('position')
 
+            glBindVertexArray(self.mesh.vertex_array_object)
+            glEnableVertexAttribArray(position_loc)
+
             glBindBuffer(GL_ARRAY_BUFFER, self.mesh.vertex_buffer)
-            glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0)
+            glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, None)
             glEnableVertexAttribArray(position_loc)
 
         if self.mesh.has_normal_array:
             normal_loc = self.get_attrib_location('normal')
 
             glBindBuffer(GL_ARRAY_BUFFER, self.mesh.normal_buffer)
-            glVertexAttribPointer(normal_loc, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0)
+            glVertexAttribPointer(normal_loc, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, None)
             glEnableVertexAttribArray(normal_loc)
 
-    def post_render(self):
-        if self.mesh.has_vertex_array:
-            glDisableVertexAttribArray(self.get_attrib_location('position'))
+    def post_render(self, camera):
+        glBindVertexArray(0)
 
-        if self.mesh.has_normal_array:
-            glDisableVertexAttribArray(self.get_attrib_location('normal'))
-
-        super().post_render()
+        super().post_render(camera)

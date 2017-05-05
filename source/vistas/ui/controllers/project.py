@@ -576,7 +576,7 @@ class ProjectController(wx.EvtHandler):
             visualization = node.visualization
 
             if isinstance(visualization, VisualizationPlugin3D):
-                visualization.set_scene(None)
+                visualization.scene = None
 
         # Todo: remove exporter items
 

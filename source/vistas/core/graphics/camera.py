@@ -111,12 +111,12 @@ class ViewMatrix:
         top = math.tan(math.radians(fovy)/2) * z_near
         right = top * aspect
 
-        result[0,0] = z_near / right
-        result[1,1] = z_near / top
-        result[2,2] = -1 * (z_far+z_near) / (z_far-z_near)
-        result[3,2] = -2*z_far*z_near / (z_far-z_near)
-        result[2,3] = -1
-        result[3,3] = 0
+        result[0, 0] = z_near / right
+        result[1, 1] = z_near / top
+        result[2, 2] = -1 * (z_far+z_near) / (z_far-z_near)
+        result[3, 2] = -2*z_far*z_near / (z_far-z_near)
+        result[2, 3] = -1
+        result[3, 3] = 0
 
         return result
 
@@ -249,7 +249,7 @@ class Camera:
         if self.selection_view:
             self.scene.select_object(0, 0)
         else:
-            self.scene.render()
+            self.scene.render(self)
 
     def render_to_bitmap(self, width, height):
         pass  # Todo
