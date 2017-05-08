@@ -31,6 +31,14 @@ class ViewMatrix:
         else:
             raise ValueError("Can't multiply matrix with {}".format(other.__class__.__name__))
 
+    def __imul__(self, other):
+        if isinstance(other, ViewMatrix):
+            self.m *= other.m
+
+            return self
+        else:
+            raise ValueError("Can't multiply matrix with {} in place".format(other.__class__.__name__))
+
     @classmethod
     def from_gl(cls, mode):
         matrix = glGetFloatv(mode)
