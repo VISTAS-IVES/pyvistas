@@ -17,7 +17,6 @@ class Camera:
         self.saved_matrix_state = None
         self.wireframe = False
         self.selection_view = False
-        self.z_near_plane = 1
         self.proj_matrix = ViewMatrix()
 
         self.set_up_vector(Vector(0, 1, 0))

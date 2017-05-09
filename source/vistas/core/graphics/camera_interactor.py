@@ -1,6 +1,6 @@
+import math
 from vistas.core.graphics.camera import Camera, ViewMatrix
 from vistas.core.graphics.vector import Vector
-# Todo: consider having a default viewmatrix state that does not change between scenes.
 
 
 class CameraInteractor:
@@ -11,28 +11,9 @@ class CameraInteractor:
 
     camera_type = None
 
-    def __init__(self, camera=None, interactor=None):    # , point=None, object=None): Todo: are these ever used?
+    def __init__(self, camera):
 
-        self.left_down = False
-        self.right_down = False
-
-        # camera inherits from scene or interactor
-        if issubclass(type(interactor), CameraInteractor):
-            self.camera = interactor.camera
-        elif camera is not None:
-            self.camera = camera
-        else:
-            raise ValueError("No valid scene or interactor provided.")
-
-        # set camera matrix position to default position, capture it
-        self.camera.matrix = ViewMatrix()
-        bounds = self.camera.scene.bounding_box
-        center = bounds.center
-        self.camera.set_position(Vector(center.x, center.y, bounds.max_z + bounds.diameter))
-        self.camera.set_up_vector(Vector(0, 1, 0))
-        self.camera.set_point_of_interest(center)
-        self.default_matrix = self.camera.matrix
-
+        self.camera = camera
         self._distance = 0
         self._forward = 0
         self._strafe = 0
@@ -40,8 +21,8 @@ class CameraInteractor:
         self._shift_y = 0
         self._angle_x = 0
         self._angle_y = 0
-        self.friction_coeff = bounds.diameter / 500
-
+        self.friction_coeff = self._friction = 100
+        self.default_matrix = ViewMatrix()
         self.reset_position()
 
     def key_down(self, key):
@@ -59,40 +40,38 @@ class CameraInteractor:
     def refresh_position(self):
         pass  # implemented by subclasses
 
-    def reset_position(self):
+    def reset_position(self, reset_mv=True):
         pass  # implemented by subclasses
 
 
 class SphereInteractor(CameraInteractor):
 
-    def __init__(self, camera=None, interactor=None):
+    def __init__(self, camera=None):
         self.camera_type = CameraInteractor.SPHERE
-        super().__init__(*[camera, interactor])
+        super().__init__(camera=camera)
 
     def mouse_motion(self, dx, dy, shift, alt, ctrl):
-        friction = 100
+        friction = self._friction
         center_dist = self.camera.distance_to_point(self.camera.scene.bounding_box.center)
-        if shift is True:
+        if shift:
             self._distance = self._distance + dy / friction * center_dist
-        elif ctrl is True:
+        elif ctrl:
             self._shift_x = self._shift_x + dx * center_dist / friction
-            self._shift_y = self._shift_y + dy * center_dist / friction
-        elif alt is True:
-            z_near = self.camera.z_near_plane
-            if z_near + dy / friction > 0.0:
-                self.camera.z_near_plane = self.camera.z_near_plane + dy / friction
+            self._shift_y = self._shift_y - dy * center_dist / friction
         else:
             self._angle_x = self._angle_x + dx / friction * 10
-            self._angle_y = self._angle_y + dy / friction * 10
+            self._angle_y = self._angle_y - dy / friction * 10
         self.refresh_position()
 
     def mouse_wheel(self, value, shift, alt, ctrl):
-        wheel_delta = 120 # Todo: Take windows/linux delta value?
+        wheel_delta = 120                               # Todo: Take windows/linux delta value?
         bbox = self.camera.scene.bounding_box
         diameter = bbox.diameter
         orig_dist = bbox.max_z + diameter
         curr_dist = self.camera.distance_to_point(bbox.center)
         dist_ratio = 1 - (orig_dist - curr_dist) / orig_dist
+        if dist_ratio < 0:
+            dist_ratio = -math.log(-dist_ratio)
         scene_size_mult = 0.8 * diameter / 2
         zoom_amt = value / wheel_delta * scene_size_mult * dist_ratio
         if value < 0 and zoom_amt <= 0:
@@ -110,15 +89,23 @@ class SphereInteractor(CameraInteractor):
         dummy_cam = Camera()
         dummy_cam.matrix = self.default_matrix
         z_shift = dummy_cam.distance_to_point(center)
-        self.camera.matrix = ViewMatrix.translate(self._shift_x, self._shift_y, self._distance) * \
-                             ViewMatrix.translate(0, 0, -z_shift) * \
-                             ViewMatrix.rotate_x(self._angle_y) * \
+        self.camera.matrix = self.default_matrix * \
+                             ViewMatrix.translate(0, 0, z_shift) * \
                              ViewMatrix.rotate_y(self._angle_x) * \
-                             ViewMatrix.translate(0, 0, z_shift) * self.default_matrix
+                             ViewMatrix.rotate_x(self._angle_y) * \
+                             ViewMatrix.translate(0, 0, -z_shift) * \
+                             ViewMatrix.translate(self._shift_x, self._shift_y, self._distance)
         # Todo: UIPostRedisplay?
 
-    def reset_position(self):
-        self.camera.matrix = self.default_matrix
+    def reset_position(self, reset_mv=True):
+        if reset_mv:
+            self.camera.matrix = ViewMatrix()
+            bbox = self.camera.scene.bounding_box
+            c = bbox.center
+            self.camera.set_position(Vector(c.x, c.y, bbox.max_z + bbox.diameter))
+            self.camera.set_up_vector(Vector(0, 1, 0))
+            self.camera.set_point_of_interest(c)
+        self.default_matrix = self.camera.matrix
         self._distance = 0
         self._forward = 0
         self._strafe = 0
@@ -131,9 +118,9 @@ class SphereInteractor(CameraInteractor):
 
 class FreelookInteractor(CameraInteractor):
 
-    def __init__(self, camera=None, interactor=None):
+    def __init__(self, camera=None):
         self.camera_type = CameraInteractor.FREELOOK
-        super().__init__(*[camera, interactor])
+        super().__init__(camera=camera)
 
     def mouse_motion(self, dx, dy, shift, alt, ctrl):
         friction = 5.0
@@ -159,21 +146,20 @@ class FreelookInteractor(CameraInteractor):
     def refresh_position(self):
         self.camera.move_relative(Vector(self._strafe, 0.0, self._forward))
         pos = self.camera.get_position()
-        self.camera.matrix = ViewMatrix.rotate_x(self._angle_x) * ViewMatrix.rotate_y(self._angle_y) \
-                             * self.default_matrix
+        self.camera.matrix = self.default_matrix * ViewMatrix.rotate_y(self._angle_y) \
+                             * ViewMatrix.rotate_x(self._angle_x)
         self.camera.set_position(pos)
         # Todo: UIPostRedisplay?
 
 
 class PanInteractor(SphereInteractor):
 
-    def __init__(self, camera=None, interactor=None):
-        super().__init__(*[camera, interactor])
+    def __init__(self, camera=None):
+        super().__init__(*camera)
         self.camera_type = CameraInteractor.PAN
 
     def mouse_motion(self, dx, dy, shift, alt, ctrl):
-        friction = 200
-        dist = self.camera.distance_to_point(self.camera.scene.bounding_box.center) / friction
+        dist = self.camera.distance_to_point(self.camera.scene.bounding_box.center) / self._friction
         self._shift_x = self._shift_x + dx * dist
-        self._shift_y = self._shift_y + dy * dist
+        self._shift_y = self._shift_y - dy * dist
         self.refresh_position()
