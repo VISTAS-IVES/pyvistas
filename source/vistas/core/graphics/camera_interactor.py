@@ -11,7 +11,7 @@ class CameraInteractor:
 
     camera_type = None
 
-    def __init__(self, camera):
+    def __init__(self, camera=Camera(), reset_mv=True):
 
         self.camera = camera
         self._distance = 0
@@ -21,9 +21,9 @@ class CameraInteractor:
         self._shift_y = 0
         self._angle_x = 0
         self._angle_y = 0
-        self.friction_coeff = self._friction = 100
+        self._friction = 100
         self.default_matrix = ViewMatrix()
-        self.reset_position()
+        self.reset_position(reset_mv=reset_mv)
 
     def key_down(self, key):
         pass  # implemented by subclasses
@@ -46,9 +46,9 @@ class CameraInteractor:
 
 class SphereInteractor(CameraInteractor):
 
-    def __init__(self, camera=None):
+    def __init__(self, camera, reset_mv=True):
         self.camera_type = CameraInteractor.SPHERE
-        super().__init__(camera=camera)
+        super().__init__(camera, reset_mv)
 
     def mouse_motion(self, dx, dy, shift, alt, ctrl):
         friction = self._friction
@@ -118,44 +118,53 @@ class SphereInteractor(CameraInteractor):
 
 class FreelookInteractor(CameraInteractor):
 
-    def __init__(self, camera=None):
+    def __init__(self, camera, reset_mv=True):
         self.camera_type = CameraInteractor.FREELOOK
-        super().__init__(camera=camera)
+        super().__init__(camera, reset_mv)
 
     def mouse_motion(self, dx, dy, shift, alt, ctrl):
         friction = 5.0
         self._forward = 0.0
         self._strafe = 0.0
-        self._angle_x = dy / friction
-        self._angle_y = dx / friction
+        self._angle_x = self._angle_x + dy / friction
+        self._angle_y = self._angle_y + dx / friction
         self.refresh_position()
 
     def key_down(self, key):
         self._forward = 0.0
         self._strafe = 0.0
+        friction =self.camera.scene.bounding_box.diameter / 500.0
         if key == "W":
-            self._forward = self._forward - self.friction_coeff
+            self._forward = self._forward - friction
         elif key == "S":
-            self._forward = self._forward + self.friction_coeff
+            self._forward = self._forward + friction
         elif key == "A":
-            self._strafe = self._strafe - self.friction_coeff
+            self._strafe = self._strafe - friction
         elif key == "D":
-            self._strafe = self._strafe + self.friction_coeff
+            self._strafe = self._strafe + friction
         self.refresh_position()
 
     def refresh_position(self):
         self.camera.move_relative(Vector(self._strafe, 0.0, self._forward))
         pos = self.camera.get_position()
-        self.camera.matrix = self.default_matrix * ViewMatrix.rotate_y(self._angle_y) \
-                             * ViewMatrix.rotate_x(self._angle_x)
+        self.camera.matrix = self.default_matrix*ViewMatrix.rotate_y(self._angle_y)*ViewMatrix.rotate_x(self._angle_x)
         self.camera.set_position(pos)
         # Todo: UIPostRedisplay?
+
+    def reset_position(self, reset_mv=True):
+        self._strafe = 0.0
+        self._forward = 0.0
+        self._angle_y = self._angle_x = 0.0
+        if reset_mv:
+            self.camera.matrix = ViewMatrix()
+        self.default_matrix = self.camera.matrix
+        self.refresh_position()
 
 
 class PanInteractor(SphereInteractor):
 
-    def __init__(self, camera=None):
-        super().__init__(*camera)
+    def __init__(self, camera, reset_mv=True):
+        super().__init__(camera, reset_mv)
         self.camera_type = CameraInteractor.PAN
 
     def mouse_motion(self, dx, dy, shift, alt, ctrl):

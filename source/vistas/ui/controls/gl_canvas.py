@@ -2,9 +2,8 @@ import wx
 import wx.glcanvas
 
 from vistas.core.utils import get_platform
+#from vistas.ui.controls.gl_camera import GLCameraControls
 from vistas.core.graphics.camera_interactor import SphereInteractor
-
-from OpenGL.GL import *
 
 
 class GLCanvas(wx.glcanvas.GLCanvas):
@@ -15,7 +14,8 @@ class GLCanvas(wx.glcanvas.GLCanvas):
         super().__init__(parent, id, attribList=attrib_list)
 
         self.camera = camera
-        self.camera_interactor = SphereInteractor(self.camera)
+        #self.camera_controls = GLCameraControls(self, camera)  # Todo: Fix camera control UI
+        self.camera_interactor = SphereInteractor(camera)
         self._x = self._y = -1
 
         self.Bind(wx.EVT_MOTION, self.OnMotion)
@@ -28,6 +28,10 @@ class GLCanvas(wx.glcanvas.GLCanvas):
         # Todo: VI_EVENT_REDISPLAY
 
         # self.SetFocus()  # Crashes on Mac
+
+    #@property
+    #def camera_interactor(self):
+    #    return self.camera_controls.camera_interactor
 
     def OnPaint(self, event):
         if not GLCanvas.initialized:
@@ -66,9 +70,9 @@ class GLCanvas(wx.glcanvas.GLCanvas):
         self.Refresh()
 
     def OnKey(self, event: wx.KeyEvent):
-        keycode = event.GetKeyCode()
-        if keycode < 256 and keycode >= 28:
-            self.camera_interactor.key_down(keycode)
+        keycode = event.GetUnicodeKey()
+        if keycode != wx.WXK_NONE:
+            self.camera_interactor.key_down("{:c}".format(keycode))     # submit ascii letters
             self.Refresh()
 
     def OnPostRedisplay(self, event):

@@ -10,7 +10,7 @@ CameraChangedEvent, EVT_CAMERA_MODE_CHANGED = wx.lib.newevent.NewEvent()
 
 class GLCameraButtonFrame(wx.Frame):
     def __init__(self, parent):
-        super().__init__(parent, style=wx.FRAME_NO_TASKBAR | wx.FRAME_FLOAT_ON_PARENT)
+        super().__init__(parent, id=wx.ID_ANY, style=wx.FRAME_NO_TASKBAR | wx.FRAME_FLOAT_ON_PARENT)
         self.alpha = 150
         self._selected = False
 
@@ -121,7 +121,6 @@ class GLCameraControls(wx.EvtHandler):
 
     def __init__(self, gl_canvas, camera):
         super().__init__()
-        self.camera = camera
         self.sphere_button = GLCameraButton(gl_canvas, 0, "glyphicons-372-global.png")
         y_offset = self.sphere_button.GetSize().Get()[1]
         self.freelook_button = GLCameraButton(gl_canvas, 1, "glyphicons-52-eye-open.png")
@@ -137,19 +136,14 @@ class GLCameraControls(wx.EvtHandler):
         self.camera_interactor = SphereInteractor(camera=camera)
 
         self.sphere_button.Select()
-        self.sphere_button.Refresh()
-
-    def __del__(self):
-        self.sphere_button.Destroy()
-        self.freelook_button.Destroy()
-        self.pan_button.Destroy()
+        self.sphere_button.frame.Refresh()
 
     def OnCameraButton(self, event):
         button = event.GetEventObject()
         if button.frame.selected:
             return
         self.SetType(button.GetId())
-        wx.PostEvent(self, CameraChangedEvent(self))
+        wx.PostEvent(self, CameraChangedEvent())
 
     def Show(self, show=True):
         self.sphere_button.frame.Show(show)
@@ -173,18 +167,19 @@ class GLCameraControls(wx.EvtHandler):
     def SetType(self, camera_type_id):
 
         camera_type = self.CAMERA_DICT[camera_type_id]
+        args = {'camera': self.camera_interactor.camera, 'reset_mv': False}
         if camera_type == CameraInteractor.SPHERE:
             self.sphere_button.Select()
-            self.camera_interactor = SphereInteractor(interactor=self.camera_interactor)
+            self.camera_interactor = SphereInteractor(**args)
             self.freelook_button.Select(False)
             self.pan_button.Select(False)
         elif camera_type == CameraInteractor.FREELOOK:
             self.freelook_button.Select()
-            self.camera_interactor = FreelookInteractor(interactor=self.camera_interactor)
+            self.camera_interactor = FreelookInteractor(**args)
             self.sphere_button.Select(False)
             self.pan_button.Select(False)
         elif camera_type == CameraInteractor.PAN:
             self.pan_button.Select()
-            self.camera_interactor = PanInteractor(interactor=self.camera)
+            self.camera_interactor = PanInteractor(**args)
             self.sphere_button.Select(False)
             self.freelook_button.Select(False)
