@@ -9,6 +9,7 @@ from vistas.core.graphics.scene import Scene
 from vistas.core.plugins.management import get_data_plugins, get_visualization_plugins, get_2d_visualization_plugins
 from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.ui.project import Project, SceneNode, FolderNode, VisualizationNode, DataNode
+from vistas.ui.windows.viz_dialog import VisualizationDialog
 
 logger = logging.getLogger(__name__)
 
@@ -265,7 +266,8 @@ class ProjectController(wx.EvtHandler):
                 tree_parent, node.label, node
             )
 
-            # Todo: viz dialog show
+            VisualizationDialog(wx.GetTopLevelParent(self.project_panel), wx.ID_ANY, plugin, self.project, node).Show()
+
             main_window = wx.GetTopLevelParent(self.project_panel)
             main_window.SetOptions(plugin.get_options(), plugin)
 
