@@ -172,8 +172,6 @@ class MainWindow(wx.Frame):
         self.main_splitter.Bind(wx.EVT_SPLITTER_DCLICK, self.OnSplitterDClick)
         self.expand_button.Bind(wx.EVT_LEFT_DOWN, self.OnExpandButtonClick)
 
-        # Todo: other events
-
     def SerializeState(self):
         pos = self.GetPosition()
         size = self.GetSize()
@@ -185,8 +183,8 @@ class MainWindow(wx.Frame):
             'y': pos.y,
             'w': size.x,
             'h': size.y,
-            'main_splitter_pos': None,  # Todo
-            'left_splitter_pos': None  # Todo
+            'main_splitter_pos': self.main_sash_position,
+            'left_splitter_pos': self.left_sash_position
         }
 
     def LoadState(self, state):
@@ -207,10 +205,10 @@ class MainWindow(wx.Frame):
             self.Maximize()
 
         if state.get('main_splitter_pos') is not None:
-            pass  # Todo
+            self.main_sash_position = state['main_splitter_pos']
 
         if state.get('left_splitter_pos') is not None:
-            pass  # Todo
+            self.left_sash_position = state['left_splitter_pos']
 
     def OnProjectChanged(self, event):
         self.viewer_container_panel.ProjectChanged(event)
