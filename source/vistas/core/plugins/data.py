@@ -1,6 +1,16 @@
 from vistas.core.plugins.interface import Plugin
 
 
+class VariableStats:
+    """ Variable statistics interface """
+
+    def __init__(self, min_value=None, max_value=None, nodata_value=None, misc={}):
+        self.min_value = min_value
+        self.max_value = max_value
+        self.nodata_value = nodata_value
+        self.misc = misc
+
+
 class DataPlugin(Plugin):
     ARRAY = 'array'
     RASTER = 'raster'
@@ -42,6 +52,11 @@ class DataPlugin(Plugin):
     @property
     def time_info(self):
         """ Get time info for the data, if applicable """
+
+        return None
+
+    def variable_stats(self, variable) -> VariableStats or None:
+        """ Get the statistics calculated for the variable, if applicable """
 
         return None
 

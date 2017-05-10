@@ -10,6 +10,7 @@ from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.ui.project import Project, SceneNode, FolderNode, VisualizationNode, DataNode
 from vistas.ui.events import ProjectChangedEvent
 from vistas.ui.windows.viz_dialog import VisualizationDialog
+from vistas.ui.windows.data_dialog import DataDialog
 
 logger = logging.getLogger(__name__)
 
@@ -503,7 +504,7 @@ class ProjectController(wx.EvtHandler):
 
         if proj_item is not None:
             if proj_item.is_data:
-                pass  # Todo: DataDialog
+                DataDialog(wx.GetTopLevelParent(self.project_panel), wx.ID_ANY, proj_item.data).ShowModal()
 
             elif proj_item.is_visualization:
                 plugin = proj_item.visualization
