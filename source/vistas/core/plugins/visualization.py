@@ -19,6 +19,18 @@ class VisualizationPlugin(Plugin):
     def data_roles(self):
         raise NotImplemented
 
+    def role_supports_multiple_inputs(self, role):
+        """ Returns whether the role can have multiple sub-roles """
+        return False
+
+    def role_supports_variable_inputs(self, role):
+        """ Returns whether the role can have a variadic number of sub-roles """
+        return False
+
+    def role_size(self, role):
+        """ Get the number of inputs for a specific role """
+        return 1
+
     def set_data(self, data: DataPlugin, role):
         """ Set data in a specific role for the visualization """
 
@@ -28,6 +40,10 @@ class VisualizationPlugin(Plugin):
         """ Get the data associated with a specific role """
 
         raise NotImplemented
+
+    def get_multiple_data(self, role) -> [DataPlugin]:
+        """ Get a list of data plugins associated with a specific role """
+        return []
 
     def set_filter(self, min_value, max_value):
         """ Set the filter min/max for the visualization """

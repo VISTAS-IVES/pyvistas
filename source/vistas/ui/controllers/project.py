@@ -511,7 +511,9 @@ class ProjectController(wx.EvtHandler):
                 plugin = proj_item.visualization
                 main_window = wx.GetTopLevelParent(self.project_panel)
                 main_window.SetOptions(plugin.get_options(), plugin)
-                # Todo: VisualizationDialog
+                VisualizationDialog(
+                    wx.GetTopLevelParent(self.project_panel), wx.ID_ANY, plugin, self.project, proj_item
+                ).Show()
 
             elif proj_item.is_flythrough:
                 pass  # Todo: FlythroughDialog

@@ -1,4 +1,9 @@
-from vistas.core.plugins.visualization import VisualizationPlugin
+from collections import OrderedDict
+
+from vistas.core.plugins.visualization import VisualizationPlugin, VisualizationPlugin2D, VisualizationPlugin3D
+from vistas.core.plugins.data import DataPlugin
+from vistas.ui.project import DataNode
+from vistas.ui.controllers.project import ProjectChangedEvent
 from vistas.ui.controls.histogram_ctrl import HistogramCtrl
 from vistas.ui.controls.options_panel import OptionsPanel
 
@@ -19,6 +24,7 @@ class VisualizationDialog(wx.Frame):
         self.viz = viz
         self.project = project
         self.node = node
+        self.role_indexes = {}
 
         self.notebook = wx.Notebook(self, style=wx.NB_TOP)
         self.data_panel = wx.Panel(self.notebook)
@@ -68,30 +74,173 @@ class VisualizationDialog(wx.Frame):
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
     def RefreshInfoText(self):
-        pass
 
-    def AddMultipleDataChoice(self, available_choices, selected, role_idx, input_indx, label):
-        pass
+        info = OrderedDict()
+        info['Plugin Name'] = self.viz.name
+        info['Visualization Name'] = self.viz.visualization_name
+        if isinstance(self.viz, VisualizationPlugin2D):
+            viz_type = '2D Visualization'
+        else:
+            viz_type = '3D Visualization'
+        info['Visualization Type'] = viz_type
+
+        for i, role in enumerate(self.viz.data_roles):
+            if role[0] is DataPlugin.RASTER:
+                dtype = 'Grid Data'
+            elif role[0] is DataPlugin.ARRAY:
+                dtype = 'Array Data'
+            elif role[0] is DataPlugin.FEATURE:
+                dtype = 'Feature Data'
+            else:
+                dtype = 'Unknown data type'
+            info['{} input'.format(role[1])] = dtype
+
+        self.info_text.Clear()
+
+        for entry in info.items():
+            length = len(self.info_text.GetValue())
+            self.info_text.AppendText("{}: ".format(entry[0]))
+            self.info_text.SetSelection(length, length + len(entry[0])+1)
+            self.info_text.ApplyBoldToSelection()
+            self.info_text.AppendText("{}\n".format(entry[1]))
+
+    def AddMultipleDataChoice(self, available_choices: [DataNode], selected, role_idx, input_idx, label):
+        label_text = wx.StaticText(self.data_panel, wx.ID_ANY, label)
+        data_choice = wx.Choice(self.data_panel, input_idx)
+        self.role_indexes[data_choice] = role_idx
+
+        index = data_choice.Append("None")
+        data_choice.SetClientData(index, None)
+
+        if selected is not None:
+            index = data_choice.Append(selected.label)
+            data_choice.SetClientData(index, selected.data)
+            data_choice.Select(index)
+
+        for potential_data in available_choices:
+            index = data_choice.Append(potential_data.label)
+            data_choice.SetClientData(index, potential_data.data)
+
+        data_choice.Bind(wx.EVT_CHOICE, self.OnChoice)
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(label_text, 0, wx.ALIGN_LEFT | wx.RIGHT, 20)
+        sizer.Add(data_choice, 1, wx.ALIGN_RIGHT)
+        self.data_panel_sizer.Add(sizer, 0, wx.EXPAND | wx.TOP, 1)
 
     def RefreshDataOptions(self):
-        pass
+        self.data_panel_sizer.Clear(True)
+        for i, role in enumerate(self.viz.data_roles):
+            roletype = role[0]
+            label = "{} ({})".format(role[1], roletype.title())
+            all_data_nodes = self.project.data_root.data_nodes
+            current_data = []
+            available_data = []
+
+            if self.viz.role_supports_multiple_inputs(i):       # Multiple roles input
+                current_inputs = self.viz.get_multiple_data(i)
+
+                for node in all_data_nodes:
+                    if roletype == node.data.data_type:
+                        if node.data in current_inputs:
+                            current_data.append(node)
+                        else:
+                            available_data.append(node)
+
+                multiple_inputs_sizer = wx.BoxSizer(wx.HORIZONTAL)
+                multiple_inputs_text = wx.StaticText(self.data_panel, wx.ID_ANY, "Multiple Inputs")
+                multiple_inputs_sizer.Add(multiple_inputs_text, 0 , wx.ALIGN_LEFT | wx.RIGHT, 20)
+                self.data_panel_sizer.Add(multiple_inputs_sizer, 0, wx.EXPAND | wx.TOP, 10)
+
+                last_idx = 0
+                for input_idx, node in enumerate(current_data):
+                    self.AddMultipleDataChoice(available_data, node, i, input_idx, label)
+                    last_idx = input_idx
+
+                if self.viz.role_supports_variable_inputs(i):
+                    self.AddMultipleDataChoice(available_data, None, i, last_idx, label)
+
+            else:   # Single role input
+                label_text = wx.StaticText(self.data_panel, wx.ID_ANY, label)
+                data_choice = wx.Choice(self.data_panel, wx.ID_ANY)
+                self.role_indexes[data_choice] = i
+                index = data_choice.Append("None")
+                data_choice.SetClientData(index, None)
+                data_choice.Select(index)
+
+                for node in all_data_nodes:
+                    if roletype == node.data.data_type:
+                        index = data_choice.Append(node.label)
+                        data_choice.SetClientData(index, node.data)
+
+                        if node == self.viz.get_data(i):
+                            data_choice.Select(index)
+
+                data_choice.Bind(wx.EVT_CHOICE, self.OnChoice)
+                sizer = wx.BoxSizer(wx.HORIZONTAL)
+                sizer.Add(label_text, 0, wx.ALIGN_LEFT | wx.RIGHT, 20)
+                sizer.Add(data_choice, 1, wx.ALIGN_RIGHT)
+                self.data_panel_sizer.Add(sizer, 0, wx.EXPAND | wx.TOP, 10)
+
+        self.data_panel.Layout()
 
     def OnClose(self, event):
         main_window = wx.GetTopLevelParent(self.GetParent())
         main_window.SetOptions(self.viz.get_options(), self.viz)
         event.Skip()
 
-    def OnChoice(self, event):
-        pass
+    def OnChoice(self, event: wx.CommandEvent):
+        data_choice = event.GetEventObject()
+        data = data_choice.GetClientData(event.GetSelection())
+        role_idx = self.role_indexes[data_choice]
+        sub_idx = data_choice.GetId()
+
+        has_multiple_inputs = self.viz.role_supports_variable_inputs(role_idx) or \
+                              self.viz.role_supports_multiple_inputs(role_idx)
+
+        if data is not None:
+            if has_multiple_inputs:
+                if sub_idx < self.viz.role_size(role_idx):
+                    pass    # Todo: How to set and remove sub-role data?
+
+            self.viz.set_data(data, role_idx)
+        else:
+            if has_multiple_inputs:
+                pass    # Todo: set and remove sub-role data
+            else:
+                self.viz.set_data(None, role_idx)
+
+        if isinstance(self.viz, VisualizationPlugin3D):
+            bbox = self.viz.scene.bounding_box
+            self.viz.refresh()
+
+            if self.viz.scene.bounding_box != bbox:
+                wx.PostEvent(
+                    self.GetParent(),
+                    ProjectChangedEvent(node=self.node, change=ProjectChangedEvent.ADDED_VISUALIZATION)
+                )
+
+        self.RefreshDataOptions()
 
     def OnPage(self, event):
-        pass
+        page = event.GetSelection()
+        if page == 2:
+            self.options_panel.options = self.viz.get_options()
+            self.options_panel.plugin = self.viz
+            self.options_panel.Layout()
+        elif page == 3:
+            self.filter_histogram.SetHistogram(self.viz.filter_histogram)
+            if self.viz.is_filtered:
+                self.filter_histogram.SetStops(self.viz.filter_min, self.viz.filter_max)
+        event.Skip()
 
     def OnFilterChange(self, event):
-        pass
+        pass    # Todo: Implement HISTOGRAM_CTRL_RANGE_VALUE_CHANGED_EVT
 
     def OnClearFilter(self, event):
-        pass
+        if self.viz.is_filterable:
+            self.filter_histogram.SetHistogram(self.viz.filter_histogram, True)
+            self.viz.clear_filter()
 
     def OnTimelineChange(self, event):
-        pass
+        if self.viz.is_filterable:
+            self.filter_histogram.SetHistogram(self.viz.filter_histogram, not self.viz.is_filtered)
