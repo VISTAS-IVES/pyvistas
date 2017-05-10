@@ -2,7 +2,8 @@ import wx
 
 from vistas.core.paths import get_resource_bitmap
 from vistas.core.utils import get_platform
-from vistas.ui.controllers.project import ProjectController, ProjectChangedEvent, EVT_COMMAND_PROJECT_CHANGED
+from vistas.ui.events import ProjectChangedEvent, EVT_COMMAND_PROJECT_CHANGED
+from vistas.ui.controllers.project import ProjectController
 from vistas.ui.controls.project_panel import ProjectPanel
 from vistas.ui.controls.options_panel import OptionsPanel
 from vistas.ui.controls.viewer_container_panel import ViewerContainerPanel

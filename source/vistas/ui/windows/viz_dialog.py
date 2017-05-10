@@ -3,8 +3,8 @@ from collections import OrderedDict
 from vistas.core.plugins.visualization import VisualizationPlugin, VisualizationPlugin2D, VisualizationPlugin3D
 from vistas.core.plugins.data import DataPlugin
 from vistas.ui.project import DataNode
-from vistas.ui.controllers.project import ProjectChangedEvent
-from vistas.ui.controls.histogram_ctrl import HistogramCtrl
+from vistas.ui.events import ProjectChangedEvent
+from vistas.ui.controls.histogram_ctrl import HistogramCtrl, HISTOGRAM_CTRL_RANGE_VALUE_CHANGED_EVT
 from vistas.ui.controls.options_panel import OptionsPanel
 
 import wx
@@ -60,7 +60,7 @@ class VisualizationDialog(wx.Frame):
             self.filter_panel_sizer.Add(self.filter_histogram, 1, wx.EXPAND)
             self.filter_panel_sizer.Add(self.clear_filter_button, 0, wx.TOP, 5)
 
-            # Todo: HISTOGRAM_CTRL_RANGE_VALUE_CHANGED_EVT -> OnFilterChange
+            self.filter_histogram.Bind(HISTOGRAM_CTRL_RANGE_VALUE_CHANGED_EVT, self.OnFilterChange)
             self.clear_filter_button.Bind(wx.EVT_BUTTON, self.OnClearFilter)
 
         self.options_panel.options = self.viz.get_options()
@@ -234,7 +234,8 @@ class VisualizationDialog(wx.Frame):
         event.Skip()
 
     def OnFilterChange(self, event):
-        pass    # Todo: Implement HISTOGRAM_CTRL_RANGE_VALUE_CHANGED_EVT
+        self.viz.set_filter(event.min_stop, event.max_stop)
+        # Todo: UIPostRedisplay?
 
     def OnClearFilter(self, event):
         if self.viz.is_filterable:
