@@ -5,10 +5,10 @@ import wx.lib.newevent
 ThreadSyncEvent, EVT_THREAD_SYNC = wx.lib.newevent.NewEvent()
 
 
-class Thread(threading.Thread, wx.PyEvtHandler):
+class Thread(threading.Thread, wx.EvtHandler):
     def __init__(self, *args, **kwargs):
         threading.Thread.__init__(self, *args, **kwargs)
-        wx.PyEvtHandler.__init__(self)
+        wx.EvtHandler.__init__(self)
 
         self.Bind(EVT_THREAD_SYNC, self.on_sync)
 
