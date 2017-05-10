@@ -209,7 +209,7 @@ class KeyframeTimeline(wx.Window):
             self._selected_keyframe = None
 
     def OnErase(self, event):
-        pass    # Todo: implement?
+        return  # Prevent flickering on Windows
 
     def AddKeyframe(self, frame):
         bisect.insort(self._keyframes, frame)

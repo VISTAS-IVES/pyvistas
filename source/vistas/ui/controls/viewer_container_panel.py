@@ -69,6 +69,7 @@ class ViewerContainerPanel(wx.Panel):
         self.UpdateViewerSizes()
 
         # Todo: observable (?)
+        # new_viewer.ResetCameraInteractor()
 
     def RemoveViewer(self, viewer=None):
         # Can't remove the last viewer

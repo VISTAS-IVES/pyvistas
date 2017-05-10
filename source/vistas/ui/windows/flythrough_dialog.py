@@ -9,7 +9,7 @@ import wx
 
 
 class FlythroughDialog(wx.Frame):
-    ADD_POINT = 101
+    FLYTHROUGH_ADD_POINT = 101
     FLYTHROUGH_FORWARD = 102
     FLYTHROUGH_BACKWARD = 103
     FLYTHROUGH_PLAY = 104

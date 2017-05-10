@@ -215,7 +215,7 @@ class VisualizationNode(ProjectNode):
         data = super().serialize()
         data.update({
             'plugin': self.visualization.name,
-            'data': {}  # Todo: data roles
+            'data': self.visualization.data_roles
         })
 
     @classmethod
