@@ -61,7 +61,7 @@ class HistogramCtrl(wx.Control):
 
     def SetStops(self, minimum, maximum):
         self.min_stop = max(self.min_value, min(minimum, maximum))
-        self.max_stop = max(self.max_value, min(minimum, maximum))
+        self.max_stop = min(self.max_value, max(maximum, minimum))
         self.RefreshBins()
         self.Refresh()
 
@@ -173,7 +173,7 @@ class HistogramCtrl(wx.Control):
             label_pos = max(left_edge, label_pos)
             edge = label_pos + label_width
         elif right_edge != -1:
-            label_pos = min(right_edge, - label_width, label_pos)
+            label_pos = min(right_edge - label_width, label_pos)
             edge = label_pos
 
         dc.DrawText(label, label_pos, y_offset + self.HANDLE_HEIGHT + self.LABEL_PADDING)
@@ -182,7 +182,6 @@ class HistogramCtrl(wx.Control):
     def RefreshBins(self):
         width = self.GetSize().x
         self.bins = self.histogram.generate_histogram(width)
-        print(self.bins)
         self.max_count = self.bins.size
         self.min_value = self.bins.min()
         self.max_value = self.bins.max()
