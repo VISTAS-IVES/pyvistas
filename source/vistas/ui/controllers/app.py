@@ -69,19 +69,48 @@ class AppController(wx.EvtHandler):
             self.OnAboutMenuItem(event)
         elif event_id == wx.ID_EXIT:
             self.main_window.Close()
+        elif event_id == MainWindow.MENU_FILE_NEW:
+            pass
+        elif event_id == MainWindow.MENU_FILE_OPEN:
+            pass
+        elif event_id == MainWindow.MENU_FILE_SAVE:
+            pass
+        elif event_id == MainWindow.MENU_FILE_SAVEAS:
+            pass
+        elif event_id == MainWindow.MENU_FILE_ADDDATA:
+            self.main_window.project_controller.AddDataFromFile(None)
         elif event_id == MainWindow.MENU_VIEW_ADD_VIEWER:
             self.main_window.viewer_container_panel.AddViewer()
         elif event_id == MainWindow.MENU_VIEW_REMOVE_VIEWER:
             self.main_window.viewer_container_panel.RemoveViewer()
-        elif event_id == MainWindow.MENU_WINDOW_PLUGINS:
-            self.plugins_window.Show()
-            self.plugins_window.Raise()
+        elif event_id == MainWindow.MENU_VIEW_ADD_GRAPH:
+            pass
+        elif event_id == MainWindow.MENU_VIEW_REMOVE_GRAPH:
+            pass
         elif event_id == MainWindow.MENU_VIEW_COLLAPSE:
             self.main_window.ToggleProjectPanel()
+        elif event_id == MainWindow.MENU_EXPORT_EXPORT:
+            pass
+        elif event_id == MainWindow.MENU_EXPORT_CURRENT_COPY:
+            pass
+        elif event_id == MainWindow.MENU_EXPORT_CURRENT_SAVE:
+            pass
+        elif event_id == MainWindow.MENU_FLYTHROUGH_GENERATE:
+            pass
+        elif event_id == MainWindow.MENU_SYNC_CAMERAS:
+            pass
         elif event_id == MainWindow.MENU_OPEN_TIMELINE_FILTER:
             if self.time_filter_window.timeline.enabled:
                 self.time_filter_window.Show()
-        # Todo
+        elif event_id == MainWindow.MENU_WINDOW_PLUGINS:
+            self.plugins_window.Show()
+            self.plugins_window.Raise()
+        elif event_id == MainWindow.MENU_DEBUG:
+            pass
+        elif event_id == MainWindow.MENU_DEBUG_TOGGLE_WIREFRAME:
+            pass
+        elif event_id == MainWindow.MENU_DEBUG_TOGGLE_SELECTION_VIEW:
+            pass
 
     def OnAboutMenuItem(self, event):
         info = wx.adv.AboutDialogInfo()
