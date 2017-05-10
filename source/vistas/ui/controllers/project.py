@@ -10,7 +10,8 @@ from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.ui.project import Project, SceneNode, FolderNode, VisualizationNode, DataNode
 from vistas.ui.events import ProjectChangedEvent
 from vistas.ui.windows.viz_dialog import VisualizationDialog
-from vistas.ui.windows.data_dialog import DataDialog
+from vistas.ui.windows.data_dialog import DataDialog, CalculateStatsThread
+from vistas.ui.windows.task_dialog import TaskDialog
 
 logger = logging.getLogger(__name__)
 
@@ -221,7 +222,9 @@ class ProjectController(wx.EvtHandler):
                 plugin = plugin_cls()
                 plugin.set_path(path)
 
-                # Todo: calculate stats
+                thread = CalculateStatsThread(plugin)
+                thread.start()
+                TaskDialog(wx.GetTopLevelParent(self.project_panel), thread.task, False, False).ShowModal()
 
                 if parent is None:
                     parent = self.project.data_root

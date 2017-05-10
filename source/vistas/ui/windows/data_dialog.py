@@ -1,9 +1,24 @@
 from collections import OrderedDict
 from vistas.core.plugins.data import DataPlugin
 from vistas.ui.controls.options_panel import OptionsPanel
+from vistas.core.threading import Thread
+from vistas.core.task import Task
 
 import wx
 import wx.richtext
+
+
+class CalculateStatsThread(Thread):
+
+    def __init__(self, data_plugin: DataPlugin):
+        super().__init__()
+        self.data_plugin = data_plugin
+        self.task = Task("Calculating Statistics", "Please wait: calculating data statistics...")
+        self.task.status = Task.INDETERMINATE
+
+    def run(self):
+        self.data_plugin.calculate_stats()
+        self.task.status = Task.COMPLETE
 
 
 class DataDialog(wx.Dialog):

@@ -70,6 +70,11 @@ class DataPlugin(Plugin):
     def is_valid_file(path):
         return False
 
+    def calculate_stats(self):
+        """ Perform statistics for the data. """
+
+        pass
+
 
 class ArrayDataPlugin(DataPlugin):
     """ Base class for 1-dimensional array data """
