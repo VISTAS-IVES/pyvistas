@@ -172,7 +172,7 @@ class VisualizationDialog(wx.Frame):
                         index = data_choice.Append(node.label)
                         data_choice.SetClientData(index, node.data)
 
-                        if node == self.viz.get_data(i):
+                        if node.data == self.viz.get_data(i):
                             data_choice.Select(index)
 
                 data_choice.Bind(wx.EVT_CHOICE, self.OnChoice)
