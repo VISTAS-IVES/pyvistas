@@ -10,7 +10,7 @@ class Task:
 
     tasks = []
 
-    def __init__(self, name, description=None, target=0, progress=0):
+    def __init__(self, name, description=None, target=100, progress=0):
         self.name = name
         self.description = description
         self._target = target
