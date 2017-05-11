@@ -62,7 +62,12 @@ class TaskDialog(wx.Dialog):
     def OnTimer(self, event):
         if self.task.stopped or self.task.complete:
             self.timer.Stop()
+
+            if self.IsModal():
+                self.EndModal(0)
+
             self.Destroy()
+            return
 
         if self.task.indeterminate:
             self.gauge.Pulse()
