@@ -10,6 +10,29 @@ class VariableStats:
         self.nodata_value = nodata_value
         self.misc = misc
 
+    @property
+    def to_dict(self):
+        inputs = {'min_value': self.min_value, 'max_value': self.max_value, 'nodata_value': self.nodata_value}
+        return {**inputs, **self.misc}
+
+    @classmethod
+    def from_dict(cls, d):
+        min_value = d.pop('min_value')
+        max_value = d.pop('max_value')
+        nodata_value = d.pop('nodata_value')
+        return cls(min_value, max_value, nodata_value, d)
+
+
+class TemporalInfo:
+    """ Temporal info for data plugins """
+
+    def __init__(self):
+        self.timestamps = []
+
+    @property
+    def is_temporal(self):
+        return len(self.timestamps) > 0
+
 
 class DataPlugin(Plugin):
     ARRAY = 'array'
@@ -50,7 +73,7 @@ class DataPlugin(Plugin):
         return None
 
     @property
-    def time_info(self):
+    def time_info(self) -> TemporalInfo or None:
         """ Get time info for the data, if applicable """
 
         return None
