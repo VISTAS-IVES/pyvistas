@@ -203,10 +203,3 @@ class ESRIGridAscii(RasterDataPlugin):
         stats.misc['shape'] = "({},{})".format(*self.shape)
         with open(self.path.replace('.asc', '.json'), 'w') as f:
             f.write(json.dumps(stats.to_dict))
-
-    @staticmethod
-    def _day_count(date):
-        pass
-
-
-
