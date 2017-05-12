@@ -341,4 +341,8 @@ class Project:
 
     @property
     def all_visualizations(self):
-        return []  # Todo
+        return self.visualization_root.visualization_nodes
+
+    @property
+    def all_data(self):
+        return self.data_root.data_nodes

@@ -46,7 +46,7 @@ class FileChooserCtrl(wx.Panel):
         fd = wx.FileDialog(self, "Choose a file", "", "", self.wildcard)
         if fd.ShowModal() == wx.ID_OK:
             self.file = fd.GetPath()
-            wx.PostEvent(FileChooserEvent(self, path=self._file))
+            wx.PostEvent(self, FileChooserEvent(path=self._file))
 
     def ClearFile(self):
         self._file = None

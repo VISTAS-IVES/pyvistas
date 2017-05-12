@@ -34,6 +34,6 @@ class ColorPickerCtrl(wx.BitmapButton):
         if color_dlg.ShowModal() == wx.ID_OK:
             wx_color = color_dlg.GetColourData().GetColour()
             self.color = RGBColor(wx_color.Red(), wx_color.Green(), wx_color.Blue())
-            evt = wx.ColourPickerEvent(self)
+            evt = wx.ColourPickerEvent()
             evt.SetColour(wx_color)
             wx.PostEvent(self, evt)
