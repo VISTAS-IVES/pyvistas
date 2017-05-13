@@ -43,11 +43,9 @@ class ESRIGridAscii(RasterDataPlugin):
 
     @staticmethod
     def _read_header(path):
-        header = dict()
-        header['cols'], header['rows'], header['xllcorner'], header['yllcorner'], header['cellsize'],\
-            header['nodata_value'] = [float(h.split(" ")[-1].strip()) for h in [getline(path, i) for i in range(1, 7)]]
-        header['cols'] = int(header['cols'])
-        header['rows'] = int(header['rows'])
+        header = dict(h.split() for h in (getline(path, i) for i in range(1, 7)))
+        header['ncols'] = int(header['ncols'])
+        header['nrows'] = int(header['nrows'])
         return header
 
     def load_data(self):
@@ -81,8 +79,8 @@ class ESRIGridAscii(RasterDataPlugin):
         self._extent = Extent(
             self._header['xllcorner'],
             self._header['yllcorner'],
-            self._header['xllcorner'] + self._header['cellsize'] * self._header['cols'],
-            self._header['yllcorner'] + self._header['cellsize'] * self._header['rows'],
+            self._header['xllcorner'] + self._header['cellsize'] * self._header['ncols'],
+            self._header['yllcorner'] + self._header['cellsize'] * self._header['nrows'],
             projection=projection
         )
         self._temporal_info = TemporalInfo()
@@ -117,7 +115,7 @@ class ESRIGridAscii(RasterDataPlugin):
     @staticmethod
     def is_valid_file(path):
         h = ESRIGridAscii._read_header(path)
-        return h['rows'] > 0 and h['cols'] > 0
+        return h['nrows'] > 0 and h['ncols'] > 0
 
     def get_data(self, variable, date=None):
         path = os.path.abspath(self.path)
@@ -150,7 +148,7 @@ class ESRIGridAscii(RasterDataPlugin):
 
     @property
     def shape(self):
-        return self._header['rows'], self._header['cols']
+        return self._header['nrows'], self._header['ncols']
 
     @property
     def resolution(self):

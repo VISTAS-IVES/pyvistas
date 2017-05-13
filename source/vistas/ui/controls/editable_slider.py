@@ -30,6 +30,7 @@ class EditableSlider(wx.Panel):
         self.Bind(wx.EVT_TEXT_ENTER, self.OnTextEnter)
         self.Bind(wx.EVT_KILL_FOCUS, self.OnLoseFocus)
         self.Bind(wx.EVT_TIMER, self.OnTimer)
+        self._update_slider(value)
 
     def _update_slider(self, value, slider=True, text=True, send_event=False):
         if value < self._min_value:

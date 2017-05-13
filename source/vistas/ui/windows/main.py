@@ -2,7 +2,7 @@ import wx
 
 from vistas.core.paths import get_resource_bitmap
 from vistas.core.utils import get_platform
-from vistas.ui.events import ProjectChangedEvent, EVT_COMMAND_PROJECT_CHANGED
+from vistas.ui.events import ProjectChangedEvent, EVT_COMMAND_PROJECT_CHANGED, PluginOptionEvent, EVT_PLUGIN_OPTION
 from vistas.ui.controllers.project import ProjectController
 from vistas.ui.controls.project_panel import ProjectPanel
 from vistas.ui.controls.options_panel import OptionsPanel
@@ -173,6 +173,9 @@ class MainWindow(wx.Frame):
         self.main_splitter.Bind(wx.EVT_SPLITTER_DCLICK, self.OnSplitterDClick)
         self.expand_button.Bind(wx.EVT_LEFT_DOWN, self.OnExpandButtonClick)
 
+        # Listen to plugin option events
+        self.Bind(EVT_PLUGIN_OPTION, self.OnPluginOption)
+
     def SerializeState(self):
         pos = self.GetPosition()
         size = self.GetSize()
@@ -228,7 +231,15 @@ class MainWindow(wx.Frame):
 
             self.project_controller.project.dirty = True
 
+    def OnPluginOption(self, event: PluginOptionEvent):
+        if event.option and event.change is PluginOptionEvent.OPTION_CHANGED:
+            for node in self.project_controller.project.all_visualizations:
+                if event.plugin is node.visualization:
+                    node.visualization.update_option(event.option)
 
+                    if self.options_panel.plugin is event.plugin:
+                        self.options_panel.Refresh()
+                    break
 
     def ToggleProjectPanel(self):
         if self.main_splitter.IsSplit():

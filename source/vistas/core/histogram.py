@@ -3,7 +3,7 @@ import numpy
 
 class Histogram:
 
-    def __init__(self, data):
+    def __init__(self, data=None):
         if data is None:
             data = numpy.zeros(1)
         self.data = data

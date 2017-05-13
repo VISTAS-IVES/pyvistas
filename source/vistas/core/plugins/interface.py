@@ -42,3 +42,8 @@ class Plugin(metaclass=PluginBase):
 
     def get_options(self):
         return None
+
+    def update_option(self, option=None):
+        """ Used to update plugin option. Passes through if not implemented """
+
+        pass

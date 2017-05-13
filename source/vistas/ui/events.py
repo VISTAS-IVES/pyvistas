@@ -16,3 +16,14 @@ class ProjectChangedEvent(ProjectChangedEventBase):
 
     def __init__(self, node=None, change=None):
         super().__init__(node=node, change=change)
+
+
+PluginOptionEventBase, EVT_PLUGIN_OPTION = wx.lib.newevent.NewEvent()
+
+
+class PluginOptionEvent(PluginOptionEventBase):
+    OPTION_CHANGED = 0
+    OPTION_AVAILABLE = 1
+
+    def __init__(self, plugin=None, option=None, change=None):
+        super().__init__(plugin=plugin, option=option, change=change)

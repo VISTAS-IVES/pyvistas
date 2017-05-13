@@ -1,8 +1,7 @@
-import sys
-import wx.lib.newevent
+from vistas.ui.events import PluginOptionEvent
 
-PluginOptionChangedEvent, EVT_PLUGIN_OPTION_CHANGED = wx.lib.newevent.NewEvent()
-PluginNewOptionAvailableEvent, EVT_PLUGIN_NEW_OPTION_AVAILABLE = wx.lib.newevent.NewEvent()
+import wx
+import sys
 
 
 class Option:
@@ -52,7 +51,9 @@ class Option:
                 self._value = self.max_value
 
     def option_updated(self):
-        wx.PostEvent(self, PluginOptionChangedEvent(self, plugin=self.plugin, option=self))
+        from vistas.ui.app import App
+        wx.PostEvent(App.get().main_window, PluginOptionEvent(plugin=self.plugin, option=self,
+                                                          change=PluginOptionEvent.OPTION_CHANGED))
 
 
 class OptionGroup:
@@ -60,9 +61,9 @@ class OptionGroup:
     VERTICAL = 'vertical'
     HORIZONTAL = 'horizontal'
 
-    def __init__(self, layout=VERTICAL, name=''):
-        self.layout = layout
+    def __init__(self, name='', layout=VERTICAL):
         self.name = name
+        self.layout = layout
         self.items = []
 
     @property

@@ -5,14 +5,22 @@ from OpenGL.GL import *
 
 from vistas.core.color import RGBColor
 from vistas.core.histogram import Histogram
+from vistas.core.timeline import Timeline
 from vistas.core.graphics.bounds import BoundingBox
 from vistas.core.graphics.mesh import Mesh, MeshShaderProgram
 from vistas.core.graphics.vector import Vector
 from vistas.core.plugins.data import DataPlugin
+from vistas.core.plugins.option import Option, OptionGroup
 from vistas.core.plugins.visualization import VisualizationPlugin3D
 
 
 class TerrainAndColorPlugin(VisualizationPlugin3D):
+
+    id = 'terrain_and_color_plugin'
+    name = 'Terrain & Color'
+    description = 'Terrain visualization with color inputs.'
+    author = 'Conservation Biology Institute'
+    visualization_name = 'Terrain & Color'
 
     def __init__(self):
         super().__init__()
@@ -37,6 +45,83 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             3: self.flow_dir_data,
             4: self.flow_acc_data
         }
+
+        self._selected_point = None
+        self._needs_terrain = self._needs_color = False
+        self._needs_boundaries = False
+        self._needs_flow = False
+
+        self._is_filtered = False
+        self._filter_min = self._filter_max = 0
+
+        # Primary plugin options
+        self._options = OptionGroup()
+
+        color_group = OptionGroup("Colors")
+        self._min_color = Option(self, Option.COLOR, "Min Color Value", RGBColor(0, 0, 255))
+        self._max_color = Option(self, Option.COLOR, "Max Color Value", RGBColor(255, 0, 0))
+        self._nodata_color = Option(self, Option.COLOR, "No Data Color", RGBColor(100, 100, 100))
+        color_group.items = [self._min_color,self._max_color,self._nodata_color]
+
+        value_group = OptionGroup("Values")
+        self._min_value = Option(self, Option.FLOAT, "Minimum Value", 0.0)
+        self._max_value = Option(self, Option.FLOAT, "Maximum Value", 0.0)
+        value_group.items = [self._min_value, self._max_value]
+
+        data_group = OptionGroup("Data")
+        self._elevation_attribute = Option(self, Option.CHOICE, "Elevation Attribute", 0)
+        self._attribute = Option(self, Option.CHOICE, "Data Attribute", 0)
+        self._elevation_factor = Option(self, Option.SLIDER, "Elevation Factor", 1.0, min_value=0.0, max_value=5.0)
+        data_group.items = [self._elevation_attribute, self._attribute, self._elevation_factor]
+
+        graphics_group = OptionGroup("Graphics Options")
+        self._hide_no_data = Option(self, Option.CHECKBOX, "Hide No Data Values", False)
+        self._per_vertex_color = Option(self, Option.CHECKBOX, "Per Vertex Color", True)
+        self._per_vertex_lighting = Option(self, Option.CHECKBOX, "Per Vertex Lighting", False)
+        graphics_group.items = [self._hide_no_data, self._per_vertex_color, self._per_vertex_lighting]
+
+        self._options.items = [color_group, value_group, data_group, graphics_group]
+
+        # Secondary plugin options
+        self.boundary_group = OptionGroup("Boundary")
+        self._boundary_color = Option(self, Option.COLOR, "Boundary Color", RGBColor(0, 0, 0))
+        self._boundary_width = Option(self, Option.FLOAT, "Boundary Width", 1.0)
+        self.boundary_group.items = [self._boundary_color, self._boundary_width]
+
+        self._flow_group = OptionGroup("Flow Options")
+        # Todo - flow options
+
+        self._animation_group = OptionGroup("Animation Options")
+        # Todo - animation options
+
+        self._accumulation_group = OptionGroup("Flow Accumulation Options")
+        # Todo - accumulation options
+
+        # Todo - listen to timeline changes?
+
+    def get_options(self):
+        return self._options
+
+    def update_option(self, option=None):
+
+        if option is self._attribute:
+            self._needs_color = True
+
+            # Todo - handle multiple attributes (i.e. NetCDF)
+            stats = self.attribute_data.variable_stats("")
+            self._min_value.value = stats.min_value
+            self._max_value.value = stats.max_value
+
+        # Todo - send PluginOptionEvent.OPTION_AVAILABLE
+        elif option is self._elevation_attribute:
+            self._needs_terrain = True
+        elif option is self._boundary_width:
+            self._needs_boundaries = True
+
+        if self.flow_dir_data is not None:
+            pass    # Todo - handle flow vector events
+
+        self.refresh()
 
     @property
     def can_visualize(self):
@@ -72,19 +157,31 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
     @property
     def is_filtered(self):
-        return False    # Todo: Implement
+        return self._is_filtered
 
     @property
     def filter_histogram(self):
-        return Histogram(numpy.zeros(10))   # Todo: Implement
+        if self.attribute_data is not None:
+            return Histogram(self.get_data(1).get_grid("", Timeline.app().current_time))
+        else:
+            return Histogram()
+
+    def set_filter(self, min_value, max_value):
+        self._is_filtered = True
+        self._filter_min, self._filter_max = min_value, max_value
+        self.refresh()
+
+    def clear_filter(self):
+        self._is_filtered = False
+        self.refresh()
 
     @property
     def filter_min(self):
-        return 0
+        return self._filter_min
 
     @property
     def filter_max(self):
-        return 0
+        return self._filter_max
 
     @property
     def scene(self):
@@ -101,7 +198,39 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         self._scene = scene
 
     def refresh(self):
-        pass    # Todo: Implement
+
+        if self._needs_terrain:
+            self._create_terrain_mesh()
+            self._needs_terrain = False
+            self._needs_color = False
+        elif self._needs_color:
+            self._update_terrain_color()
+            self._needs_color = False
+
+        if self._needs_boundaries:
+            self._update_boundaries()
+            self._needs_boundaries = False
+        if self._needs_flow:
+            self._update_flow()
+            self._needs_flow = False
+
+        shader = self.mesh_renderable.shader
+
+
+        # Todo - UIPostRedisplay
+        # Todo - Update legend window
+
+    def _create_terrain_mesh(self):
+        pass
+
+    def _update_terrain_color(self):
+        pass
+
+    def _update_boundaries(self):
+        pass    # Todo - implement boundaries
+
+    def _update_flow(self):
+        pass    # Todo - implement flow visualization
 
 
 class TerrainAndColorShaderProgram(MeshShaderProgram):

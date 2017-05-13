@@ -1,4 +1,5 @@
-from vistas.core.plugins.option import Option, OptionGroup, EVT_PLUGIN_NEW_OPTION_AVAILABLE
+from vistas.core.plugins.option import Option, OptionGroup
+from vistas.ui.events import PluginOptionEvent, EVT_PLUGIN_OPTION
 from vistas.ui.controls.editable_slider import EditableSlider, EVT_SLIDER_CHANGE_EVENT
 from vistas.ui.controls.color_picker import ColorPickerCtrl
 from vistas.ui.controls.file_chooser import FileChooserCtrl, EVT_FILE_VALUE_CHANGE
@@ -14,7 +15,7 @@ class OptionsPanel(wx.ScrolledWindow):
         self.SetScrollRate(0, 1)
         self.plugin = None
         self._options = {}
-        self.Bind(EVT_PLUGIN_NEW_OPTION_AVAILABLE, self.OnNewOptionAvailable)
+        self.Bind(EVT_PLUGIN_OPTION, self.OnNewOptionAvailable)
 
     def AddOption(self, option: Option, parent_sizer):
 
@@ -40,7 +41,7 @@ class OptionsPanel(wx.ScrolledWindow):
 
         elif opt_type in [Option.INT, Option.FLOAT]:
             label = wx.StaticText(self, wx.ID_ANY, option.name)
-            text = wx.TextCtrl(self, wx.ID_ANY, option.value, wx.DefaultPosition, wx.DefaultSize, wx.TE_RIGHT)
+            text = wx.TextCtrl(self, wx.ID_ANY, str(option.value), style=wx.TE_RIGHT)
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             text.Bind(wx.EVT_TEXT, self.OnText)
             self._options[text] = option
@@ -55,7 +56,7 @@ class OptionsPanel(wx.ScrolledWindow):
             label = wx.StaticText(self, wx.ID_ANY, option.name)
             sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-            color.Bind(wx.wxEVT_COLOURPICKER_CHANGED, self.OnColor)
+            color.Bind(wx.EVT_COLOURPICKER_CHANGED, self.OnColor)
             self._options[color] = option
 
             sizer.Add(color, 0, wx.RIGHT, 10)
@@ -90,14 +91,14 @@ class OptionsPanel(wx.ScrolledWindow):
 
         elif opt_type == Option.CHOICE:
             label = wx.StaticText(self, wx.ID_ANY, option.name)
-            choice = wx.Choice(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, 0, None)
+            choice = wx.Choice(self)
             sizer = wx.BoxSizer(wx.HORIZONTAL)
 
             for label in option.labels:
                 choice.Append(label)
 
             if option.value != None:
-                choice.Select(option.labels.index(option.value))
+                choice.Select(option.value)
             else:
                 choice.Select(0)
 
@@ -112,7 +113,7 @@ class OptionsPanel(wx.ScrolledWindow):
             label = wx.StaticText(self, wx.ID_ANY, option.name)
             slider = EditableSlider(self, wx.ID_ANY, min_value=option.min_value, max_value=option.max_value,
                                     value=option.value)
-            slider.Bind(EVT_SLIDER_CHANGE_EVENT, self.OnChoice)
+            slider.Bind(EVT_SLIDER_CHANGE_EVENT, self.OnSlider)
             self._options[slider] = option
 
             parent_sizer.Add(label)
@@ -212,8 +213,8 @@ class OptionsPanel(wx.ScrolledWindow):
             option.value = event.path
             option.option_updated()
 
-    def OnNewOptionAvailable(self, event):
+    def OnNewOptionAvailable(self, event: PluginOptionEvent):
         plugin = event.plugin
-        if plugin is not None and plugin == self.plugin:
+        if event.change is PluginOptionEvent.OPTION_AVAILABLE and plugin is not None and plugin == self.plugin:
             self.options = plugin.get_options()
             self.Layout()
