@@ -318,11 +318,9 @@ class ViewerPanel(wx.Panel):
                 self.scene_choice.SetSelection(i)
 
         # If not valid scene is currently selected and a scene exists, select it
-        if self.scenes and self.selected_scene and self.selected_scene.name != self.scene_choice.GetLabelText():
+        if self.scenes and (not self.selected_scene or self.selected_scene.name != self.scene_choice.GetLabelText()):
             self.scene_choice.SetSelection(0)
-
-            scene_choice_event = wx.CommandEvent(wx.wxEVT_CHOICE, self.GetId())
-            self.scene_choice.AddPendingEvent(scene_choice_event)
+            self.scene_choice.AddPendingEvent(wx.CommandEvent(wx.wxEVT_CHOICE))
 
     def FetchScenes(self, root):
         for node in root.children:
