@@ -1,6 +1,7 @@
 from ctypes import c_uint, sizeof, c_float
 
 import numpy
+import math
 from OpenGL.GL import *
 
 from vistas.core.color import RGBColor
@@ -8,7 +9,8 @@ from vistas.core.histogram import Histogram
 from vistas.core.timeline import Timeline
 from vistas.core.graphics.bounds import BoundingBox
 from vistas.core.graphics.mesh import Mesh, MeshShaderProgram
-from vistas.core.graphics.vector import Vector
+from vistas.core.graphics.mesh_renderable import MeshRenderable
+from vistas.core.graphics.vector import normalize_v3
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.option import Option, OptionGroup
 from vistas.core.plugins.visualization import VisualizationPlugin3D
@@ -26,7 +28,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         super().__init__()
 
         self.mesh_renderable = None
-        self.vector_renderable = None
+        #self.vector_renderable = None
         self._scene = None
         self._histogram = None
 
@@ -36,15 +38,6 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         self.boundary_data = None
         self.flow_dir_data = None
         self.flow_acc_data = None
-
-        # easy access to roles
-        self._role_map = {
-            0: self.terrain_data,
-            1: self.attribute_data,
-            2: self.boundary_data,
-            3: self.flow_dir_data,
-            4: self.flow_acc_data
-        }
 
         self._selected_point = None
         self._needs_terrain = self._needs_color = False
@@ -139,17 +132,35 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
     def set_data(self, data: DataPlugin, role):
 
-        if role not in self._role_map:
-            return
-
-        self._role_map[role] = data
-
-        if self.scene is not None and self.mesh_renderable is not None:
-            self.scene.remove_object(self.mesh_renderable)
-            self.mesh_renderable = None
+        if role == 0:
+            self.terrain_data = data
+            self._needs_terrain = True
+        elif role == 1:
+            self.attribute_data = data
+            self._needs_color = True
+        elif role == 2:
+            self.boundary_data = data
+            self._needs_boundaries = True
+        elif role == 3:
+            self.flow_dir_data = data
+            self._needs_flow = True
+        elif role == 4:
+            self.flow_acc_data = data
+            # Todo - update flow min/max filters
+            self._needs_flow = True
 
     def get_data(self, role):
-        return self._role_map[role]
+        if role == 0:
+            return self.terrain_data
+        elif role == 1:
+            return self.attribute_data
+        elif role == 2:
+            return self.boundary_data
+        elif role == 3:
+            return self.flow_dir_data
+        elif role == 4:
+            return self.flow_acc_data
+        return None
 
     @property
     def is_filterable(self):
@@ -189,13 +200,17 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
     @scene.setter
     def scene(self, scene):
-        if self.mesh_renderable is not None and self._scene is not None:
-            self._scene.remove_object(self.mesh_renderable)     # Todo: handle vector_renderable
-            if scene is not None:
-                scene.add_object(self.mesh_renderable)
-            else:
-                self.mesh_renderable = None
+        if self._scene is not None:
+
+            if self.mesh_renderable is not None:
+                self._scene.remove_object(self.mesh_renderable)
+                # Todo: handle vector_renderable
+
         self._scene = scene
+
+        if self.mesh_renderable is not None:
+            self._scene.add_object(self.mesh_renderable)
+            # Todo: handle vector_renderable
 
     def refresh(self):
 
@@ -203,9 +218,9 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             self._create_terrain_mesh()
             self._needs_terrain = False
             self._needs_color = False
-        elif self._needs_color:
-            self._update_terrain_color()
-            self._needs_color = False
+        #elif self._needs_color:
+        #    self._update_terrain_color()
+        #    self._needs_color = False
 
         if self._needs_boundaries:
             self._update_boundaries()
@@ -214,17 +229,138 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             self._update_flow()
             self._needs_flow = False
 
-        shader = self.mesh_renderable.shader
+        if self.mesh_renderable is not None:
+            shader = self.mesh_renderable.mesh.shader
 
+            #shader.hide_no_data = self._hide_no_data.value
+            #shader.per_vertex_color = self._per_vertex_color.value
+            #shader.per_vertex_lighting = self._per_vertex_lighting.value
+            #shader.min_value = self._min_value.value
+            #shader.max_value = self._max_value.value
+#
+            #shader.min_color = RGBColor(0, 0, 255).hsv.hsv_list         # Todo - set colors from options
+            #shader.max_color = RGBColor(255, 0, 0).hsv.hsv_list
+            #shader.nodata_color = RGBColor(100, 100, 100).hsv.hsv_list
+            #shader.boundary_color = RGBColor(0, 0, 0).hsv.hsv_list
+            #shader.height_factor = self._elevation_factor.value if self._elevation_factor.value > 0 else 0.01
+#
+            #shader.is_filtered = self._is_filtered
+            #shader.filter_min = self._filter_min
+            #shader.filter_max = self._filter_max
 
         # Todo - UIPostRedisplay
         # Todo - Update legend window
 
     def _create_terrain_mesh(self):
-        pass
+        if self.terrain_data is not None:
+            height_stats = self.terrain_data.variable_stats("")
+            nodata_value = height_stats.nodata_value
+            min_value = height_stats.min_value
+            max_value = height_stats.max_value
+            cellsize = self.terrain_data.resolution
+            height_data = self.terrain_data.get_data("")        # Todo - get elevation attribute label (i.e. NetCDF support)
+
+            if type(height_data) is numpy.ma.MaskedArray:
+                height_data = height_data.data
+
+            factor = 1.0
+            height, width = height_data.shape
+
+            num_indices = (height - 1) * width * 2 + ((height - 1) * 2 - 2)
+            num_vertices = width * height
+
+            max_height = math.sqrt(width * height * cellsize) / 2
+            if max_value > max_height:
+                factor = max_height / max_value
+
+            # Compute heightfield
+            heightfield = numpy.zeros((height, width, 3))
+            indices = numpy.indices((height, width))
+            heightfield[:, :, 0] = indices[0] * cellsize   # x
+            heightfield[:, :, 2] = indices[1] * cellsize   # z
+            heightfield[:, :, 1] = height_data
+            heightfield[:, :, 1][heightfield[:, :, 1] != nodata_value] *= factor    # Apply factor where needed
+            heightfield[:, :, 1][heightfield[:, :, 1] == nodata_value] = min_value  # Otherwise, set to min value
+
+            mesh = Mesh(num_indices, num_vertices, True, True, False, mode=Mesh.TRIANGLE_STRIP)
+
+            shader = TerrainAndColorShaderProgram(mesh)
+            #shader.attach_shader(self.get_shader_path('vert.glsl'), GL_VERTEX_SHADER)
+            #shader.attach_shader(self.get_shader_path('frag.glsl'), GL_FRAGMENT_SHADER)
+            shader.attach_shader(self.get_shader_path('v.glsl'), GL_VERTEX_SHADER)
+            shader.attach_shader(self.get_shader_path('f.glsl'), GL_FRAGMENT_SHADER)
+            mesh.shader = shader
+
+
+            # Compute indices for vertices
+            index_array = []
+            for i in range(height - 1):
+                if i > 0:
+                    index_array.append(i * width)
+                for j in range(width):
+                    index_array.append(i * width + j)
+                    index_array.append((i + 1) * width + j)
+                if i < height - 2:
+                    index_array.append((i + 1) * width + (width - 1))
+
+            assert(len(index_array) == num_indices)
+
+            # Compute normals
+            normals = self._compute_normals(heightfield, index_array)
+
+            # Set mesh vertex array to heightfield
+            vert_buf = mesh.acquire_vertex_array()
+            print(heightfield.ravel().tolist())
+            vert_buf[:] = heightfield.ravel().tolist()
+            mesh.release_vertex_array()
+
+            # Set mesh normal array
+            norm_buf = mesh.acquire_normal_array()
+            norm_buf[:] = normals
+            mesh.release_normal_array()
+
+            # Set mesh index array
+            index_buf = mesh.acquire_index_array()
+            index_buf[:] = index_array
+            mesh.release_index_array()
+
+            mesh.bounding_box = BoundingBox(0, min_value * factor, 0,
+                                            width * cellsize, max_value * factor, height * cellsize)
+
+            self.mesh_renderable = MeshRenderable(mesh)
+
+            self._scene.add_object(self.mesh_renderable)
+
+            self._update_terrain_color()
+
+    @staticmethod
+    def _compute_normals(heightfield, indices):
+        """ Calculate normals - 
+        see https://sites.google.com/site/dlampetest/python/calculating-normals-of-a-triangle-mesh-using-numpy
+        """
+
+        verts = heightfield.reshape(-1, heightfield.shape[-1])
+        faces = numpy.array([indices[i:i + 3] for i in range(len(indices) - 2)])
+        norm = numpy.zeros(verts.shape, dtype=verts.dtype)
+        tris = verts[faces]
+        n = numpy.cross(tris[::, 1] - tris[::, 0], tris[::, 2] - tris[::, 0])
+        normalize_v3(n)
+        norm[faces[:, 0]] += n
+        norm[faces[:, 1]] += n
+        norm[faces[:, 2]] += n
+        normalize_v3(norm)
+        return norm.reshape(-1).tolist()
 
     def _update_terrain_color(self):
-        pass
+
+        if self.mesh_renderable is not None:
+
+            shader = self.mesh_renderable.mesh.shader
+
+            # Todo - set color buffer
+
+            shader.has_color = False
+
 
     def _update_boundaries(self):
         pass    # Todo - implement boundaries
@@ -251,47 +387,49 @@ class TerrainAndColorShaderProgram(MeshShaderProgram):
         self.nodata_value = None
         self.min_value = None
         self.max_value = None
-        self.min_color = Vector(0, 0, 0, 0)
-        self.max_color = Vector(0, 0, 0, 0)
-        self.nodata_color = Vector(0, 0, 0, 0)
-        self.boundary_color = Vector(0, 0, 0, 255)
+        self.min_color = None
+        self.max_color = None
+        self.nodata_color = None
+        self.boundary_color = None
 
     def pre_render(self, camera):
         super().pre_render(camera)
 
-        if self.has_color:
-            value_loc = self.get_attrib_location("value")
-            glBindBuffer(GL_ARRAY_BUFFER, self.value_buffer)
-            glVertexAttribPointer(value_loc, 1, GL_FLOAT, GL_FALSE, sizeof(c_float), 0)
-            glEnableVertexAttribArray(value_loc)
+        #if self.has_color:
+        #    value_loc = self.get_attrib_location("value")
+        #    glBindBuffer(GL_ARRAY_BUFFER, self.value_buffer)
+        #    glVertexAttribPointer(value_loc, 1, GL_FLOAT, GL_FALSE, sizeof(c_float), 0)
+        #    glEnableVertexAttribArray(value_loc)
+#
+        #if self.has_boundaries:
+        #    pass    # Todo - implement Texture class or equivalent
+        #    #boundary_coord_loc = self.get_attrib_location("boundaryTexCoord")
 
-        if self.has_boundaries:
-            pass    # Todo - implement Texture class or equivalent
-            #boundary_coord_loc = self.get_attrib_location("boundaryTexCoord")
+        #glUniform1i(self.get_uniform_location("hideNoData"), self.hide_no_data)
+        #glUniform1i(self.get_uniform_location("perVertexColor"), self.per_vertex_color)
+        #glUniform1i(self.get_uniform_location("perVertexLighting"), self.per_vertex_lighting)
+        #glUniform1i(self.get_uniform_location("hasColor"), self.has_color)
+        #glUniform1i(self.get_uniform_location("hasBoundaries"), self.has_boundaries)
+#
+        #glUniform1i(self.get_uniform_location("isFiltered"), self.is_filtered)
+        #glUniform1f(self.get_uniform_location("filterMin"), self.filter_min)
+        #glUniform1f(self.get_uniform_location("filterMax"), self.filter_max)
+#
+        #glUniform1f(self.get_uniform_location("heightFactor"), self.height_factor)
+        #glUniform1f(self.get_uniform_location("noDataValue"), self.nodata_value)
+        #glUniform1f(self.get_uniform_location("minValue"), self.min_value)
+        #glUniform1f(self.get_uniform_location("maxValue"), self.max_value)
+        #glUniform4fv(self.get_uniform_location("minColor"), self.min_color)
+        #glUniform4fv(self.get_uniform_location("maxColor"), self.max_color)
+        #glUniform4fv(self.get_uniform_location("noDataColor"), self.nodata_color)
+        #glUniform4fv(self.get_uniform_location("boundaryColor"), self.boundary_color)
 
-        glUniform1i(self.get_uniform_location("hideNoData"), self.hide_no_data)
-        glUniform1i(self.get_uniform_location("perVertexColor"), self.per_vertex_color)
-        glUniform1i(self.get_uniform_location("perVertexLighting"), self.per_vertex_lighting)
-        glUniform1i(self.get_uniform_location("hasColor"), self.has_color)
-        glUniform1i(self.get_uniform_location("hasBoundaries"), self.has_boundaries)
-
-        glUniform1i(self.get_uniform_location("isFiltered"), self.is_filtered)
-        glUniform1f(self.get_uniform_location("filterMin"), self.filter_min)
-        glUniform1f(self.get_uniform_location("filterMax"), self.filter_max)
-
-        glUniform1f(self.get_uniform_location("heightFactor"), self.height_factor)
-        glUniform1f(self.get_uniform_location("noDataValue"), self.nodata_value)
-        glUniform1f(self.get_uniform_location("minValue"), self.min_value)
-        glUniform1f(self.get_uniform_location("maxValue"), self.max_value)
-        glUniform4fv(self.get_uniform_location("minColor"), self.min_color.v)
-        glUniform4fv(self.get_uniform_location("maxColor"), self.max_color.v)
-        glUniform4fv(self.get_uniform_location("noDataColor"), self.nodata_color.v)
-        glUniform4fv(self.get_uniform_location("boundaryColor"), self.boundary_color.v)
+        glUniform3fv(self.get_uniform_location('color'), 1, RGBColor(1, 0, 0).rgb.rgb_list)
 
     def post_render(self, camera):
-        glBindTexture(GL_TEXTURE_2D, 0)
-        glDisableVertexAttribArray(self.get_attrib_location("value"))
-        glDisableVertexAttribArray(self.get_attrib_location("boundaryTexCoord"))
-        glDisableVertexAttribArray(self.get_attrib_location("boundaryTexture"))
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
+        #glBindTexture(GL_TEXTURE_2D, 0)
+        #glDisableVertexAttribArray(self.get_attrib_location("value"))
+        #glDisableVertexAttribArray(self.get_attrib_location("boundaryTexCoord"))
+        #glDisableVertexAttribArray(self.get_attrib_location("boundaryTexture"))
+        #glBindBuffer(GL_ARRAY_BUFFER, 0)
         super().post_render(camera)
