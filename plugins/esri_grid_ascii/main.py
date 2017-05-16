@@ -44,6 +44,7 @@ class ESRIGridAscii(RasterDataPlugin):
     @staticmethod
     def _read_header(path):
         header = dict(h.split() for h in (getline(path, i) for i in range(1, 7)))
+        header = {k: float(header[k])for k in header}
         header['ncols'] = int(header['ncols'])
         header['nrows'] = int(header['nrows'])
         return header
