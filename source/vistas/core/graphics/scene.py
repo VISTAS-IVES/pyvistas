@@ -22,7 +22,7 @@ class Scene:
     @property
     def bounding_box(self):
         if not self.objects:
-            return BoundingBox(0, 0, 0, 0, 0, 0)
+            return BoundingBox(-1, -1, -1, 1, 1, 1)
 
         bbox = self.objects[0].bounds
         for obj in self.objects[1:]:
