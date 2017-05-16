@@ -98,3 +98,10 @@ class HSVColor(Color):
             b = 0
 
         return RGBColor(r, g, b, self.a)
+
+    @property
+    def hsv_list(self):
+        return self.h, self.s, self.v
+
+    def hsva_list(self):
+        return self.hsv_list + (self.a,)
