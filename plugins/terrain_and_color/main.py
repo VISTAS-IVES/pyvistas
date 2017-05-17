@@ -53,9 +53,9 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         self._options = OptionGroup()
 
         color_group = OptionGroup("Colors")
-        self._min_color = Option(self, Option.COLOR, "Min Color Value", RGBColor(0, 0, 255))
-        self._max_color = Option(self, Option.COLOR, "Max Color Value", RGBColor(255, 0, 0))
-        self._nodata_color = Option(self, Option.COLOR, "No Data Color", RGBColor(100, 100, 100))
+        self._min_color = Option(self, Option.COLOR, "Min Color Value", RGBColor(0, 0, 1))
+        self._max_color = Option(self, Option.COLOR, "Max Color Value", RGBColor(1, 0, 0))
+        self._nodata_color = Option(self, Option.COLOR, "No Data Color", RGBColor(0.5, 0.5, 0.5))
         color_group.items = [self._min_color,self._max_color,self._nodata_color]
 
         value_group = OptionGroup("Values")
@@ -246,10 +246,10 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             shader.min_value = self._min_value.value
             shader.max_value = self._max_value.value
 
-            shader.min_color = [x / 255 for x in self._min_color.value.hsv.hsva_list]
-            shader.max_color = [x/255 for x in self._max_color.value.hsv.hsva_list]
-            shader.nodata_color = [x/255 for x in self._nodata_color.value.hsv.hsva_list]
-            shader.boundary_color = [x/255 for x in self._boundary_color.value.hsv.hsva_list]
+            shader.min_color = self._min_color.value.hsv.hsva_list
+            shader.max_color = self._max_color.value.hsv.hsva_list
+            shader.nodata_color = self._nodata_color.value.hsv.hsva_list
+            shader.boundary_color = self._boundary_color.value.hsv.hsva_list
 
             shader.height_factor = self._elevation_factor.value if self._elevation_factor.value > 0 else 0.01
 
