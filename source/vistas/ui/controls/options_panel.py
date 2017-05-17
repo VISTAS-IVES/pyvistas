@@ -1,7 +1,7 @@
+from vistas.core.color import RGBColor
 from vistas.core.plugins.option import Option, OptionGroup
 from vistas.ui.events import PluginOptionEvent, EVT_PLUGIN_OPTION
 from vistas.ui.controls.editable_slider import EditableSlider, EVT_SLIDER_CHANGE_EVENT
-from vistas.ui.controls.color_picker import ColorPickerCtrl
 from vistas.ui.controls.file_chooser import FileChooserCtrl, EVT_FILE_VALUE_CHANGE
 
 import wx
@@ -52,7 +52,7 @@ class OptionsPanel(wx.ScrolledWindow):
             parent_sizer.Add(sizer, 0, wx.BOTTOM, 5)
 
         elif opt_type == Option.COLOR:
-            color = ColorPickerCtrl(self, wx.ID_ANY, option.value)
+            color = wx.ColourPickerCtrl(self, wx.ID_ANY, wx.Colour(*[x * 255 for x in option.value.rgb.rgb_list]))
             label = wx.StaticText(self, wx.ID_ANY, option.name)
             sizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -175,7 +175,8 @@ class OptionsPanel(wx.ScrolledWindow):
         color = event.GetEventObject()
         if color in self._options:
             option = self._options[color]
-            option.value = color.rgb.value
+            c = color.GetColour()
+            option.value = RGBColor(c.red, c.green, c.blue)
             option.option_updated()
 
     def OnCheck(self, event):

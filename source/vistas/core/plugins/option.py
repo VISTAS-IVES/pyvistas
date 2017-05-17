@@ -52,8 +52,8 @@ class Option:
                 self._value = self.max_value
 
     def option_updated(self):
-        wx.PostEvent(get_main_window(), PluginOptionEvent(plugin=self.plugin, option=self,
-                                                          change=PluginOptionEvent.OPTION_CHANGED))
+        get_main_window().AddPendingEvent(PluginOptionEvent(plugin=self.plugin, option=self,
+                                                            change=PluginOptionEvent.OPTION_CHANGED))
 
 
 class OptionGroup:

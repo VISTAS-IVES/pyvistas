@@ -189,7 +189,7 @@ class ViewerPanel(wx.Panel):
                 # Todo: global interactor
 
                 self.gl_canvas.camera.scene = scene  # Temporary until interactor code is added
-                self.gl_canvas.camera_interactor.reset_position(True)
+                self.gl_canvas.camera_interactor.reset_position()
                 self.selected_scene = scene
 
         self.gl_canvas.Refresh()
