@@ -1,4 +1,5 @@
-import asyncio, sys
+import asyncio
+import sys
 
 import wx
 
@@ -6,15 +7,6 @@ from vistas.ui.controllers.app import AppController
 
 
 class App(wx.App):
-
-    _global_app = None
-
-    @classmethod
-    def get(cls):
-        if cls._global_app is None:
-            cls._global_app = App()
-        return cls._global_app
-
     def __init__(self):
         super().__init__()
 
@@ -29,7 +21,3 @@ class App(wx.App):
         self.app_controller = AppController()
 
         return True
-
-    @property
-    def main_window(self):
-        return wx.GetTopLevelWindows()[0]

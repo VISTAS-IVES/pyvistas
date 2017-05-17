@@ -100,7 +100,7 @@ class Mesh:
         size = 4 if self.use_rgba else 3
 
         glBindBuffer(GL_ARRAY_BUFFER, self.color_buffer)
-        return map_buffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY, self.num_vertices * size * sizeof(c_float))
+        return map_buffer(GL_ARRAY_BUFFER, numpy.float32, GL_WRITE_ONLY, self.num_vertices * size * sizeof(c_float))
 
     def release_index_array(self):
         glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER)

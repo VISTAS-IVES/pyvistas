@@ -1,6 +1,7 @@
 import math
 from vistas.core.graphics.camera import Camera, ViewMatrix
 from vistas.core.graphics.vector import Vector
+from vistas.ui.utils import post_redisplay
 
 
 class CameraInteractor:
@@ -95,7 +96,7 @@ class SphereInteractor(CameraInteractor):
                              ViewMatrix.rotate_x(self._angle_y) * \
                              ViewMatrix.translate(0, 0, -z_shift) * \
                              ViewMatrix.translate(self._shift_x, self._shift_y, self._distance)
-        # Todo: UIPostRedisplay?
+        post_redisplay()
 
     def reset_position(self, reset_mv=True):
         if reset_mv:
@@ -149,7 +150,7 @@ class FreelookInteractor(CameraInteractor):
         pos = self.camera.get_position()
         self.camera.matrix = self.default_matrix*ViewMatrix.rotate_y(self._angle_y)*ViewMatrix.rotate_x(self._angle_x)
         self.camera.set_position(pos)
-        # Todo: UIPostRedisplay?
+        post_redisplay()
 
     def reset_position(self, reset_mv=True):
         self._strafe = 0.0

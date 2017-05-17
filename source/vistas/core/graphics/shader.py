@@ -1,3 +1,4 @@
+from vistas.ui.utils import post_redisplay
 import os
 
 import logging
@@ -95,7 +96,7 @@ class ShaderProgram(wx.PyEvtHandler):
             if last_mtime < mtime:
                 logger.debug('Reloading {}...'.format(path))
                 self.attach_shader(path, shader_type)
-                # Todo: UIPostRedisplay()
+                post_redisplay()
 
         self.timer.Start(100, True)
 

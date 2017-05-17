@@ -1,4 +1,5 @@
 from vistas.ui.events import PluginOptionEvent
+from vistas.ui.utils import get_main_window
 
 import wx
 import sys
@@ -51,8 +52,7 @@ class Option:
                 self._value = self.max_value
 
     def option_updated(self):
-        from vistas.ui.app import App
-        wx.PostEvent(App.get().main_window, PluginOptionEvent(plugin=self.plugin, option=self,
+        wx.PostEvent(get_main_window(), PluginOptionEvent(plugin=self.plugin, option=self,
                                                           change=PluginOptionEvent.OPTION_CHANGED))
 
 

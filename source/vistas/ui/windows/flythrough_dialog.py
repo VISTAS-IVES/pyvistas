@@ -157,6 +157,7 @@ class FlythroughDialog(wx.Frame):
 
         # Todo: RecalculateKeyframeIndices?
         self.flythrough.update_camera_to_keyframe(0)
+        self.gl_canvas.Refresh()
         self.UpdateDraggablesFromCamera()
         # Todo: Reset camera interactor position?
 
@@ -186,7 +187,7 @@ class FlythroughDialog(wx.Frame):
         direction = Vector(self.direction_x.value, self.direction_y.value, self.direction_z.value)
         self.flythrough.camera.set_point_of_interest(pos + direction)
 
-        # Todo: UIPostRedisplay?
+        self.gl_canvas.Refresh()
         # Todo: reset camera interactor position?
         self.UpdateTimeline()
 

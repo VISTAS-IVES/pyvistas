@@ -11,6 +11,7 @@ from vistas.core.graphics.shader import ShaderProgram
 from vistas.core.graphics.vector import Vector
 from vistas.core.graphics.renderable import Renderable
 from vistas.core.paths import get_resources_directory
+from vistas.ui.utils import post_redisplay
 
 
 class VectorFieldRenderable(Renderable):
@@ -99,7 +100,7 @@ class VectorFieldRenderable(Renderable):
 
     def OnNotify(self, event):
         self.animation_value = self.animation_value + 0.1 if self.animation_value <= 1.0 else -1
-        # Todo: UIPostRedisplay?
+        post_redisplay()
 
     def set_vector_data(self, data):
 

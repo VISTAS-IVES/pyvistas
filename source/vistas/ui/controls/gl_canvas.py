@@ -25,7 +25,6 @@ class GLCanvas(wx.glcanvas.GLCanvas):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         if get_platform() == 'windows':
             self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
-        # Todo: VI_EVENT_REDISPLAY
 
         # self.SetFocus()  # Crashes on Mac
 

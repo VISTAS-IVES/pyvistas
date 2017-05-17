@@ -2,7 +2,8 @@ import wx
 
 from vistas.core.paths import get_resource_bitmap
 from vistas.core.utils import get_platform
-from vistas.ui.events import ProjectChangedEvent, EVT_COMMAND_PROJECT_CHANGED, PluginOptionEvent, EVT_PLUGIN_OPTION
+from vistas.ui.events import ProjectChangedEvent, EVT_COMMAND_PROJECT_CHANGED, PluginOptionEvent, EVT_PLUGIN_OPTION, \
+    EVT_REDISPLAY
 from vistas.ui.controllers.project import ProjectController
 from vistas.ui.controls.project_panel import ProjectPanel
 from vistas.ui.controls.options_panel import OptionsPanel
@@ -175,6 +176,7 @@ class MainWindow(wx.Frame):
 
         # Listen to plugin option events
         self.Bind(EVT_PLUGIN_OPTION, self.OnPluginOption)
+        self.Bind(EVT_REDISPLAY, self.OnRedisplay)
 
     def SerializeState(self):
         pos = self.GetPosition()
@@ -240,6 +242,12 @@ class MainWindow(wx.Frame):
                     if self.options_panel.plugin is event.plugin:
                         self.options_panel.Refresh()
                     break
+
+    def OnRedisplay(self, event):
+        for row in self.viewer_container_panel.rows:
+            for viewer in row.viewers:
+                if viewer is not None:
+                    viewer.gl_canvas.Refresh()
 
     def ToggleProjectPanel(self):
         if self.main_splitter.IsSplit():

@@ -1,4 +1,4 @@
 from vistas.ui.app import App
 
-app = App.get()
+app = App()
 app.MainLoop()

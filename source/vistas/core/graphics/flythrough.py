@@ -4,11 +4,13 @@ from vistas.core.math import catmull_rom_splines
 
 from math import floor
 
+
 class FlythroughPoint:
     def __init__(self, position=Vector(0, 0, 0), direction=Vector(0, 0, 0), up=Vector(0, 1, 0)):
         self.position = position
         self.direction = direction
         self.up = up
+
 
 class Flythrough:
     def __init__(self, camera=None, fps=30, length=60, name='', ):
@@ -76,8 +78,6 @@ class Flythrough:
         self.camera.set_position(p.position)
         self.camera.set_up_vector(p.up)
         self.camera.set_point_of_interest(p.direction + p.position)
-
-        # Todo - UIPostRedisplay?
 
     def add_keyframe(self, index: int, point=None):
         if point is None:
