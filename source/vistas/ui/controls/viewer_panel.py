@@ -3,7 +3,7 @@ from wx.glcanvas import WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, WX_GL_
 
 from vistas.core.graphics.camera import Camera
 from vistas.core.paths import get_resource_bitmap
-from vistas.core.plugins.visualization import VisualizationPlugin2D
+from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.ui.controllers.project import ProjectChangedEvent
 from vistas.ui.controls.gl_canvas import GLCanvas
 from vistas.ui.project import Project
@@ -335,14 +335,14 @@ class ViewerPanel(wx.Panel):
         if event.change == ProjectChangedEvent.ADDED_VISUALIZATION:
             node = event.node
             if node is not None and node.is_visualization:
-                if isinstance(node.visualization, VisualizationPlugin2D):
+                if isinstance(node.visualization, VisualizationPlugin3D):
                     parent = node.parent
                     while parent is not None and not parent.is_scene:
                         parent = parent.parent
 
                     if parent is not None and parent.is_scene:
                         if parent.scene == self.selected_scene:
-                            pass  # i_canvas->GetCameraInteractor()->ResetPosition()
+                            self.gl_canvas.camera_interactor.reset_position()
 
         else:
             self.RefreshScenes()

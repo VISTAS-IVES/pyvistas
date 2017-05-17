@@ -2,7 +2,7 @@ from vistas.core.graphics.vector import Vector
 
 
 class BoundingBox:
-    def __init__(self, min_x, min_y, min_z, max_x, max_y, max_z):
+    def __init__(self, min_x=-1, min_y=-1, min_z=-1, max_x=1, max_y=1, max_z=1):
         self.min_x = min_x
         self.min_y = min_y
         self.min_z = min_z

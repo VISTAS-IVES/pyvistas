@@ -33,8 +33,8 @@ class Option:
         self.name = name
         self._value = default_value
         self.default = default_value
-        self.min_value = sys.float_info.min if min_value is None else min_value
-        self.max_value = sys.float_info.max if max_value is None else max_value
+        self.min_value = 0 if min_value is None else min_value
+        self.max_value = 0 if max_value is None else max_value
         self.step = step
         self.labels = []
 

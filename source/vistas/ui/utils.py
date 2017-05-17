@@ -1,4 +1,4 @@
-from vistas.ui.events import PluginOptionEvent, RedisplayEvent
+from vistas.ui.events import PluginOptionEvent, RedisplayEvent, NewLegendEvent
 import wx
 
 
@@ -12,3 +12,7 @@ def post_newoptions_available():
 
 def post_redisplay():
     get_main_window().AddPendingEvent(RedisplayEvent())
+
+
+def post_new_legend():
+    get_main_window().AddPendingEvent(NewLegendEvent())

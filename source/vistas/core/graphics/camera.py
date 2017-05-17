@@ -156,8 +156,9 @@ class Camera:
 
         glViewport(0, 0, width, height)
 
-        c = (self.matrix * Vector(*scene_box.center.v[:3], 1)) * -1
-        z_near = max(1, c.z - scene_box.diameter / 2)
-        z_far = c.z + scene_box.diameter
+        #c = (self.matrix * Vector(*scene_box.center.v[:3], 1))     # Todo - fix z_near/z_far calculations or remove?
+        #z_near = max(1, c.z - scene_box.diameter / 2)
+        #z_far = (c.z + scene_box.diameter) * 2
+        #self.proj_matrix = ViewMatrix.perspective(80.0, width / height, z_near, z_far)
 
-        self.proj_matrix = ViewMatrix.perspective(80.0, width / height, z_near, z_far)
+        self.proj_matrix = ViewMatrix.perspective(80.0, width / height, 1, 10000)

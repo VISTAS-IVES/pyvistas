@@ -50,6 +50,7 @@ class RGBColor(Color):
     def rgb_list(self):
         return self.r, self.g, self.b
 
+    @property
     def rgba_list(self):
         return self.rgb_list + (self.a,)
 
@@ -103,5 +104,6 @@ class HSVColor(Color):
     def hsv_list(self):
         return self.h, self.s, self.v
 
+    @property
     def hsva_list(self):
         return self.hsv_list + (self.a,)

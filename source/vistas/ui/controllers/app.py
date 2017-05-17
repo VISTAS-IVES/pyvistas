@@ -70,13 +70,17 @@ class AppController(wx.EvtHandler):
         elif event_id == wx.ID_EXIT:
             self.main_window.Close()
         elif event_id == MainWindow.MENU_FILE_NEW:
-            pass
+            self.main_window.project_controller.NewProject()
+            self.main_window.options_panel.options = None
+            # Todo - set ExportController project
+            # Todo - reset ExportController items
         elif event_id == MainWindow.MENU_FILE_OPEN:
-            pass
+            self.main_window.project_controller.LoadProjectFromDialog()
+            # Todo - set ExportControllerProject
         elif event_id == MainWindow.MENU_FILE_SAVE:
-            pass
+            self.main_window.project_controller.SaveProject()
         elif event_id == MainWindow.MENU_FILE_SAVEAS:
-            pass
+            self.main_window.project_controller.SaveProjectAs()
         elif event_id == MainWindow.MENU_FILE_ADDDATA:
             self.main_window.project_controller.AddDataFromFile(None)
         elif event_id == MainWindow.MENU_VIEW_ADD_VIEWER:
@@ -90,15 +94,15 @@ class AppController(wx.EvtHandler):
         elif event_id == MainWindow.MENU_VIEW_COLLAPSE:
             self.main_window.ToggleProjectPanel()
         elif event_id == MainWindow.MENU_EXPORT_EXPORT:
-            pass
+            pass    # Todo - ExportController
         elif event_id == MainWindow.MENU_EXPORT_CURRENT_COPY:
-            pass
+            pass    # Todo - ExportController
         elif event_id == MainWindow.MENU_EXPORT_CURRENT_SAVE:
-            pass
+            pass    # Todo - ExportController
         elif event_id == MainWindow.MENU_FLYTHROUGH_GENERATE:
-            pass
+            pass    # Todo - implement GenerateFlythrough
         elif event_id == MainWindow.MENU_SYNC_CAMERAS:
-            pass
+            pass    # Todo - implement synced camera
         elif event_id == MainWindow.MENU_OPEN_TIMELINE_FILTER:
             if self.time_filter_window.timeline.enabled:
                 self.time_filter_window.Show()

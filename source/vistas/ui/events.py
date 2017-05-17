@@ -29,4 +29,8 @@ class PluginOptionEvent(PluginOptionEventBase):
         super().__init__(plugin=plugin, option=option, change=change)
 
 
+# Event for alerting the UI to refresh canvases
 RedisplayEvent, EVT_REDISPLAY = wx.lib.newevent.NewEvent()
+
+# Event for alerting the UI to refresh legends
+NewLegendEvent, EVT_NEW_LEGEND = wx.lib.newevent.NewEvent()
