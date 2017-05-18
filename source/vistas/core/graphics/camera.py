@@ -1,3 +1,4 @@
+import sys
 from OpenGL.GL import *
 
 from vistas.core.color import RGBColor
@@ -161,4 +162,4 @@ class Camera:
         #z_far = (c.z + scene_box.diameter) * 2
         #self.proj_matrix = ViewMatrix.perspective(80.0, width / height, z_near, z_far)
 
-        self.proj_matrix = ViewMatrix.perspective(80.0, width / height, 1, 10000)
+        self.proj_matrix = ViewMatrix.perspective(80.0, width / height, 1, sys.float_info.max)
