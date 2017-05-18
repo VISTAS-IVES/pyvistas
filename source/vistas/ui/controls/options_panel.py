@@ -163,10 +163,13 @@ class OptionsPanel(wx.ScrolledWindow):
         if text in self._options:
             option = self._options[text]
             value = text.GetValue()
-            if option.option_type == Option.INT:
-                value = int(value)
-            if option.option_type == Option.FLOAT:
-                value = float(value)
+            try:
+                if option.option_type == Option.INT:
+                    value = int(value)
+                if option.option_type == Option.FLOAT:
+                    value = float(value)
+            except ValueError:
+                value = 0
             option.value = value
             option.option_updated()
 
