@@ -2,6 +2,8 @@ import wx
 
 
 class ExceptionDialog(wx.Dialog):
+    is_shown = False
+
     def __init__(self, parent, message):
         super().__init__(parent, wx.ID_ANY)
 
@@ -33,3 +35,13 @@ class ExceptionDialog(wx.Dialog):
 
     def OnOk(self, event):
         self.Close()
+
+    def ShowModal(self):
+        if ExceptionDialog.is_shown:
+            return False
+
+        try:
+            ExceptionDialog.is_shown = True
+            return super().ShowModal()
+        finally:
+            ExceptionDialog.is_shown = False
