@@ -71,10 +71,9 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
         graphics_group = OptionGroup("Graphics Options")
         self._hide_no_data = Option(self, Option.CHECKBOX, "Hide No Data Values", False)
-        #self._per_vertex_color = Option(self, Option.CHECKBOX, "Per Vertex Color", True)
-        #self._per_vertex_lighting = Option(self, Option.CHECKBOX, "Per Vertex Lighting", False)
-        #graphics_group.items = [self._hide_no_data, self._per_vertex_color, self._per_vertex_lighting]
-        graphics_group.items = [self._hide_no_data]
+        self._per_vertex_color = Option(self, Option.CHECKBOX, "Per Vertex Color", True)
+        self._per_vertex_lighting = Option(self, Option.CHECKBOX, "Per Vertex Lighting", False)
+        graphics_group.items = [self._hide_no_data, self._per_vertex_color, self._per_vertex_lighting]
 
         self._options.items = [color_group, value_group, data_group, graphics_group]
 
@@ -107,7 +106,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             stats = self.attribute_data.variable_stats("")
             self._min_value.value = stats.min_value
             self._max_value.value = stats.max_value
-            post_newoptions_available()
+            post_newoptions_available(self)
 
         # Todo - send PluginOptionEvent.OPTION_AVAILABLE
         elif option is self._elevation_attribute:
@@ -139,21 +138,27 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         if role == 0:
             self.terrain_data = data
             self._needs_terrain = True
+
         elif role == 1:
             self.attribute_data = data
+            self._needs_color = True
 
             if data is not None:
                 stats = data.variable_stats("")     # Todo - get attribute variable names
                 self._min_value.value = stats.min_value
                 self._max_value.value = stats.max_value
+            else:
+                self._min_value.value, self._max_value.value = 0, 0
+            post_newoptions_available(self)
 
-            self._needs_color = True
         elif role == 2:
             self.boundary_data = data
             self._needs_boundaries = True
+
         elif role == 3:
             self.flow_dir_data = data
             self._needs_flow = True
+
         elif role == 4:
             self.flow_acc_data = data
             # Todo - update flow min/max filters
@@ -243,15 +248,10 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
             # Update shaders with Option values
             shader.hide_no_data = self._hide_no_data.value
-            #shader.per_vertex_color = self._per_vertex_color.value
-            #shader.per_vertex_lighting = self._per_vertex_lighting.value
-            #shader.min_value = self._min_value.value
-            #shader.max_value = self._max_value.value
-
-            if self.attribute_data is not None:
-                stats = self.attribute_data.variable_stats("")
-                shader.min_value = stats.min_value
-                shader.max_value = stats.max_value
+            shader.per_vertex_color = self._per_vertex_color.value
+            shader.per_vertex_lighting = self._per_vertex_lighting.value
+            shader.min_value = self._min_value.value
+            shader.max_value = self._max_value.value
 
             shader.min_color = self._min_color.value.hsv.hsva_list
             shader.max_color = self._max_color.value.hsv.hsva_list
@@ -408,8 +408,8 @@ class TerrainAndColorShaderProgram(MeshShaderProgram):
         self.has_color = False
         self.has_boundaries = False
         self.hide_no_data = False
-        #self.per_vertex_color = True
-        #self.per_vertex_lighting = False
+        self.per_vertex_color = True
+        self.per_vertex_lighting = False
 
         self.is_filtered = False
         self.filter_min = self.filter_max = 0
@@ -440,10 +440,10 @@ class TerrainAndColorShaderProgram(MeshShaderProgram):
         #    #boundary_coord_loc = self.get_attrib_location("boundaryTexCoord")
 
         glUniform1i(self.get_uniform_location("hideNoData"), self.hide_no_data)
-        #glUniform1i(self.get_uniform_location("perVertexColor"), self.per_vertex_color)
-        #glUniform1i(self.get_uniform_location("perVertexLighting"), self.per_vertex_lighting)
+        glUniform1i(self.get_uniform_location("perVertexColor"), self.per_vertex_color)
+        glUniform1i(self.get_uniform_location("perVertexLighting"), self.per_vertex_lighting)
         glUniform1i(self.get_uniform_location("hasColor"), self.has_color)
-        #glUniform1i(self.get_uniform_location("hasBoundaries"), self.has_boundaries)
+        glUniform1i(self.get_uniform_location("hasBoundaries"), self.has_boundaries)
 
         glUniform1i(self.get_uniform_location("isFiltered"), self.is_filtered)
         glUniform1f(self.get_uniform_location("filterMin"), self.filter_min)
