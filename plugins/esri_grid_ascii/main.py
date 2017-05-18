@@ -143,9 +143,9 @@ class ESRIGridAscii(RasterDataPlugin):
             filename = "{}.asc".format(filename)
             path = os.path.join(os.path.dirname(path), filename)
 
-        data = numpy.loadtxt(path, skiprows=6)
+        data = numpy.loadtxt(path, skiprows=6).astype(numpy.float32)
         data = numpy.ma.masked_where(data == nodata_value, data)    # Mask out nodata
-        return data
+        return data.T
 
     @property
     def shape(self):
@@ -195,8 +195,9 @@ class ESRIGridAscii(RasterDataPlugin):
             stats.max_value = max(maxs)
         else:
             grid = self.get_data("")
-            stats.min_value = grid.min()
-            stats.max_value = grid.max()
+            stats.min_value = float(grid.min())
+            stats.max_value = float(grid.max())
+            print(type(stats.max_value))
 
         stats.nodata_value = self._header['nodata_value']
         stats.misc['shape'] = "({},{})".format(*self.shape)

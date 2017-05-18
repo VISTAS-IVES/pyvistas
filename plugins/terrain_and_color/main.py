@@ -71,9 +71,10 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
         graphics_group = OptionGroup("Graphics Options")
         self._hide_no_data = Option(self, Option.CHECKBOX, "Hide No Data Values", False)
-        self._per_vertex_color = Option(self, Option.CHECKBOX, "Per Vertex Color", True)
-        self._per_vertex_lighting = Option(self, Option.CHECKBOX, "Per Vertex Lighting", False)
-        graphics_group.items = [self._hide_no_data, self._per_vertex_color, self._per_vertex_lighting]
+        #self._per_vertex_color = Option(self, Option.CHECKBOX, "Per Vertex Color", True)
+        #self._per_vertex_lighting = Option(self, Option.CHECKBOX, "Per Vertex Lighting", False)
+        #graphics_group.items = [self._hide_no_data, self._per_vertex_color, self._per_vertex_lighting]
+        graphics_group.items = [self._hide_no_data]
 
         self._options.items = [color_group, value_group, data_group, graphics_group]
 
@@ -141,9 +142,10 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         elif role == 1:
             self.attribute_data = data
 
-            stats = data.variable_stats("")     # Todo - get attribute variable names
-            self._min_value.value = stats.min_value
-            self._max_value.value = stats.max_value
+            if data is not None:
+                stats = data.variable_stats("")     # Todo - get attribute variable names
+                self._min_value.value = stats.min_value
+                self._max_value.value = stats.max_value
 
             self._needs_color = True
         elif role == 2:
@@ -181,7 +183,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
     @property
     def filter_histogram(self):
         if self.attribute_data is not None:
-            return Histogram(self.get_data(1).get_grid("", Timeline.app().current_time))
+            return Histogram(self.get_data(1).get_data("", Timeline.app().current_time))
         else:
             return Histogram()
 
@@ -241,10 +243,15 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
             # Update shaders with Option values
             shader.hide_no_data = self._hide_no_data.value
-            shader.per_vertex_color = self._per_vertex_color.value
-            shader.per_vertex_lighting = self._per_vertex_lighting.value
-            shader.min_value = self._min_value.value
-            shader.max_value = self._max_value.value
+            #shader.per_vertex_color = self._per_vertex_color.value
+            #shader.per_vertex_lighting = self._per_vertex_lighting.value
+            #shader.min_value = self._min_value.value
+            #shader.max_value = self._max_value.value
+
+            if self.attribute_data is not None:
+                stats = self.attribute_data.variable_stats("")
+                shader.min_value = stats.min_value
+                shader.max_value = stats.max_value
 
             shader.min_color = self._min_color.value.hsv.hsva_list
             shader.max_color = self._max_color.value.hsv.hsva_list
@@ -363,11 +370,6 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             if self.terrain_data and self.attribute_data:
                 shader.has_color = True
 
-                if shader.value_buffer != -1:
-                    print(shader.value_buffer)
-                    glDeleteBuffers(1, shader.value_buffer)
-                    shader.value_buffer = -1
-
                 # Retrieve color layer
                 attribute = ''  # Todo - get attribute
                 data = self.attribute_data.get_data(attribute, Timeline.app().current_time)
@@ -380,7 +382,6 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 size = sizeof(c_float) * width * height
 
                 # Inform OpenGL of the new color buffer
-                shader.value_buffer = glGenBuffers(1)
                 glBindBuffer(GL_ARRAY_BUFFER, shader.value_buffer)
                 glBufferData(GL_ARRAY_BUFFER, size, None, GL_DYNAMIC_DRAW)
                 buffer = map_buffer(GL_ARRAY_BUFFER, numpy.float32, GL_WRITE_ONLY, size)
@@ -403,12 +404,12 @@ class TerrainAndColorShaderProgram(MeshShaderProgram):
     def __init__(self, mesh):
         super().__init__(mesh)
 
-        self.value_buffer = -1
+        self.value_buffer = glGenBuffers(1)
         self.has_color = False
         self.has_boundaries = False
         self.hide_no_data = False
-        self.per_vertex_color = True
-        self.per_vertex_lighting = False
+        #self.per_vertex_color = True
+        #self.per_vertex_lighting = False
 
         self.is_filtered = False
         self.filter_min = self.filter_max = 0
@@ -422,13 +423,16 @@ class TerrainAndColorShaderProgram(MeshShaderProgram):
         self.nodata_color = [.5, .5, .5, 1]
         self.boundary_color = [0, 0, 0, 1]
 
+    def __del__(self):
+        glDeleteBuffers(1, self.value_buffer)
+
     def pre_render(self, camera):
         super().pre_render(camera)
 
         if self.has_color:
             value_loc = self.get_attrib_location("value")
             glBindBuffer(GL_ARRAY_BUFFER, self.value_buffer)
-            glVertexAttribPointer(value_loc, 1, GL_FLOAT, GL_FALSE, sizeof(c_float), 0)
+            glVertexAttribPointer(value_loc, 1, GL_FLOAT, GL_FALSE, sizeof(GLfloat), None)
             glEnableVertexAttribArray(value_loc)
 
         #if self.has_boundaries:
@@ -436,10 +440,10 @@ class TerrainAndColorShaderProgram(MeshShaderProgram):
         #    #boundary_coord_loc = self.get_attrib_location("boundaryTexCoord")
 
         glUniform1i(self.get_uniform_location("hideNoData"), self.hide_no_data)
-        glUniform1i(self.get_uniform_location("perVertexColor"), self.per_vertex_color)
-        glUniform1i(self.get_uniform_location("perVertexLighting"), self.per_vertex_lighting)
+        #glUniform1i(self.get_uniform_location("perVertexColor"), self.per_vertex_color)
+        #glUniform1i(self.get_uniform_location("perVertexLighting"), self.per_vertex_lighting)
         glUniform1i(self.get_uniform_location("hasColor"), self.has_color)
-        glUniform1i(self.get_uniform_location("hasBoundaries"), self.has_boundaries)
+        #glUniform1i(self.get_uniform_location("hasBoundaries"), self.has_boundaries)
 
         glUniform1i(self.get_uniform_location("isFiltered"), self.is_filtered)
         glUniform1f(self.get_uniform_location("filterMin"), self.filter_min)

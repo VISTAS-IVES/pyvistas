@@ -15,7 +15,6 @@ class OptionsPanel(wx.ScrolledWindow):
         self.SetScrollRate(0, 1)
         self.plugin = None
         self._options = {}
-        self.Bind(EVT_PLUGIN_OPTION, self.OnNewOptionAvailable)
 
     def AddOption(self, option: Option, parent_sizer):
 
@@ -214,8 +213,8 @@ class OptionsPanel(wx.ScrolledWindow):
             option.value = event.path
             option.option_updated()
 
-    def OnNewOptionAvailable(self, event: PluginOptionEvent):
+    def NewOptionAvailable(self, event: PluginOptionEvent):
         plugin = event.plugin
-        if event.change is PluginOptionEvent.OPTION_AVAILABLE and plugin is not None and plugin == self.plugin:
+        if event.change is PluginOptionEvent.NEW_OPTIONS_AVAILABLE and plugin is not None and plugin == self.plugin:
             self.options = plugin.get_options()
             self.Layout()
