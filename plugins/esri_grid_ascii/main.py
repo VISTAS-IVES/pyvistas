@@ -191,8 +191,8 @@ class ESRIGridAscii(RasterDataPlugin):
                 grid = self.get_data("", step)
                 mins.append(grid.min())
                 maxs.append(grid.max())
-            stats.min_value = min(mins)
-            stats.max_value = max(maxs)
+            stats.min_value = float(min(mins))
+            stats.max_value = float(max(maxs))
         else:
             grid = self.get_data("")
             stats.min_value = float(grid.min())

@@ -108,7 +108,6 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             self._max_value.value = stats.max_value
             post_newoptions_available(self)
 
-        # Todo - send PluginOptionEvent.OPTION_AVAILABLE
         elif option is self._elevation_attribute:
             self._needs_terrain = True
         elif option is self._boundary_width:
