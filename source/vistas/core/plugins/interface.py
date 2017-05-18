@@ -47,3 +47,8 @@ class Plugin(metaclass=PluginBase):
         """ Used to update plugin option. Passes through if not implemented """
 
         pass
+
+    def timeline_changed(self):
+        """ Used to inform a plugin of when the timeline changes."""
+
+        pass

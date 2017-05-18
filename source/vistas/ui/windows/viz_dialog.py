@@ -14,6 +14,8 @@ import wx.richtext
 
 class VisualizationDialog(wx.Frame):
 
+    active_dialogs = []
+
     def __init__(self, parent, id, viz: VisualizationPlugin, project, node):
         super().__init__(
             parent, id, "Visualization Options",
@@ -71,8 +73,9 @@ class VisualizationDialog(wx.Frame):
         self.Layout()
 
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPage)
-        # Todo: VI_EVENT_TIMEILNE_VALUE_CHANGED -> OnTimelineChanged
         self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+        self.active_dialogs.append(self)
 
     def RefreshInfoText(self):
 
@@ -187,6 +190,7 @@ class VisualizationDialog(wx.Frame):
     def OnClose(self, event):
         main_window = wx.GetTopLevelParent(self.GetParent())
         main_window.SetOptions(self.viz.get_options(), self.viz)
+        self.active_dialogs.remove(self)
         event.Skip()
 
     def OnChoice(self, event: wx.CommandEvent):
@@ -243,6 +247,6 @@ class VisualizationDialog(wx.Frame):
             self.filter_histogram.SetHistogram(self.viz.filter_histogram, True)
             self.viz.clear_filter()
 
-    def OnTimelineChange(self, event):
+    def TimelineChanged(self):
         if self.viz.is_filterable:
             self.filter_histogram.SetHistogram(self.viz.filter_histogram, not self.viz.is_filtered)

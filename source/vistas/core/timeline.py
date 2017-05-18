@@ -1,11 +1,10 @@
 import datetime
 from bisect import insort
 
-import wx
-import wx.lib.newevent
+from vistas.ui.events import TimelineEvent
+from vistas.ui.utils import post_timeline_change
 
-TimelineValueChangedEvent, EVT_TIMELINE_VALUE_CHANGED = wx.lib.newevent.NewEvent()
-TimelineAttrChangedEvent, EVT_TIMELINE_ATTR_CHANGED = wx.lib.newevent.NewEvent()
+import wx
 
 
 class Timeline:
@@ -20,61 +19,82 @@ class Timeline:
 
         return cls._global_timeline
 
-    def __init__(self, start_time=None, end_time=None, current_time=None):
+    def __init__(self, start=None, end=None, current=None):
 
         init_time = datetime.datetime.fromtimestamp(0)
 
-        self._start_time = init_time if start_time is None else start_time
-        self._end_time = init_time if end_time is None else end_time
-        self._current_time = init_time if current_time is None else current_time
+        self._start = init_time if start is None else start
+        self._end = init_time if end is None else end
+        self._current = init_time if current is None else current
         self._min_step = None
         self._timestamps = []
+        self._current_idx = 0
 
         # filter settings
         self.use_filter = False
-        self.filter_start_time = start_time
-        self.filter_end_time = end_time
+        self.filter_start = start
+        self.filter_end = end
         self.filter_interval = self._min_step
+
+        self.nearest_step()
+
+    def nearest_step(self):
+        low_idx = 0
+        high_idx = len(self.timestamps)-1
+
+        if self._current == self._end:
+            self._current_idx = high_idx
+            return False
+
+        if self._current < self._start:
+            self._current = self._start
+            self._current_idx = low_idx
+            return True
+
+        if self._current > self._end:
+            self._current = self._end
+            self._current_idx = high_idx
+            return True
+
+        self._current_idx = self.timestamps.index(self._current)
+        return False
 
     @property
     def enabled(self):
-        return self.start_time != self.end_time
+        return self.start != self.end
 
     @property
-    def start_time(self):
-        return self._start_time
+    def start(self):
+        return self._start
 
-    @start_time.setter
-    def start_time(self, value: datetime.datetime):
-        self._start_time = value
-        wx.PostEvent(self, TimelineAttrChangedEvent(time=self._current_time))
-
-    @property
-    def end_time(self):
-        return self._end_time
-
-    @end_time.setter
-    def end_time(self, value):
-        self._end_time = value
-        wx.PostEvent(self, TimelineAttrChangedEvent(time=self._current_time))
+    @start.setter
+    def start(self, start: datetime.datetime):
+        self._start = start
+        post_timeline_change(self._current, TimelineEvent.ATTR_CHANGED)
+        if self.nearest_step():
+            post_timeline_change(self._current, TimelineEvent.VALUE_CHANGED)
 
     @property
-    def current_time(self):
-        return self._current_time
+    def end(self):
+        return self._end
 
-    @current_time.setter
-    def current_time(self, value: datetime.datetime):
+    @end.setter
+    def end(self, end):
+        self._end = end
+        post_timeline_change(self._current, TimelineEvent.ATTR_CHANGED)
+        if self.nearest_step():
+            post_timeline_change(self._current, TimelineEvent.VALUE_CHANGED)
+
+    @property
+    def current(self):
+        return self._current
+
+    @current.setter
+    def current(self, current: datetime.datetime):
         if self.enabled:
-            if value not in self._timestamps:
-                if value > self._timestamps[-1]:
-                    value = self._timestamps[-1]
-                elif value < self._timestamps[0]:
-                    value = self._timestamps[0]
-                else:
-                    # Go to nearest floor step
-                    value = list(filter(lambda x: x > value, self._timestamps))[0]
-            self._current_time = value
-            wx.PostEvent(self, TimelineValueChangedEvent(time=self._current_time))
+            self._current = current
+            self.nearest_step()
+            post_timeline_change(self._current, TimelineEvent.VALUE_CHANGED)
 
     @property
     def min_step(self):
@@ -84,8 +104,8 @@ class Timeline:
     def timestamps(self):
         if self.use_filter:
             filtered_steps = []
-            step = self.filter_start_time
-            while step <= self.filter_end_time:
+            step = self.filter_start
+            while step <= self.filter_end:
                 if step in self._timestamps:
                     filtered_steps.append(step)
                 step = step + self.filter_interval
@@ -100,17 +120,17 @@ class Timeline:
     def time_format(self):
         _format = "%B %d, %Y"
 
-        hours, minutes, seconds = [False] * 3
+        hour, minute, second = [False] * 3
         for t in self.timestamps:
-            hours = not hours and t.hours > 0
-            minutes = not minutes and t.minutes > 0
-            seconds = not seconds and t.seconds > 0
-            if hours and minutes and seconds:
+            hour = not hour and t.hour > 0
+            minute = not minute and t.minute > 0
+            second = not second and t.second > 0
+            if hour and minute and second:
                 break
 
-        if hours or minutes or seconds:
+        if hour or minute or second:
             _format = _format + " %H:%M"
-            if seconds:
+            if second:
                 _format = _format + ":%S"
 
         return _format
@@ -118,44 +138,52 @@ class Timeline:
     def reset(self):
         zero = datetime.datetime.fromtimestamp(0)
         self._timestamps = []
-        self._start_time, self._end_time, self._current_time = [zero] * 3
-        self.filter_start_time, self.filter_end_time, self.filter_interval = [zero] * 3
+        self._start, self._end, self._current = [zero] * 3
+        self.filter_start, self.filter_end, self.filter_interval = [zero] * 3
         self._min_step, self.filter_interval = [zero] * 2
         self.use_filter = False
 
     def add_timestamp(self, timestamp: datetime.datetime):
         if timestamp not in self._timestamps:
-            if timestamp > self._timestamps[-1]:
-                self.end_time = timestamp
-            elif timestamp < self._timestamps[0]:
-                self.start_time = timestamp
+            if len(self._timestamps):
+                if timestamp > self._timestamps[-1]:
+                    self.end = timestamp
+                elif timestamp < self._timestamps[0]:
+                    self.start = timestamp
             insort(self._timestamps, timestamp)     # unique and sorted
 
             # recalculate smallest timedelta
             self._min_step = self._timestamps[-1] - self._timestamps[0]
             for i in range(len(self._timestamps) - 1):
-                diff = self._timestamps[i+1] - self._timestamps[i+1]
-                self._min_step = diff if diff < self._min_step else self._min_step
+                diff = self._timestamps[i+1] - self._timestamps[i]
+                if diff < self._min_step:
+                    self._min_step = diff
 
     def index_at_time(self, time: datetime.datetime):
         return self.timestamps.index(time)
 
     @property
     def current_index(self):
-        return self.index_at_time(self._current_time)
+        return self._current_idx
 
     def time_at_index(self, index):
+        length = self.num_timestamps
+        if index < 0:
+            index = 0
+        elif index >= length:
+            index = length - 1
         return self.timestamps[index]
 
     def forward(self, steps=1):
         index = self.current_index + steps
-        if index > len(self.timestamps):
-            self._current_time = self.end_time
+        length = self.num_timestamps
+        if index >= length:
+            index = length - 1
         elif index < 0:
-            self._current_time = self.start_time
-        else:
-            self._current_time = self.timestamps[index]
-        wx.PostEvent(self, TimelineValueChangedEvent(time=self._current_time))
+            index = 0
+        self._current_idx = index
+        self._current = self.timestamps[self._current_idx]
+        post_timeline_change(self._current, TimelineEvent.VALUE_CHANGED)
 
     def back(self, steps=1):
         self.forward(steps * -1)

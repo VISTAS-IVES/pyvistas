@@ -1,6 +1,8 @@
 import datetime
 
-from vistas.core.timeline import Timeline, EVT_TIMELINE_VALUE_CHANGED
+from vistas.core.timeline import Timeline
+from vistas.ui.events import TimelineEvent
+from vistas.ui.utils import post_timeline_change, post_message
 
 import wx
 import wx.lib.calendar
@@ -41,7 +43,7 @@ class TimeIntervalPanel(wx.Panel):
     def UpdateEnabledInputs(self):
         timeline = Timeline.app()
         if timeline.enabled:
-            maxstep = timeline.end_time - timeline.start_time
+            maxstep = timeline.end - timeline.start
             minstep = timeline.min_step
             self.days.Enable(maxstep > datetime.timedelta(1, 0, 0) or datetime.timedelta(1, 0, 0) < minstep)
             self.seconds.Enable(maxstep > datetime.timedelta(0, 1, 0) or datetime.timedelta(1, 0, 0) < minstep)
@@ -73,13 +75,13 @@ class TimeFilterWindow(wx.Frame):
 
         main_panel = wx.Panel(self, wx.ID_ANY)
 
-        self.start_ctrl = wx.adv.CalendarCtrl(main_panel, wx.ID_ANY, date=wx.pydate2wxdate(self.timeline.start_time))
-        self.start_ctrl.SetDateRange(wx.pydate2wxdate(self.timeline.start_time),
-                                     wx.pydate2wxdate(self.timeline.end_time))
+        self.start_ctrl = wx.adv.CalendarCtrl(main_panel, wx.ID_ANY, date=wx.pydate2wxdate(self.timeline.start))
+        self.start_ctrl.SetDateRange(wx.pydate2wxdate(self.timeline.start),
+                                     wx.pydate2wxdate(self.timeline.end))
 
-        self.end_ctrl = wx.adv.CalendarCtrl(main_panel, wx.ID_ANY, date=wx.pydate2wxdate(self.timeline.end_time))
-        self.end_ctrl.SetDateRange(wx.pydate2wxdate(self.timeline.start_time),
-                                   wx.pydate2wxdate(self.timeline.end_time))
+        self.end_ctrl = wx.adv.CalendarCtrl(main_panel, wx.ID_ANY, date=wx.pydate2wxdate(self.timeline.end))
+        self.end_ctrl.SetDateRange(wx.pydate2wxdate(self.timeline.start),
+                                   wx.pydate2wxdate(self.timeline.end))
 
         self.apply_button = wx.Button(main_panel, wx.ID_ANY, "Apply")
         self.apply_button.SetDefault()
@@ -130,7 +132,7 @@ class TimeFilterWindow(wx.Frame):
         self.apply_button.Bind(wx.EVT_BUTTON, self.OnApply)
         self.reset_button.Bind(wx.EVT_BUTTON, self.OnReset)
 
-        self.Bind(EVT_TIMELINE_VALUE_CHANGED, self.OnTimelineChange)
+        #self.Bind(EVT_TIMELINE, self.OnTimelineChange)
 
         self.SetFocus()
 
@@ -139,16 +141,16 @@ class TimeFilterWindow(wx.Frame):
         start = wx.wxdate2pydate(self.start_ctrl.GetDate())
         end = wx.wxdate2pydate(self.end_ctrl.GetDate())
         interval = self.interval_panel.interval
-        time_span = self.timeline.end_time - self.timeline.start_time
+        time_span = self.timeline.end - self.timeline.start
         valid_range = start <= end
         valid_interval = self.timeline.min_step <= interval < time_span
 
-        if valid_range and valid_interval and self.timeline.start_time != self.timeline.end_time:
-            self.timeline.filter_start_time = start
-            self.timeline.filter_end_time = end
+        if valid_range and valid_interval and self.timeline.start != self.timeline.end:
+            self.timeline.filter_start = start
+            self.timeline.filter_end = end
             self.timeline.filter_interval = interval
-            self.timeline.use_filter = self.timeline.filter_start_time == self.timeline.start_time and \
-                                       self.timeline.filter_end_time == self.timeline.end_time and \
+            self.timeline.use_filter = self.timeline.filter_start == self.timeline.start and \
+                                       self.timeline.filter_end == self.timeline.end and \
                                        self.timeline.filter_interval == self.timeline.min_step
             self._filter_has_changed = False
             self.RefreshTimeline()
@@ -162,24 +164,21 @@ class TimeFilterWindow(wx.Frame):
                 msg = "Invalid interval - interval is too large or too small."
             else:
                 msg = "Invalid filter - unknown error."
-            # Todo: Post UIMsg?
-
+            post_message(msg, 1)
             return False
 
     def RefreshTimeline(self):
-        # Todo: rebuild timeline?
-        # Todo: send timeline event?
-        pass
+        post_timeline_change(Timeline.app().current, TimelineEvent.VALUE_CHANGED)
 
     def UpdateFromTimeline(self):
         self._filter_has_changed = False
         if self.timeline.enabled:
-            self.start_ctrl.SetDate(wx.pydate2wxdate(self.timeline.filter_start_time))
-            self.start_ctrl.SetDateRange(wx.pydate2wxdate(self.timeline.start_time.timestamp()),
-                                         wx.pydate2wxdate(self.timeline.end_time.timestamp()))
-            self.end_ctrl.SetDate(wx.pydate2wxdate(self.timeline.filter_end_time))
-            self.end_ctrl.SetDateRange(wx.pydate2wxdate(self.timeline.start_time.timestamp()),
-                                       wx.pydate2wxdate(self.timeline.end_time.timestamp()))
+            self.start_ctrl.SetDate(wx.pydate2wxdate(self.timeline.filter_start))
+            self.start_ctrl.SetDateRange(wx.pydate2wxdate(self.timeline.start),
+                                         wx.pydate2wxdate(self.timeline.end))
+            self.end_ctrl.SetDate(wx.pydate2wxdate(self.timeline.filter_end))
+            self.end_ctrl.SetDateRange(wx.pydate2wxdate(self.timeline.start),
+                                       wx.pydate2wxdate(self.timeline.end))
             self.interval_panel.interval = self.timeline.filter_interval
 
     def OnShow(self, event):
@@ -204,8 +203,8 @@ class TimeFilterWindow(wx.Frame):
     def OnReset(self, event):
 
         # Reset timeline filter to start and finish
-        self.timeline.filter_start_time = self.timeline.start_time
-        self.timeline.filter_end_time = self.timeline.end_time
+        self.timeline.filter_start = self.timeline.start
+        self.timeline.filter_end = self.timeline.end
         self.timeline.filter_interval = self.timeline.min_step
         self.interval_panel.interval = self.timeline.filter_interval
         self._filter_has_changed = False

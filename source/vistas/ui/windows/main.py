@@ -10,6 +10,7 @@ from vistas.ui.controls.viewer_container_panel import ViewerContainerPanel
 from vistas.ui.controls.timeline_panel import TimelinePanel
 from vistas.ui.controls.main_status_bar import MainStatusBar
 from vistas.ui.controls.expand_button import ExpandButton
+from vistas.ui.windows.viz_dialog import VisualizationDialog
 
 
 class MainWindow(wx.Frame):
@@ -179,6 +180,8 @@ class MainWindow(wx.Frame):
         self.Bind(EVT_PLUGIN_OPTION, self.OnPluginOption)
         self.Bind(EVT_REDISPLAY, self.OnRedisplay)
         self.Bind(EVT_NEW_LEGEND, self.OnNewLegend)
+        self.Bind(EVT_TIMELINE_CHANGED, self.OnTimeline)
+        self.Bind(EVT_MESSAGE, self.OnMessage)
 
     def SerializeState(self):
         pos = self.GetPosition()
@@ -255,6 +258,28 @@ class MainWindow(wx.Frame):
 
     def OnNewLegend(self, event):
         pass    # Todo - legend_window
+
+    def OnTimeline(self, event: TimelineEvent):
+        # Update any existing visualization dialogs
+        for win in VisualizationDialog.active_dialogs:
+            win.TimelineChanged()
+
+        # Update timeline ctrl
+        self.timeline_panel.timeline_ctrl.TimelineChanged()
+
+        # Update viz plugins
+        for node in self.project_controller.project.all_visualizations:
+            node.visualization.timeline_changed()
+
+    def OnMessage(self, event: MessageEvent):
+        if event.level is MessageEvent.NORMAL:
+            wx.MessageBox(event.msg, "Message - Normal", style=wx.OK | wx.ICON_INFORMATION)
+        elif event.level is MessageEvent.ERROR:
+            wx.MessageBox(event.msg, "Message - Error", style=wx.OK | wx.ICON_EXCLAMATION)
+        elif event.level is MessageEvent.CRITICAL:
+            wx.MessageBox(event.msg, "Message - Critical Error", style=wx.OK | wx.ICON_ERROR)
+            wx.MessageBox("VISTAS will now exit.", "Message - Critical Error", style=wx.OK | wx.ICON_ERROR)
+            exit(1)
 
     def ToggleProjectPanel(self):
         if self.main_splitter.IsSplit():

@@ -29,6 +29,29 @@ class PluginOptionEvent(PluginOptionEventBase):
         super().__init__(plugin=plugin, option=option, change=change)
 
 
+TimelineEventBase, EVT_TIMELINE_CHANGED = wx.lib.newevent.NewEvent()
+
+
+class TimelineEvent(TimelineEventBase):
+    VALUE_CHANGED = 0
+    ATTR_CHANGED = 1
+
+    def __init__(self, time=None, timeline=None, change=None):
+        super().__init__(time=time, timeline=timeline, change=change)
+
+
+MessageEventBase, EVT_MESSAGE = wx.lib.newevent.NewEvent()
+
+
+class MessageEvent(MessageEventBase):
+    NORMAL = 0
+    ERROR = 1
+    CRITICAL = 2
+
+    def __init__(self, msg='', level=NORMAL):
+        super().__init__(msg=msg, level=level)
+
+
 # Event for alerting the UI to refresh canvases
 RedisplayEvent, EVT_REDISPLAY = wx.lib.newevent.NewEvent()
 

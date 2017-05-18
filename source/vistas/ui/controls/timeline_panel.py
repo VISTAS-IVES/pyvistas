@@ -1,7 +1,7 @@
 import datetime
 
 from vistas.core.utils import get_platform
-from vistas.core.timeline import Timeline, EVT_TIMELINE_VALUE_CHANGED, EVT_TIMELINE_ATTR_CHANGED
+from vistas.core.timeline import Timeline
 from vistas.core.paths import get_resource_bitmap
 from vistas.core.utils import get_paint_dc
 from vistas.ui.controls.static_bitmap_button import StaticBitmapButton
@@ -116,8 +116,11 @@ class TimelineCtrl(wx.Control):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
         self.Bind(wx.EVT_SIZE, self.OnSize)
-        self.Bind(EVT_TIMELINE_VALUE_CHANGED, self.OnValueChanged)
-        self.Bind(EVT_TIMELINE_ATTR_CHANGED, self.OnAttrChanged)
+        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+        self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
+        self.Bind(wx.EVT_MOTION, self.OnMouseMove)
+        self.Bind(wx.EVT_MOUSE_CAPTURE_LOST, self.OnLoseCapture)
+        self.Bind(wx.EVT_ENTER_WINDOW, self.OnMouseEnter)
 
     def _calculate_px_ratio(self):
         width = self.GetSize().x - self.CURSOR_WIDTH
@@ -127,7 +130,7 @@ class TimelineCtrl(wx.Control):
         elif self._uniform_time_intervals:
             self.px_per_step = width / (self.timeline.num_timestamps - 1)
         else:
-            self.px_per_step = width / ((self.timeline.end_time - self.timeline.start_time) / self.timeline.min_step)
+            self.px_per_step = width / ((self.timeline.end - self.timeline.start) / self.timeline.min_step)
 
     @property
     def uniform_time_intervals(self):
@@ -144,7 +147,7 @@ class TimelineCtrl(wx.Control):
         width = self.GetSize().x - self.CURSOR_WIDTH
         start = timestamps[0]
         end = timestamps[-1]
-        prev = end
+        prev = start
         for t in timestamps:
             if t == start:
                 continue
@@ -162,9 +165,9 @@ class TimelineCtrl(wx.Control):
 
     def OnPaint(self, event):
         dc = get_paint_dc(self)
-        current = self.timeline.current_time
-        start = self.timeline.start_time
-        end = self.timeline.end_time
+        current = self.timeline.current
+        start = self.timeline.start
+        end = self.timeline.end
         min_step = self.timeline.min_step
         format = self.timeline.time_format
 
@@ -188,7 +191,7 @@ class TimelineCtrl(wx.Control):
 
         dc.DrawText(start.strftime(format), 0, 0)
         dc.DrawText(end.strftime(format), w - dc.GetTextExtent(end.strftime(format)).x, 0)
-        dc.DrawText(current.strftime(format), w / 2 - dc.GetTextExtent(current.strftime(format)) / 2, 0)
+        dc.DrawText(current.strftime(format), w / 2 - dc.GetTextExtent(current.strftime(format)).x / 2, 0)
 
         if self._uniform_time_intervals:
             numsteps = self.timeline.current_index
@@ -217,7 +220,7 @@ class TimelineCtrl(wx.Control):
                 tip = wx.Point(pos + self.CURSOR_WIDTH / 2 + 5, 2).Get()
 
             dc.SetPen(wx.BLACK_PEN)
-            dc.SetBrush(wx.Colour(255, 255, 179))
+            dc.SetBrush(wx.Brush(wx.Colour(255, 255, 179)))
 
             dc.DrawRectangle(tip[0], tip[1], tip_extent.x + 6, tip_extent.y + 2)
             dc.DrawText(self._scrub_time.strftime(format), tip[0] + 3, tip[1] + 1)
@@ -230,7 +233,7 @@ class TimelineCtrl(wx.Control):
     def OnSize(self, event):
         dc = wx.WindowDC(self)
 
-        text_size = dc.GetTextExtent(self.timeline.current_time.strftime(self.timeline.time_format))
+        text_size = dc.GetTextExtent(self.timeline.current.strftime(self.timeline.time_format))
         if self.timeline.enabled:
             self.SetMinSize(wx.Size(0, self.HEIGHT + 5 + text_size.y + 5))
         else:
@@ -240,35 +243,41 @@ class TimelineCtrl(wx.Control):
         self.Refresh()
 
     def OnLeftDown(self, event):
-        if self.timeline.start_time == self.timeline.end_time:
+        if self.timeline.start == self.timeline.end:
             return
 
         self._dragging = True
-        self._scrub_time = self.timeline.current_time
+        self._scrub_time = self.timeline.current
         self.CaptureMouse()
 
     def OnLeftUp(self, event):
-        if self.timeline.start_time == self.timeline.end_time:
+        if not self.timeline.enabled:
             return
 
         if self.HasCapture():
-            if self._dragging and self._scrub_time != self.timeline.current_time:
-                self.timeline.current_time = self._scrub_time
-                # Todo: TimelineCtrlEvent?
-
+            if self._dragging and self._scrub_time != self.timeline.current:
+                self.timeline.current = self._scrub_time
             self._dragging = False
             self.ReleaseMouse()
             self.Refresh()
 
-    def OnMouseMove(self, event):
-        if self.timeline.start_time == self.timeline.end_time:
+    def OnMouseMove(self, event: wx.MouseEvent):
+        if self.timeline.start == self.timeline.end:
             return
 
         if self._dragging and event.LeftIsDown():
+            x = event.GetPosition().x
             if self._uniform_time_intervals:
-                t = self.timeline.time_at_index(round(event.GetPosition().x / self.px_per_step))
+                t = self.timeline.time_at_index(round(x / self.px_per_step))
             else:
-                t = self.timeline
+                t = self.time_at_position(x)
+
+            if t != self._scrub_time:
+                self._scrub_time = t
+
+                if self.live_update:
+                    self.timeline.current = self._scrub_time
+                self.Refresh()
 
     def OnLoseCapture(self, event):
         self._dragging = False
@@ -276,19 +285,12 @@ class TimelineCtrl(wx.Control):
     def OnMouseEnter(self, event):
         self._dragging = event.LeftIsDown()
 
-    def OnValueChanged(self, event):
-        self._calculate_px_ratio()
-        self.Refresh()
-
-    def OnAttrChanged(self, event):
+    def TimelineChanged(self):
         self._calculate_px_ratio()
         self.Refresh()
 
 
 class TimelinePanel(wx.Panel):
-
-
-
     def __init__(self, parent, id):
         super().__init__(parent, id)
         self.SetMinSize(wx.Size(200, 40))
@@ -352,6 +354,7 @@ class TimelinePanel(wx.Panel):
 
         self.timer = wx.Timer(self, wx.ID_ANY)
         self._playing = False
+        self._last_frame = None
 
         self.step_to_beginning_button.Bind(wx.EVT_BUTTON, self.OnStepToBeginningButton)
         self.step_backward_button.Bind(wx.EVT_BUTTON, self.OnStepBackwardButton)
@@ -364,16 +367,19 @@ class TimelinePanel(wx.Panel):
         self.Fit()
 
     def _calc_frames_skipped(self, value):
-        now = datetime.datetime.now()
-        diff = self._last_frame - now
-        if value < diff:
-            return int(diff / value)
-        else:
-            return 0
+        return 0
+
+        # Todo - Fix calculation here
+        #now = datetime.datetime.now()
+        #diff = (self._last_frame - now).seconds
+        #if value < diff:
+        #    return int(diff / value)
+        #else:
+        #    return 0
 
     def OnStepToBeginningButton(self, event):
         if self.timeline_ctrl.timeline.enabled:
-            self.timeline_ctrl.timeline.current_time = self.timeline_ctrl.timeline.start_time
+            self.timeline_ctrl.timeline.current = self.timeline_ctrl.timeline.start
 
     def OnStepBackwardButton(self, event):
         if self.timeline_ctrl.timeline.enabled and self.timeline_ctrl.timeline.current_index > 0:
@@ -384,6 +390,7 @@ class TimelinePanel(wx.Panel):
             self._playing = not self._playing
 
             if self._playing and not self.timer.IsRunning():
+                self._last_frame = datetime.datetime.now()
                 self.timer.Start(1, wx.TIMER_ONE_SHOT)
             elif self.timer.IsRunning():
                 self.timer.Stop()
@@ -398,16 +405,16 @@ class TimelinePanel(wx.Panel):
 
     def OnStepForwardButton(self, event):
         if self.timeline_ctrl.timeline.enabled and \
-                        self.timeline_ctrl.timeline.current_time < self.timeline_ctrl.timeline.end_time:
+                        self.timeline_ctrl.timeline.current < self.timeline_ctrl.timeline.end:
             self.timeline_ctrl.timeline.forward()
 
     def OnStepToEndButton(self, event):
         if self.timeline_ctrl.timeline.enabled:
-            self.timeline_ctrl.timeline.current_time = self.timeline_ctrl.timeline.end_time
+            self.timeline_ctrl.timeline.current = self.timeline_ctrl.timeline.end
 
     def OnTimer(self, event):
         if self.timeline_ctrl.timeline.enabled and \
-                        self.timeline_ctrl.timeline.current_time < self.timeline_ctrl.timeline.end_time:
+                        self.timeline_ctrl.timeline.current < self.timeline_ctrl.timeline.end:
             speed = 1000 / self.timeline_ctrl.animation_speed
 
             if self.timeline_ctrl.show_every_frame:
@@ -418,7 +425,8 @@ class TimelinePanel(wx.Panel):
             self.timer.Start(speed, wx.TIMER_ONE_SHOT)
         else:
             self._playing = False
-            self.play_button.label_bitmap = self.play_bitmap
+            #self.play_button.label_bitmap = self.play_bitmap   # Todo - fix StaticBitmapButton
+            self.play_button.SetBitmap(self.play_bitmap)
 
     def OnAnimationSpeedSlider(self, event):
         self.timeline_ctrl.animation_speed = self.playback_options_frame.animation_speed

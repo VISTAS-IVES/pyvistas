@@ -5,6 +5,7 @@ import os
 import wx
 
 from vistas.core.graphics.scene import Scene
+from vistas.core.timeline import Timeline
 from vistas.core.plugins.management import get_data_plugins, get_visualization_plugins, get_2d_visualization_plugins
 from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.ui.project import Project, SceneNode, FolderNode, VisualizationNode, DataNode
@@ -590,10 +591,39 @@ class ProjectController(wx.EvtHandler):
             node.delete()
 
     def UpdateTimeline(self, root):
-        pass  # Todo
+        timeline = Timeline.app()
+        updated = False
+        if root.is_data:
+            time_info = root.data.time_info
+            if time_info is not None and time_info.is_temporal:
+                timestamps = time_info.timestamps
+
+                if not timeline.enabled:
+                    timeline.start = timestamps[0]
+                    timeline.end = timestamps[-1]
+                    updated = True
+
+                if timestamps[0] < timeline.start:
+                    timeline.start = timestamps[0]
+
+                if timestamps[-1] > timeline.end:
+                    timeline.end = timestamps[-1]
+
+                for t in timestamps:
+                    timeline.add_timestamp(t)
+
+        elif root.is_folder:
+            for child in root.children:
+                updated = updated or self.UpdateTimeline(child)
+        return updated
 
     def RefreshTimeline(self):
-        pass  # Todo
+        timeline = Timeline.app()
+        current = timeline.current
+        timeline.reset()
+        self.UpdateTimeline(self.project.data_root)
+        if current >= timeline.start and current <= timeline.end:
+            timeline.current = current
 
     def RecursiveReparentTreeItem(self, tree, item, new_parent):
         node = tree.GetItemData(item)

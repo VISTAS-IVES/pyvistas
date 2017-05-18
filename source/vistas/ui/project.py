@@ -160,6 +160,7 @@ class FolderNode(ProjectNode):
             any(x.type_in_ancestry for x in self.children if isinstance(x, FolderNode))
         )
 
+
 class DataNode(ProjectNode):
     node_type = 'data'
 

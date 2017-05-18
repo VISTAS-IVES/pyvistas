@@ -118,6 +118,12 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
         self.refresh()
 
+    def timeline_changed(self):
+        if self.terrain_data and self.terrain_data.time_info and self.terrain_data.time_info.is_temporal:
+            self._needs_terrain = True
+        self._needs_color = True
+        self.refresh()
+
     @property
     def can_visualize(self):
         return self.terrain_data is not None
@@ -187,7 +193,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
     @property
     def filter_histogram(self):
         if self.attribute_data is not None:
-            return Histogram(self.get_data(1).get_data("", Timeline.app().current_time))
+            return Histogram(self.get_data(1).get_data("", Timeline.app().current))
         else:
             return Histogram()
 
@@ -371,7 +377,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
                 # Retrieve color layer
                 attribute = ''  # Todo - get attribute
-                data = self.attribute_data.get_data(attribute, Timeline.app().current_time)
+                data = self.attribute_data.get_data(attribute, Timeline.app().current)
 
                 if type(data) is numpy.ma.MaskedArray:
                     data = data.data

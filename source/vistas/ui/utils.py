@@ -1,4 +1,4 @@
-from vistas.ui.events import PluginOptionEvent, RedisplayEvent, NewLegendEvent
+from vistas.ui.events import PluginOptionEvent, RedisplayEvent, NewLegendEvent, TimelineEvent, MessageEvent
 import wx
 
 
@@ -16,3 +16,11 @@ def post_redisplay():
 
 def post_new_legend():
     get_main_window().AddPendingEvent(NewLegendEvent())
+
+
+def post_timeline_change(time, change):
+    get_main_window().AddPendingEvent(TimelineEvent(time=time, change=change))
+
+
+def post_message(msg, level):
+    get_main_window().AddPendingEvent(MessageEvent(msg=msg, level=level))
