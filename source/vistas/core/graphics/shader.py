@@ -81,9 +81,9 @@ class ShaderProgram(wx.PyEvtHandler):
 
         position = camera.get_position()
 
-        glUniformMatrix4fv(self.get_uniform_location('projectionMatrix'), 1, False, camera.proj_matrix.gl)
-        glUniformMatrix4fv(self.get_uniform_location('modelViewMatrix'), 1, False, camera.matrix.gl)
-        glUniform3f(self.get_uniform_location('cameraPosition'), position.x, position.y, position.z)
+        self.uniform_matrix4fv('projectionMatrix', 1, False, camera.proj_matrix)
+        self.uniform_matrix4fv('modelViewMatrix', 1, False, camera.matrix)
+        self.uniform3f('cameraPosition', position.x, position.y, position.z)
 
     def post_render(self, camera):
         glUseProgram(0)
@@ -105,3 +105,102 @@ class ShaderProgram(wx.PyEvtHandler):
 
     def get_attrib_location(self, name):
         return glGetAttribLocation(self.program, name)
+
+    def uniform1i(self, name, value: int):
+        glUniform1i(self.get_uniform_location(name), value)
+
+    def uniform1f(self, name, value: float):
+        glUniform1f(self.get_uniform_location(name), value)
+
+    def uniform1ui(self, name, value: int):
+        glUniform1ui(self.get_uniform_location(name), value)
+
+    def uniform2i(self, name, value1: int, value2: int):
+        glUniform2i(self.get_uniform_location(name), value1, value2)
+
+    def uniform2f(self, name, value1: float, value2: float):
+        glUniform2f(self.get_uniform_location(name), value1, value2)
+
+    def uniform2ui(self, name, value1: int, value2: int):
+        glUniform2ui(self.get_uniform_location(name), value1, value2)
+
+    def uniform3i(self, name, value1: int, value2: int, value3: int):
+        glUniform3i(self.get_uniform_location(name), value1, value2, value3)
+
+    def uniform3f(self, name, value1: float, value2: float, value3: float):
+        glUniform3f(self.get_uniform_location(name), value1, value2, value3)
+
+    def uniform3ui(self, name, value1: int, value2: int, value3: int):
+        glUniform3ui(self.get_uniform_location(name), value1, value2, value3)
+
+    def uniform4i(self, name, value1: int, value2: int, value3: int, value4: int):
+        glUniform4i(self.get_uniform_location(name), value1, value2, value3, value4)
+
+    def uniform4f(self, name, value1: float, value2: float, value3: float, value4: float):
+        glUniform4f(self.get_uniform_location(name), value1, value2, value3, value4)
+
+    def uniform4ui(self, name, value1: int, value2: int, value3: int, value4: int):
+        glUniform4ui(self.get_uniform_location(name), value1, value2, value3, value4)
+
+    def uniform1iv(self, name, count, value):
+        glUniform1iv(self.get_uniform_location(name), count, value)
+
+    def uniform1fv(self, name, count, value):
+        glUniform1fv(self.get_uniform_location(name), count, value)
+
+    def uniform1uiv(self, name, count, value):
+        glUniform1uiv(self.get_uniform_location(name), count, value)
+
+    def uniform2iv(self, name, count, value):
+        glUniform2iv(self.get_uniform_location(name), count, value)
+
+    def uniform2fv(self, name, count, value):
+        glUniform2fv(self.get_uniform_location(name), count, value)
+
+    def uniform2uiv(self, name, count, value):
+        glUniform2uiv(self.get_uniform_location(name), count, value)
+
+    def uniform3iv(self, name, count, value):
+        glUniform3iv(self.get_uniform_location(name), count, value)
+
+    def uniform3fv(self, name, count, value):
+        glUniform3fv(self.get_uniform_location(name), count, value)
+
+    def uniform3uiv(self, name, count, value):
+        glUniform3uiv(self.get_uniform_location(name), count, value)
+
+    def uniform4iv(self, name, count, value):
+        glUniform4iv(self.get_uniform_location(name), count, value)
+
+    def uniform4fv(self, name, count, value):
+        glUniform4fv(self.get_uniform_location(name), count, value)
+
+    def uniform4uiv(self, name, count, value):
+        glUniform4uiv(self.get_uniform_location(name), count, value)
+
+    def uniform_matrix2fv(self, name, count, transpose: bool, value: ViewMatrix):
+        glUniformMatrix2fv(self.get_uniform_location(name), count, transpose, value.gl)
+
+    def uniform_matrix3fv(self, name, count, transpose: bool, value: ViewMatrix):
+        glUniformMatrix3fv(self.get_uniform_location(name), count, transpose, value.gl)
+
+    def uniform_matrix4fv(self, name, count, transpose: bool, value: ViewMatrix):
+        glUniformMatrix4fv(self.get_uniform_location(name), count, transpose, value.gl)
+
+    def uniform_matrix2x3fv(self, name, count, transpose: bool, value: ViewMatrix):
+        glUniformMatrix2x3fv(self.get_uniform_location(name), count, transpose, value.gl)
+
+    def uniform_matrix3x2fv(self, name, count, transpose: bool, value: ViewMatrix):
+        glUniformMatrix3x2fv(self.get_uniform_location(name), count, transpose, value.gl)
+
+    def uniform_matrix2x4fv(self, name, count, transpose: bool, value: ViewMatrix):
+        glUniformMatrix2x4fv(self.get_uniform_location(name), count, transpose, value.gl)
+
+    def uniform_matrix4x2fv(self, name, count, transpose: bool, value: ViewMatrix):
+        glUniformMatrix4x2fv(self.get_uniform_location(name), count, transpose, value.gl)
+
+    def uniform_matrix3x4fv(self, name, count, transpose: bool, value: ViewMatrix):
+        glUniformMatrix3x4fv(self.get_uniform_location(name), count, transpose, value.gl)
+
+    def uniform_matrix4x3fv(self, name, count, transpose: bool, value: ViewMatrix):
+        glUniformMatrix4x3fv(self.get_uniform_location(name), count, transpose, value.gl)
