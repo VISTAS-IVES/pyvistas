@@ -17,9 +17,9 @@ uniform vec4 minColor;
 uniform vec4 maxColor;
 uniform vec4 noDataColor;
 
-in vec3 position;
-in vec3 normal;
-in vec2 boundaryTexCoord;
+layout(location = 0) in vec3 position;
+layout(location = 1) in vec3 normal;
+layout(location = 2) in vec2 uv;
 in float value;
 
 out vec3 fragPosition;
@@ -107,7 +107,7 @@ void main() {
 	gl_Position = projectionMatrix * eyePosition;
     fragPosition = eyePosition.xyz;
     fragNormal = normal / scale;
-    fragBoundaryTexCoord = boundaryTexCoord;
+    fragBoundaryTexCoord = uv;
 	fragValue = value;
 
 	if (perVertexColor) {

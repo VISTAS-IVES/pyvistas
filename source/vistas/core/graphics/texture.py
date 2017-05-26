@@ -1,41 +1,29 @@
-from ctypes import sizeof
-import numpy
-
 from OpenGL.GL import *
-from vistas.core.graphics.utils import map_buffer
 
 
 class Texture:
-
-    def __init__(self, num_vertices=0):
-        self.size = sizeof(GLfloat) * 2 * num_vertices
+    def __init__(self, data=None, width=None, height=None, use_rgb=True):
         self.texture = glGenTextures(1)
-        self.buffer = glGenBuffers(1)
 
-        # Allocate GPU memory for tex coords
-        glBindBuffer(GL_ARRAY_BUFFER, self.buffer)
-        glBufferData(GL_ARRAY_BUFFER, self.size, None, GL_STATIC_DRAW)
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
+        # Set texture params
+        glBindTexture(GL_TEXTURE_2D, self.texture)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glBindTexture(GL_TEXTURE_2D, 0)
+
+        if None not in [data, width, height]:
+            self.teximage2d(data, width, height, use_rgb)
 
     def __del__(self):
         glDeleteTextures(1, self.texture)
-        glDeleteBuffers(1, self.buffer)
 
-    def acquire_texcoord_array(self):
-        glBindBuffer(GL_ARRAY_BUFFER, self.buffer)
-        return map_buffer(GL_ARRAY_BUFFER, numpy.float32, GL_WRITE_ONLY, self.size)
-
-    def release_texcoord_array(self):
-        glUnmapBuffer(GL_ARRAY_BUFFER)
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
-
-    def tex_image_2d(self, data, width, height, use_rgb=True):
-
-        ch = 3 if use_rgb else 1
+    def teximage2d(self, data, width, height, use_rgb=True):
 
         glBindTexture(GL_TEXTURE_2D, self.texture)
         if use_rgb:
-            glTexImage2D(GL_TEXTURE_2D, 0, ch, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data)
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data)
         else:
-            glTexImage2D(GL_TEXTURE_2D, 0, ch, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, data)
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, data)
         glBindTexture(GL_TEXTURE_2D, 0)
+
+    # Todo - add support for float textures and other formats

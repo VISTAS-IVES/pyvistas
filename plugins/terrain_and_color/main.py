@@ -338,7 +338,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             heightfield[:, :, 1][heightfield[:, :, 1] != nodata_value] *= factor    # Apply factor where needed
             heightfield[:, :, 1][heightfield[:, :, 1] == nodata_value] = min_value  # Otherwise, set to min value
 
-            mesh = Mesh(num_indices, num_vertices, True, True, False, mode=Mesh.TRIANGLE_STRIP)
+            mesh = Mesh(num_indices, num_vertices, True, True, True, mode=Mesh.TRIANGLE_STRIP)
 
             shader = TerrainAndColorShaderProgram(mesh)
             shader.attach_shader(self.get_shader_path('vert.glsl'), GL_VERTEX_SHADER)
@@ -375,6 +375,14 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             index_buf = mesh.acquire_index_array()
             index_buf[:] = index_array
             mesh.release_index_array()
+
+            # Set mesh texture coordinates
+            texcoord_buf = mesh.acquire_texcoords_array()
+            tex_coords = numpy.zeros((height, width, 2))
+            tex_coords[:, :, 0] = indices[0] / width    # u
+            tex_coords[:, :, 1] = indices[1] / height   # v
+            texcoord_buf[:] = tex_coords.ravel()
+            mesh.release_texcoords_array()
 
             mesh.bounding_box = BoundingBox(0, min_value * factor, 0,
                                             width * cellsize, max_value * factor, height * cellsize)
@@ -440,30 +448,15 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         if self.terrain_data is not None:
             shader.has_boundaries = True
 
+            # Create boundary texture
             texture_w, texture_h = 512, 512
 
             height, width = self.terrain_data.get_data("", Timeline.app().current).shape
-
             extent = self.terrain_data.extent
 
-            # Todo - rasterize shapes
-
-            shader.boundary_texture = Texture(texture_w * texture_h, 0)
-
-            # Set boundary texture coordinates
-            tex_buf = shader.boundary_texture.acquire_texcoord_array()
-            tex_coords = numpy.zeros((height, width, 2))
-            indices = numpy.indices((height, width))
-            tex_coords[:, :, 0] = indices[0] / width   # u
-            tex_coords[:, :, 1] = indices[1] / height   # v
-            tex_buf[:] = tex_coords.ravel()
-            shader.boundary_texture.release_texcoord_array()
-
-            # Set boundary texture pixel data
-            img_data = numpy.zeros((texture_w, texture_h)).astype(numpy.int8)
-            img_data[123:233, 123:233, :] = 255 # Todo - remove test region
-            shader.boundary_texture.tex_image_2d(img_data.ravel(), texture_w, texture_h, True)
-
+            # Todo - rasterize shapes from boundary, next line is placeholder
+            img_data = (numpy.ones((texture_w, texture_h, 3)).astype(numpy.uint8) * 255).ravel()
+            shader.boundary_texture = Texture(data=img_data, width=texture_w, height=texture_h)
         else:
             shader.has_boundaries = False
             shader.boundary_texture = Texture()
@@ -477,7 +470,11 @@ class TerrainAndColorShaderProgram(MeshShaderProgram):
         super().__init__(mesh)
 
         self.value_buffer = glGenBuffers(1)
-        self.boundary_texture = Texture()
+
+        tw, th = 512, 512
+        img_data = (numpy.ones((tw, th, 3)).astype(numpy.uint8) * 255).ravel()
+        img_data = img_data.ravel()
+        self.boundary_texture = Texture(data=img_data, width=tw, height=tw)
 
         self.has_color = False
         self.has_boundaries = False
@@ -510,19 +507,9 @@ class TerrainAndColorShaderProgram(MeshShaderProgram):
             glVertexAttribPointer(value_loc, 1, GL_FLOAT, GL_FALSE, sizeof(GLfloat), None)
             glBindBuffer(GL_ARRAY_BUFFER, 0)
 
-        if self.has_boundaries:
-            boundary_coord_loc = self.get_attrib_location("boundaryTexCoord")
-            glBindBuffer(GL_ARRAY_BUFFER, self.boundary_texture.buffer)
-            glEnableVertexAttribArray(boundary_coord_loc)
-            glVertexAttribPointer(boundary_coord_loc, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 2, None)
-            glBindBuffer(GL_ARRAY_BUFFER, 0)
-
-            self.uniform1i("boundaryTexture", 0)
-            glActiveTexture(GL_TEXTURE0)
-            glBindTexture(GL_TEXTURE_2D, self.boundary_texture.texture)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-            glBindTexture(GL_TEXTURE_2D, 0)
+        glActiveTexture(GL_TEXTURE0)
+        glBindTexture(GL_TEXTURE_2D, self.boundary_texture.texture)
+        self.uniform1i("boundaryTexture", 0)
 
         self.uniform1i("hideNoData", self.hide_no_data)
         self.uniform1i("perVertexColor", self.per_vertex_color)
@@ -544,4 +531,5 @@ class TerrainAndColorShaderProgram(MeshShaderProgram):
         self.uniform4fv("boundaryColor", 1, self.boundary_color)
 
     def post_render(self, camera):
+        glBindTexture(GL_TEXTURE_2D, 0)
         super().post_render(camera)
