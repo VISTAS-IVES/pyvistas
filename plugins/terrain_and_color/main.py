@@ -10,6 +10,7 @@ from vistas.core.timeline import Timeline
 from vistas.core.graphics.bounds import BoundingBox
 from vistas.core.graphics.mesh import Mesh, MeshShaderProgram
 from vistas.core.graphics.mesh_renderable import MeshRenderable
+from vistas.core.graphics.texture import Texture
 from vistas.core.graphics.vector import normalize_v3
 from vistas.core.graphics.utils import map_buffer
 from vistas.core.plugins.data import DataPlugin
@@ -78,28 +79,47 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         self._options.items = [color_group, value_group, data_group, graphics_group]
 
         # Secondary plugin options
-        self.boundary_group = OptionGroup("Boundary")
+        self._boundary_group = OptionGroup("Boundary")
         self._boundary_color = Option(self, Option.COLOR, "Boundary Color", RGBColor(0, 0, 0))
         self._boundary_width = Option(self, Option.FLOAT, "Boundary Width", 1.0)
-        self.boundary_group.items = [self._boundary_color, self._boundary_width]
+        self._boundary_group.items = [self._boundary_color, self._boundary_width]
 
         self._flow_group = OptionGroup("Flow Options")
-        # Todo - flow options
+        self._show_flow = Option(self, Option.CHECKBOX, "Show Flow Direction", False)
+        self._hide_no_data_vectors = Option(self, Option.CHECKBOX, "Hide No Data Vectors", True)
+        self._flow_stride = Option(self, Option.INT, "Stride", 1, 1, 10)
+        self._flow_color = Option(self, Option.COLOR, "Vector Color", RGBColor(1, 1, 0))
+        self._flow_scale = Option(self, Option.SLIDER, "Vector Scale", 1.0, 0.01, 20.0)
+        self._flow_group.items = [self._show_flow, self._hide_no_data_vectors, self._flow_stride, self._flow_color,
+                                  self._flow_scale]
 
         self._animation_group = OptionGroup("Animation Options")
-        # Todo - animation options
+        self._animation_flow = Option(self, Option.CHECKBOX, "Enable Flow Animation", False)
+        self._animation_speed = Option(self, Option.INT, "Animation Speed (ms)", 100)
+        self._vector_speed = Option(self, Option.SLIDER, "Animation Speed Factor", 1.0, 0.01, 5.0)
+        self._animation_group.items = [self._animation_flow, self._animation_speed, self._vector_speed]
 
         self._accumulation_group = OptionGroup("Flow Accumulation Options")
-        # Todo - accumulation options
-
-        # Todo - listen to timeline changes?
+        self._accumulation_filter = Option(self, Option.CHECKBOX, "Enable Accumulation Filter", False)
+        self._acc_min = Option(self, Option.INT, "Accumulation Min", 0)
+        self._acc_max = Option(self, Option.INT, "Accumulation Max", 0)
+        self._acc_scale = Option(self, Option.CHECKBOX, "Scale Flow by Acc. Value", False)
+        self._accumulation_group.items = [self._accumulation_filter, self._acc_min, self._acc_max, self._acc_scale]
 
     def get_options(self):
-        return self._options
+        options = OptionGroup()
+        options.items = self._options.items.copy()
+        if self.boundary_data is not None:
+            options.items.append(self._boundary_group)
+        if self.flow_dir_data is not None:
+            options.items.append(self._flow_group)
+            if self.flow_acc_data is not None:
+                options.items.append(self._accumulation_group)
+        return options
 
-    def update_option(self, option=None):
+    def update_option(self, option: Option=None):
 
-        if option is self._attribute:
+        if option.name == self._attribute.name:
             self._needs_color = True
 
             # Todo - handle multiple attributes (i.e. NetCDF)
@@ -108,9 +128,9 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             self._max_value.value = stats.max_value
             post_newoptions_available(self)
 
-        elif option is self._elevation_attribute:
+        elif option.name == self._elevation_attribute.name:
             self._needs_terrain = True
-        elif option is self._boundary_width:
+        elif option.name is self._boundary_width.name:
             self._needs_boundaries = True
 
         if self.flow_dir_data is not None:
@@ -144,6 +164,12 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             self.terrain_data = data
             self._needs_terrain = True
 
+            if data is not None:
+                self._elevation_attribute.labels = data.variables
+            else:
+                self._elevation_attribute.labels = []
+            post_newoptions_available(self)
+
         elif role == 1:
             self.attribute_data = data
             self._needs_color = True
@@ -152,8 +178,10 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 stats = data.variable_stats("")     # Todo - get attribute variable names
                 self._min_value.value = stats.min_value
                 self._max_value.value = stats.max_value
+                self._attribute.labels = data.variables
             else:
                 self._min_value.value, self._max_value.value = 0, 0
+                self._attribute.labels = []
             post_newoptions_available(self)
 
         elif role == 2:
@@ -163,11 +191,18 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         elif role == 3:
             self.flow_dir_data = data
             self._needs_flow = True
+            post_newoptions_available(self)
 
         elif role == 4:
             self.flow_acc_data = data
-            # Todo - update flow min/max filters
             self._needs_flow = True
+
+            if data is not None:
+                stats = data.variable_stats("")
+                self._acc_min.value, self._acc_max.value = stats.min_value, stats.max_value
+            else:
+                self._acc_min.value, self._acc_max.value = 0, 0
+            post_newoptions_available(self)
 
     def get_data(self, role):
         if role == 0:
@@ -184,7 +219,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
     @property
     def is_filterable(self):
-        return True
+        return self.attribute_data is not None
 
     @property
     def is_filtered(self):
@@ -399,7 +434,39 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 shader.has_color = False
 
     def _update_boundaries(self):
-        pass    # Todo - implement boundaries
+
+        shader = self.mesh_renderable.mesh.shader
+
+        if self.terrain_data is not None:
+            shader.has_boundaries = True
+
+            texture_w, texture_h = 512, 512
+
+            height, width = self.terrain_data.get_data("", Timeline.app().current).shape
+
+            extent = self.terrain_data.extent
+
+            # Todo - rasterize shapes
+
+            shader.boundary_texture = Texture(texture_w * texture_h, 0)
+
+            # Set boundary texture coordinates
+            tex_buf = shader.boundary_texture.acquire_texcoord_array()
+            tex_coords = numpy.zeros((height, width, 2))
+            indices = numpy.indices((height, width))
+            tex_coords[:, :, 0] = indices[0] / width   # u
+            tex_coords[:, :, 1] = indices[1] / height   # v
+            tex_buf[:] = tex_coords.ravel()
+            shader.boundary_texture.release_texcoord_array()
+
+            # Set boundary texture pixel data
+            img_data = numpy.zeros((texture_w, texture_h)).astype(numpy.int8)
+            img_data[123:233, 123:233, :] = 255 # Todo - remove test region
+            shader.boundary_texture.tex_image_2d(img_data.ravel(), texture_w, texture_h, True)
+
+        else:
+            shader.has_boundaries = False
+            shader.boundary_texture = Texture()
 
     def _update_flow(self):
         pass    # Todo - implement flow visualization
@@ -410,6 +477,8 @@ class TerrainAndColorShaderProgram(MeshShaderProgram):
         super().__init__(mesh)
 
         self.value_buffer = glGenBuffers(1)
+        self.boundary_texture = Texture()
+
         self.has_color = False
         self.has_boundaries = False
         self.hide_no_data = False
@@ -437,12 +506,23 @@ class TerrainAndColorShaderProgram(MeshShaderProgram):
         if self.has_color:
             value_loc = self.get_attrib_location("value")
             glBindBuffer(GL_ARRAY_BUFFER, self.value_buffer)
-            glVertexAttribPointer(value_loc, 1, GL_FLOAT, GL_FALSE, sizeof(GLfloat), None)
             glEnableVertexAttribArray(value_loc)
+            glVertexAttribPointer(value_loc, 1, GL_FLOAT, GL_FALSE, sizeof(GLfloat), None)
+            glBindBuffer(GL_ARRAY_BUFFER, 0)
 
-        #if self.has_boundaries:
-        #    pass    # Todo - implement Texture class or equivalent
-        #    #boundary_coord_loc = self.get_attrib_location("boundaryTexCoord")
+        if self.has_boundaries:
+            boundary_coord_loc = self.get_attrib_location("boundaryTexCoord")
+            glBindBuffer(GL_ARRAY_BUFFER, self.boundary_texture.buffer)
+            glEnableVertexAttribArray(boundary_coord_loc)
+            glVertexAttribPointer(boundary_coord_loc, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 2, None)
+            glBindBuffer(GL_ARRAY_BUFFER, 0)
+
+            self.uniform1i("boundaryTexture", 0)
+            glActiveTexture(GL_TEXTURE0)
+            glBindTexture(GL_TEXTURE_2D, self.boundary_texture.texture)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+            glBindTexture(GL_TEXTURE_2D, 0)
 
         self.uniform1i("hideNoData", self.hide_no_data)
         self.uniform1i("perVertexColor", self.per_vertex_color)
@@ -464,9 +544,4 @@ class TerrainAndColorShaderProgram(MeshShaderProgram):
         self.uniform4fv("boundaryColor", 1, self.boundary_color)
 
     def post_render(self, camera):
-        #glBindTexture(GL_TEXTURE_2D, 0)
-        glDisableVertexAttribArray(self.get_attrib_location("value"))
-        #glDisableVertexAttribArray(self.get_attrib_location("boundaryTexCoord"))
-        #glDisableVertexAttribArray(self.get_attrib_location("boundaryTexture"))
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
         super().post_render(camera)

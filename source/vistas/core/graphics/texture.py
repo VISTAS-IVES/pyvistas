@@ -8,7 +8,6 @@ from vistas.core.graphics.utils import map_buffer
 class Texture:
 
     def __init__(self, num_vertices=0):
-        self.name = name
         self.size = sizeof(GLfloat) * 2 * num_vertices
         self.texture = glGenTextures(1)
         self.buffer = glGenBuffers(1)
@@ -36,7 +35,7 @@ class Texture:
 
         glBindTexture(GL_TEXTURE_2D, self.texture)
         if use_rgb:
-            glTexImage3D(GL_TEXTURE_2D, 0, ch, width, height, 0, GL_RGB, GL_FLOAT, data)
+            glTexImage2D(GL_TEXTURE_2D, 0, ch, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data)
         else:
-            glTexImage3D(GL_TEXTURE_2D, 0, ch, width, height, 0, GL_RED, GL_FLOAT, data)
+            glTexImage2D(GL_TEXTURE_2D, 0, ch, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, data)
         glBindTexture(GL_TEXTURE_2D, 0)

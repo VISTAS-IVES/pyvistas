@@ -1,3 +1,4 @@
+from vistas.core.gis.extent import Extent
 from vistas.core.plugins.interface import Plugin
 
 
@@ -67,7 +68,7 @@ class DataPlugin(Plugin):
         raise NotImplemented  # Todo
 
     @property
-    def extent(self):
+    def extent(self) -> Extent or None:
         """ Returns an extent (bounding box) object for the data, if applicable """
 
         return None

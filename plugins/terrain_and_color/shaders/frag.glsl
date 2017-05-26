@@ -140,12 +140,12 @@ void main() {
         hsvToRGB(noDataColor, baseColor);
     }
 
-    //if (hasBoundaries) {
-    //    vec4 fragBoundaryColor = texture(boundaryTexture, fragBoundaryTexCoord);
-    //    if (fragBoundaryColor.r < 1) {
-    //        hsvToRGB(boundaryColor, baseColor);
-    //    }
-    //}
+    if (hasBoundaries) {
+        vec4 fragBoundaryColor = texture(boundaryTexture, fragBoundaryTexCoord);
+        if (fragBoundaryColor.r < 1) {
+            hsvToRGB(boundaryColor, baseColor);
+        }
+    }
 
     finalColor = vec4(ambientLight + brightness * lightIntensity * baseColor.xyz, 1.);
 }
