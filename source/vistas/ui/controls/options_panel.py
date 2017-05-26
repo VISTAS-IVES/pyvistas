@@ -1,6 +1,6 @@
 from vistas.core.color import RGBColor
 from vistas.core.plugins.option import Option, OptionGroup
-from vistas.ui.events import PluginOptionEvent, EVT_PLUGIN_OPTION
+from vistas.ui.events import PluginOptionEvent
 from vistas.ui.controls.editable_slider import EditableSlider, EVT_SLIDER_CHANGE_EVENT
 from vistas.ui.controls.file_chooser import FileChooserCtrl, EVT_FILE_VALUE_CHANGE
 
@@ -93,10 +93,10 @@ class OptionsPanel(wx.ScrolledWindow):
             choice = wx.Choice(self)
             sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-            for label in option.labels:
-                choice.Append(label)
+            for label_text in option.labels:
+                choice.Append(label_text)
 
-            if option.value != None:
+            if option.value is not None:
                 choice.Select(option.value)
             else:
                 choice.Select(0)
