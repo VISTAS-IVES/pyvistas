@@ -11,7 +11,7 @@ class Texture:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
         glBindTexture(GL_TEXTURE_2D, 0)
 
-        if None not in [data, width, height]:
+        if data is not None and width is not None and height is not None:
             self.teximage2d(data, width, height, use_rgb)
 
     def __del__(self):

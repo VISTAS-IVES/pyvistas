@@ -3,6 +3,7 @@ import numpy
 import os
 
 from OpenGL.GL import *
+from OpenGL.GLU import *
 
 import wx
 
@@ -47,16 +48,16 @@ class VectorFieldRenderable(Renderable):
         5, 6, 8,
         6, 7, 8,
         7, 4, 8,
-    ], dtype='uint8')
+    ], dtype=int)
 
     def __init__(self, data=None):
         super().__init__()
-        self.shader_program = ShaderProgram()
-        self.shader_program.attach_shader(os.path.join(get_resources_directory(), 'shaders', 'vfield_vert.glsl'),
-                                          GL_VERTEX_SHADER)
-        self.shader_program.attach_shader(os.path.join(get_resources_directory(), 'shaders', 'vfield_frag.glsl'),
-                                          GL_FRAGMENT_SHADER)
-        self.shader_program.link_program()
+        self.shader = ShaderProgram()
+        self.shader.attach_shader(os.path.join(get_resources_directory(), 'shaders', 'vfield_vert.glsl'),
+                                  GL_VERTEX_SHADER)
+        self.shader.attach_shader(os.path.join(get_resources_directory(), 'shaders', 'vfield_frag.glsl'),
+                                  GL_FRAGMENT_SHADER)
+        self.shader.link_program()
 
         self.color = RGBColor(1, 1, 0)
         self.offset = Vector(0, 0, 0)
@@ -68,7 +69,7 @@ class VectorFieldRenderable(Renderable):
         self._animation_speed = 100
         self._vector_scale = 1.0
 
-        self._use_mag_filter = False
+        self.use_mag_filter = False
         self.mag_min = None
         self.mag_max = None
 
@@ -88,7 +89,7 @@ class VectorFieldRenderable(Renderable):
         glBindBuffer(GL_ARRAY_BUFFER, self._vertex_buffer)
         glBufferData(GL_ARRAY_BUFFER, self.VERTICES.size * sizeof(GLfloat), self.VERTICES, GL_STATIC_DRAW)
 
-        glBindBuffer(0)
+        glBindBuffer(GL_ARRAY_BUFFER, 0)
 
         if data is not None:
             self.set_vector_data(data)
@@ -104,7 +105,10 @@ class VectorFieldRenderable(Renderable):
 
     def set_vector_data(self, data):
 
-        assert len(data.shape) == 1 and data.size % 6 == 0    # ensure flat array and is 6 floats wide
+        if len(data.shape) > 0:
+            data = data.ravel()
+
+        assert data.size % 6 == 0    # ensure array is 6 floats wide
 
         if self._instance_buffer != -1:
             glDeleteBuffers(1, self._instance_buffer)
@@ -122,25 +126,25 @@ class VectorFieldRenderable(Renderable):
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0)
 
         # Generate instance buffer, bind data, and enable instanced locations
-        glGenBuffers(1, self._instance_buffer)
+        self._instance_buffer = glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER, self._instance_buffer)
         glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * self.instances, data, GL_STATIC_DRAW)
 
         # location 1 = offset
         glEnableVertexAttribArray(1)
-        glVertexAttribPointer(1, 3, GLfloat, GL_FALSE, 6 * sizeof(GLfloat), 0)
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), None)
 
         # location 2 = dir
         glEnableVertexAttribArray(2)
-        glVertexAttribPointer(2, 1, GLfloat, GL_FALSE, 6 * sizeof(GLfloat), 3 * sizeof(GLfloat))
+        glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), 3 * sizeof(GLfloat))
 
         # location 3 = tilt
         glEnableVertexAttribArray(3)
-        glVertexAttribPointer(3, 1, GLfloat, GL_FALSE, 6 * sizeof(GLfloat), 4 * sizeof(GLfloat))
+        glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), 4 * sizeof(GLfloat))
 
         # location 4 = magnitude
         glEnableVertexAttribArray(4)
-        glVertexAttribPointer(4, 1, GLfloat, GL_FALSE, 6 * sizeof(GLfloat), 5 * sizeof(GLfloat))
+        glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), 5 * sizeof(GLfloat))
         glBindBuffer(GL_ARRAY_BUFFER, 0)
 
         # Inform OpenGL buffers 1 - 4 are instanced arrays
@@ -179,23 +183,23 @@ class VectorFieldRenderable(Renderable):
             self.timer.Start(self._animation_speed)
 
     def render(self, camera):
-        self.shader_program.pre_render(camera)
+        self.shader.pre_render(camera)
 
-        self.shader_program.uniform3fv("color", 1, self.color.rgb_list)
-        self.shader_program.uniform1f("scale", self._vector_scale)
-        self.shader_program.uniform3fv("offsetMultipliers", 1, self.offset_multipliers.v[:3])
-        self.shader_program.uniform1f("timer", self.animation_value)
-        self.shader_program.uniform1i("scaleMag", self._use_magnitude_scale)
-        self.shader_program.uniform1i("filterMag", self._use_mag_filter)
-        self.shader_program.uniform1f("vectorSpeed", self.vector_speed)
-        self.shader_program.uniform1f("magMin", self.mag_min)
-        self.shader_program.uniform1f("maxMax", self.mag_max)
+        self.shader.uniform3fv("color", 1, self.color.rgb_list)
+        self.shader.uniform1f("scale", self._vector_scale)
+        self.shader.uniform3fv("offsetMultipliers", 1, self.offset_multipliers.v[:3])
+        self.shader.uniform1f("timer", self.animation_value)
+        self.shader.uniform1i("scaleMag", self._use_magnitude_scale)
+        self.shader.uniform1i("filterMag", self.use_mag_filter)
+        self.shader.uniform1f("vectorSpeed", self.vector_speed)
+        self.shader.uniform1f("magMin", self.mag_min)
+        self.shader.uniform1f("maxMax", self.mag_max)
         glBindVertexArray(self._vao)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self._index_buffer)
         instances = 0
         if self.visible:
             instances = self.instances
-        glDrawElementsInstanced(GL_TRIANGLES, self.INDICES.size * sizeof(c_uint8), c_uint8, 0, instances)
+        glDrawElementsInstanced(GL_TRIANGLES, self.INDICES.nbytes, GL_INT, None, instances)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
-        self.shader_program.post_render(camera)
+        self.shader.post_render(camera)

@@ -10,6 +10,7 @@ from vistas.core.timeline import Timeline
 from vistas.core.graphics.bounds import BoundingBox
 from vistas.core.graphics.mesh import Mesh, MeshShaderProgram
 from vistas.core.graphics.mesh_renderable import MeshRenderable
+from vistas.core.graphics.vector_field_renderable import VectorFieldRenderable
 from vistas.core.graphics.texture import Texture
 from vistas.core.graphics.vector import normalize_v3
 from vistas.core.graphics.utils import map_buffer
@@ -31,7 +32,11 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         super().__init__()
 
         self.mesh_renderable = None
-        #self.vector_renderable = None
+        self.vector_renderable = None
+
+        self.heightfield = None
+        self.normals = None
+
         self._scene = None
         self._histogram = None
 
@@ -259,13 +264,18 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
             if self.mesh_renderable is not None:
                 self._scene.remove_object(self.mesh_renderable)
-                # Todo: handle vector_renderable
+
+            if self.vector_renderable is not None:
+                self._scene.remove_object(self.vector_renderable)
 
         self._scene = scene
 
         if self.mesh_renderable is not None and self._scene is not None:
             self._scene.add_object(self.mesh_renderable)
             # Todo: handle vector_renderable
+
+        if self.vector_renderable is not None and self._scene is not None:
+            self._scene.add_object(self.vector_renderable)
 
     def refresh(self):
 
@@ -338,6 +348,8 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             heightfield[:, :, 1][heightfield[:, :, 1] != nodata_value] *= factor    # Apply factor where needed
             heightfield[:, :, 1][heightfield[:, :, 1] == nodata_value] = min_value  # Otherwise, set to min value
 
+            self.heightfield = heightfield
+
             mesh = Mesh(num_indices, num_vertices, True, True, True, mode=Mesh.TRIANGLE_STRIP)
 
             shader = TerrainAndColorShaderProgram(mesh)
@@ -360,15 +372,16 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
             # Compute normals
             normals = self._compute_normals(heightfield, index_array)
+            self.normals = normals
 
             # Set mesh vertex array to heightfield
             vert_buf = mesh.acquire_vertex_array()
-            vert_buf[:] = heightfield.ravel().tolist()
+            vert_buf[:] = heightfield.ravel()
             mesh.release_vertex_array()
 
             # Set mesh normal array
             norm_buf = mesh.acquire_normal_array()
-            norm_buf[:] = normals
+            norm_buf[:] = normals.ravel()
             mesh.release_normal_array()
 
             # Set mesh index array
@@ -408,7 +421,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         norm[faces[:, 1]] += n
         norm[faces[:, 2]] += n
         normalize_v3(norm)
-        return norm.reshape(-1).tolist()
+        return norm.reshape(heightfield.shape)
 
     def _update_terrain_color(self):
 
@@ -454,7 +467,10 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             height, width = self.terrain_data.get_data("", Timeline.app().current).shape
             extent = self.terrain_data.extent
 
-            # Todo - rasterize shapes from boundary, next line is placeholder
+            # Todo - rasterize shapes from boundary
+
+            # Todo - mark selected point on terrain
+
             img_data = (numpy.ones((texture_w, texture_h, 3)).astype(numpy.uint8) * 255).ravel()
             shader.boundary_texture = Texture(data=img_data, width=texture_w, height=texture_h)
         else:
@@ -462,7 +478,41 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             shader.boundary_texture = Texture()
 
     def _update_flow(self):
-        pass    # Todo - implement flow visualization
+
+        if self.terrain_data is not None and self.flow_dir_data is not None:
+
+            height_data = self.terrain_data.get_data("", Timeline.app().current)
+            flow_dir = self.flow_dir_data.get_data("", Timeline.app().current)
+
+            height, width = flow_dir.shape
+
+            if not flow_dir.shape == height_data.shape:
+                post_message("Terrain and flow grids don't match. Did you load the correct flow grid for this terrain?",
+                             MessageEvent.ERROR)
+                return
+
+            vector_data = numpy.zeros((height, width, 6), dtype=numpy.float32)
+            vector_data[:, :, 0:3] = self.heightfield        # x, y, z
+            vector_data[:, :, 3] = flow_dir * -45.0 + 45.0   # VELMA flow direction, converted to polar degrees
+            #blah = 90 - numpy.arcsin(numpy.abs(self.normals[:, :, 1] * 180 / numpy.pi))
+            vector_data[:, :, 4] = numpy.zeros((height, width), dtype=numpy.float32)   # tilt of vector
+            vector_data[:, :, 5] = numpy.ones((height, width), dtype=numpy.float32)  # vector magnitude # TODO - calculate from flow accumulation data
+
+            if self.vector_renderable is None:
+                self.vector_renderable = VectorFieldRenderable(data=vector_data)
+                self.scene.add_object(self.vector_renderable)
+            else:
+                self.vector_renderable.set_vector_data(vector_data)
+
+            enable_filters = self._accumulation_filter.value and self.flow_acc_data is not None
+            self.vector_renderable.use_mag_filter = enable_filters
+            self.vector_renderable.mag_min = self._acc_min.value
+            self.vector_renderable.mag_max = self._acc_max.value
+            self.vector_renderable._use_magnitude_scale = enable_filters
+            self.vector_renderable.visible = self._show_flow.value
+
+        elif self.vector_renderable is not None:
+            self.vector_renderable.visible = False
 
 
 class TerrainAndColorShaderProgram(MeshShaderProgram):
