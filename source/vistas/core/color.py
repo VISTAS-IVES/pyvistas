@@ -29,17 +29,17 @@ class RGBColor(Color):
         if max_rgb == min_rgb:
             h = 0
         elif max_rgb == self.r:
-            h = round(60 * ((self.g-self.b) / (max_rgb-min_rgb)) + 360) % 360
+            h = round(60 * ((self.g - self.b) / (max_rgb - min_rgb)) + 360) % 360
         elif max_rgb == self.g:
-            h = round(60 * ((self.b-self.r) / (max_rgb-min_rgb))) + 120
+            h = round(60 * ((self.b - self.r) / (max_rgb - min_rgb))) + 120
         else:
-            h = round(60 * ((self.r-self.g) / (max_rgb-min_rgb))) + 240
+            h = round(60 * ((self.r - self.g) / (max_rgb - min_rgb))) + 240
 
         # Saturation
         if max_rgb == 0:
             s = 0
         else:
-            s = (max_rgb-min_rgb) / max_rgb
+            s = (max_rgb - min_rgb) / max_rgb
 
         # Value
         v = max_rgb
@@ -64,10 +64,10 @@ class HSVColor(Color):
 
     def as_rgb(self):
         hi = int(self.h / 60) % 6
-        f = self.h/60 - int(self.h/60)
-        p = self.v * (1-self.s)
-        q = self.v * (1 - f*self.s)
-        t = self.v * (1 - (1-f) * self.s)
+        f = self.h / 60 - int(self.h / 60)
+        p = self.v * (1 - self.s)
+        q = self.v * (1 - f * self.s)
+        t = self.v * (1 - (1 - f) * self.s)
 
         if hi == 0:
             r = self.v

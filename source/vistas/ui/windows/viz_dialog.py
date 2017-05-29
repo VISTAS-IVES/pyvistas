@@ -104,7 +104,7 @@ class VisualizationDialog(wx.Frame):
         for entry in info.items():
             length = len(self.info_text.GetValue())
             self.info_text.AppendText("{}: ".format(entry[0]))
-            self.info_text.SetSelection(length, length + len(entry[0])+1)
+            self.info_text.SetSelection(length, length + len(entry[0]) + 1)
             self.info_text.ApplyBoldToSelection()
             self.info_text.AppendText("{}\n".format(entry[1]))
 
@@ -152,7 +152,7 @@ class VisualizationDialog(wx.Frame):
 
                 multiple_inputs_sizer = wx.BoxSizer(wx.HORIZONTAL)
                 multiple_inputs_text = wx.StaticText(self.data_panel, wx.ID_ANY, "Multiple Inputs")
-                multiple_inputs_sizer.Add(multiple_inputs_text, 0 , wx.ALIGN_LEFT | wx.RIGHT, 20)
+                multiple_inputs_sizer.Add(multiple_inputs_text, 0, wx.ALIGN_LEFT | wx.RIGHT, 20)
                 self.data_panel_sizer.Add(multiple_inputs_sizer, 0, wx.EXPAND | wx.TOP, 10)
 
                 last_idx = 0
@@ -200,7 +200,7 @@ class VisualizationDialog(wx.Frame):
         sub_idx = data_choice.GetId()
 
         has_multiple_inputs = self.viz.role_supports_variable_inputs(role_idx) or \
-                              self.viz.role_supports_multiple_inputs(role_idx)
+            self.viz.role_supports_multiple_inputs(role_idx)
 
         if data is not None:
             if has_multiple_inputs:

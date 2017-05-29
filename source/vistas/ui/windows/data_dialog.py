@@ -100,6 +100,6 @@ class DataDialog(wx.Dialog):
         for row in info.items():
             length = len(text_ctrl.GetValue())
             text_ctrl.AppendText("{}: ".format(row[0]))
-            text_ctrl.SetSelection(length, length+len(row[0])+1)
+            text_ctrl.SetSelection(length, length + len(row[0]) + 1)
             text_ctrl.ApplyBoldToSelection()
             text_ctrl.AppendText("{}\n".format(row[1]))

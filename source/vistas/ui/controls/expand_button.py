@@ -8,8 +8,8 @@ class ExpandButton(wx.Panel):
         super().__init__(parent, wx.ID_ANY)
         self.SetPosition(wx.Point(0, 50))
         self.SetSize(wx.Size(20, 20))
-        self.frame = wx.Frame(wx.GetTopLevelParent(self), style=wx.CLIP_CHILDREN | wx.FRAME_NO_TASKBAR |
-                                                                wx.FRAME_FLOAT_ON_PARENT | wx.BORDER_NONE)
+        self.frame = wx.Frame(wx.GetTopLevelParent(self),
+                              style=wx.CLIP_CHILDREN | wx.FRAME_NO_TASKBAR | wx.FRAME_FLOAT_ON_PARENT | wx.BORDER_NONE)
         self._alpha = 50
         self.frame.SetTransparent(self._alpha)
         self.frame.SetSize(wx.Size(20, 20))

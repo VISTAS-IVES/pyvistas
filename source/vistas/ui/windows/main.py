@@ -72,7 +72,7 @@ class MainWindow(wx.Frame):
         self.view_menu.AppendSeparator()
         self.view_menu.Append(self.MENU_VIEW_COLLAPSE, '&Collapse Project Panel')
         menu_bar.Append(self.view_menu, '&View')
-        
+
         export_menu = wx.Menu()
         export_menu.Append(self.MENU_EXPORT_EXPORT, '&Export...\tCtrl+e')
         export_current_menu = wx.Menu()
@@ -155,7 +155,7 @@ class MainWindow(wx.Frame):
         self.project_panel = ProjectPanel(self.left_splitter, wx.ID_ANY)
 
         # Todo - fix options_panel in main window
-        self.options_panel = wx.Panel(self.left_splitter) # OptionsPanel(self.left_splitter, wx.ID_ANY)
+        self.options_panel = wx.Panel(self.left_splitter)  # OptionsPanel(self.left_splitter, wx.ID_ANY)
 
         self.left_splitter.SplitHorizontally(self.project_panel, self.options_panel, 0)
         self.left_splitter.Unsplit(self.options_panel)
@@ -243,12 +243,12 @@ class MainWindow(wx.Frame):
             for node in self.project_controller.project.all_visualizations:
                 if event.plugin is node.visualization:
                     node.visualization.update_option(event.option)
-                    #if self.options_panel.plugin is event.plugin:  # Todo - fix options_panel in main window
+                    # if self.options_panel.plugin is event.plugin:  # Todo - fix options_panel in main window
                     #    self.options_panel.Refresh()
                     break
         elif event.change is PluginOptionEvent.NEW_OPTIONS_AVAILABLE:
             pass    # Todo - fix options_panel in main window
-            #self.options_panel.NewOptionAvailable(event)
+            # self.options_panel.NewOptionAvailable(event)
 
     def OnRedisplay(self, event):
         for row in self.viewer_container_panel.rows:
@@ -310,13 +310,13 @@ class MainWindow(wx.Frame):
 
     def SetOptions(self, options=None, plugin=None):
         pass    # Todo - fix options_panel in main window
-        #if options and plugin:
+        # if options and plugin:
         #    self.left_splitter.SplitHorizontally(self.project_panel, self.options_panel, self.left_sash_position)
         #    self.options_panel.options = options
         #    self.options_panel.plugin = plugin
         #    self.options_panel.Layout()
         #    self.options_panel.FitInside()
-        #else:
+        # else:
         #    self.options_panel.options = None
         #    self.left_sash_position = self.left_splitter.GetSashPosition()
         #    self.left_splitter.Unsplit(self.options_panel)

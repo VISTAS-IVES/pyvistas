@@ -50,16 +50,16 @@ class ViewerContainerPanel(wx.Panel):
         self.num_viewers += 1
 
         # Size proportions for the new viewer
-        new_viewer.width = 1/last_row.num_viewers
-        new_viewer.height = 1/len(self.rows)
+        new_viewer.width = 1 / last_row.num_viewers
+        new_viewer.height = 1 / len(self.rows)
 
         for viewer in last_row.viewers[:index]:
-            viewer.width *= index * (1/last_row.num_viewers)
+            viewer.width *= index * (1 / last_row.num_viewers)
 
         # Set neighbors
         if last_row.num_viewers > 1:
             new_viewer.SetNeighbor(last_row.viewers[index - 1], ViewerPanel.WEST)
-            last_row.viewers[index-1].SetNeighbor(new_viewer, ViewerPanel.EAST)
+            last_row.viewers[index - 1].SetNeighbor(new_viewer, ViewerPanel.EAST)
 
         if last_row.prev_row is not None and last_row.prev_row.num_viewers >= last_row.num_viewers:
             for viewer in last_row.prev_row.viewers:
@@ -78,7 +78,7 @@ class ViewerContainerPanel(wx.Panel):
 
         if viewer is None:
             row = self.rows[-1]
-            viewer = row.viewers[row.num_viewers-1]
+            viewer = row.viewers[row.num_viewers - 1]
 
         for row in self.rows:
             if viewer in row.viewers:
@@ -136,7 +136,7 @@ class ViewerContainerPanel(wx.Panel):
 
         for row in self.rows:
             for viewer in row.viewers[:row.num_viewers]:
-                viewer.height *= len(self.rows) * (1/(len(self.rows)+1))
+                viewer.height *= len(self.rows) * (1 / (len(self.rows) + 1))
 
         self.rows.append(new_row)
 

@@ -329,7 +329,6 @@ class ViewerPanel(wx.Panel):
             elif node.is_folder:
                 self.FetchScenes(node)
 
-
     def ProjectChanged(self, event):
         # Recenter camera when a visualization is added to the current scene
         if event.change == ProjectChangedEvent.ADDED_VISUALIZATION:
@@ -373,4 +372,3 @@ class ViewerPanel(wx.Panel):
 
     def UpdateGeocoderInfo(self):
         pass  # Todo
-

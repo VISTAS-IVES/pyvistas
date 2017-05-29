@@ -57,10 +57,10 @@ class Vector:
         return v
 
     def cross(self, v):
-        return Vector(self.y*v.z - self.z*v.y, self.z*v.x - self.x*v.z, self.x*v.y - self.y*v.x)
+        return Vector(self.y * v.z - self.z * v.y, self.z * v.x - self.x * v.z, self.x * v.y - self.y * v.x)
 
     def dot(self, v):
-        return self.x*v.x + self.y+v.y + self.z*v.z + self.w*v.w
+        return self.x * v.x + self.y + v.y + self.z * v.z + self.w * v.w
 
     def __mul__(self, value):
         return Vector(*(self.v * value))

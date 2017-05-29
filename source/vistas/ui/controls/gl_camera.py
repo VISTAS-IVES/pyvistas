@@ -56,7 +56,7 @@ class GLCameraButton(wx.Frame):
     def __init__(self, parent, id, icon_name):
         super().__init__(parent, id, style=wx.FRAME_NO_TASKBAR | wx.FRAME_FLOAT_ON_PARENT)
         bitmap = get_resource_bitmap(icon_name)
-        self.SetSize(wx.Size(bitmap.GetWidth()+4, bitmap.GetHeight()+4))
+        self.SetSize(wx.Size(bitmap.GetWidth() + 4, bitmap.GetHeight() + 4))
         self.offset = 0
         self.frame = GLCameraButtonFrame(self)
         self.frame.SetSize(self.GetSize())
@@ -104,7 +104,7 @@ class GLCameraButton(wx.Frame):
         canvas_size = self.GetParent().GetSize().Get()
         x = canvas_pos[0] + canvas_size[0] + self.GetSize().x
         y = canvas_pos[1] + 10 + self.offset
-        pos = wx.Point(x,y)
+        pos = wx.Point(x, y)
         self.SetPosition(pos)
         self.frame.SetPosition(pos)
         self.Refresh()

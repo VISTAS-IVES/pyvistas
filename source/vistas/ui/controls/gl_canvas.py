@@ -2,7 +2,7 @@ import wx
 import wx.glcanvas
 
 from vistas.core.utils import get_platform
-#from vistas.ui.controls.gl_camera import GLCameraControls
+# from vistas.ui.controls.gl_camera import GLCameraControls
 from vistas.core.graphics.camera_interactor import SphereInteractor
 
 
@@ -14,7 +14,7 @@ class GLCanvas(wx.glcanvas.GLCanvas):
         super().__init__(parent, id, attribList=attrib_list)
 
         self.camera = camera
-        #self.camera_controls = GLCameraControls(self, camera)  # Todo: Fix camera control UI
+        # self.camera_controls = GLCameraControls(self, camera)  # Todo: Fix camera control UI
         self.camera_interactor = SphereInteractor(camera)
         self._x = self._y = -1
 
@@ -28,8 +28,8 @@ class GLCanvas(wx.glcanvas.GLCanvas):
 
         # self.SetFocus()  # Crashes on Mac
 
-    #@property
-    #def camera_interactor(self):
+    # @property
+    # def camera_interactor(self):
     #    return self.camera_controls.camera_interactor
 
     def OnPaint(self, event):
@@ -40,7 +40,7 @@ class GLCanvas(wx.glcanvas.GLCanvas):
             self.SwapBuffers()
 
         size = self.GetSize()
-        dc = wx.PaintDC(self)
+        dc = wx.PaintDC(self)   # noqa: F841
 
         self.SetCurrent(GLCanvas.shared_gl_context)
         self.camera.render(size.GetWidth(), size.GetHeight())

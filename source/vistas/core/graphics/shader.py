@@ -5,7 +5,7 @@ import logging
 import wx
 from OpenGL.GL import *
 
-from vistas.core.graphics.camera import Camera, ViewMatrix
+from vistas.core.graphics.camera import ViewMatrix
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +89,9 @@ class ShaderProgram(wx.PyEvtHandler):
         glUseProgram(0)
 
     def on_notify(self, event):
-        log_null = wx.LogNull()  # Suppress error dialog on access denied
+
+        # Suppress error dialog on access denied
+        log_null = wx.LogNull()  # noqa: F841
 
         for shader_type, (path, last_mtime) in self.file_infos.items():
             mtime = os.path.getmtime(path)

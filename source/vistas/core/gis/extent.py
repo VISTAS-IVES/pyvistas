@@ -1,4 +1,5 @@
-import copy, math
+import copy
+import math
 from itertools import product
 from pyproj import Proj, transform
 
@@ -77,11 +78,11 @@ class Extent:
         if edge_points < 2:
             # use corners only
             x_values, y_values = transform(self.projection, target_projection, [self.xmin, self.xmax], [self.ymin, self.ymax])
-            return Extent((x_values[0], y_values[0], x_values[1], y_values[1]), projection=target_projection)
+            return Extent(*(x_values[0], y_values[0], x_values[1], y_values[1]), projection=target_projection)
 
         samples = range(0, edge_points)
-        xstep = float(self.xmax-self.xmin)/(edge_points-1)
-        ystep = float(self.ymax-self.ymin)/(edge_points-1)
+        xstep = float(self.xmax - self.xmin) / (edge_points - 1)
+        ystep = float(self.ymax - self.ymin) / (edge_points - 1)
         x_values = []
         y_values = []
         for i, j in product(samples, samples):
@@ -105,7 +106,7 @@ class Extent:
         assert geo_bbox.xmin >= -180 and geo_bbox.xmax <= 180 and geo_bbox.ymin >= -90 and geo_bbox.ymax <= 90
         inset = math.fabs((geo_bbox.ymax - geo_bbox.ymin) * inset_factor)
         return Proj(proj='aea', lat_1=geo_bbox.ymin + inset, lat_2=geo_bbox.ymax - inset, lat_0=0,
-                    lon_0=((geo_bbox.xmax-geo_bbox.xmin)/2.0) + geo_bbox.xmin,
+                    lon_0=((geo_bbox.xmax - geo_bbox.xmin) / 2.0) + geo_bbox.xmin,
                     x_0=0, y_0=0, ellps='WGS84', datum='WGS84', units='m', no_defs=True)
 
 
@@ -121,4 +122,4 @@ def union_bbox(bboxes):
     x_set = {b.xmin for b in bboxes} | {b.xmax for b in bboxes}
     y_set = {b.ymin for b in bboxes} | {b.ymax for b in bboxes}
 
-    return Extent((min(x_set), min(y_set), max(x_set), max(y_set)), projection=bboxes[0].projection)
+    return Extent(*(min(x_set), min(y_set), max(x_set), max(y_set)), projection=bboxes[0].projection)

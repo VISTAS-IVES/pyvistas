@@ -4,8 +4,6 @@ from bisect import insort
 from vistas.ui.events import TimelineEvent
 from vistas.ui.utils import post_timeline_change
 
-import wx
-
 
 class Timeline:
     _global_timeline = None
@@ -40,7 +38,7 @@ class Timeline:
 
     def nearest_step(self):
         low_idx = 0
-        high_idx = len(self.timestamps)-1
+        high_idx = len(self.timestamps) - 1
 
         if self._current == self._end:
             self._current_idx = high_idx
@@ -155,7 +153,7 @@ class Timeline:
             # recalculate smallest timedelta
             self._min_step = self._timestamps[-1] - self._timestamps[0]
             for i in range(len(self._timestamps) - 1):
-                diff = self._timestamps[i+1] - self._timestamps[i]
+                diff = self._timestamps[i + 1] - self._timestamps[i]
                 if diff < self._min_step:
                     self._min_step = diff
 

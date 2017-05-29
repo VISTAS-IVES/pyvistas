@@ -51,7 +51,7 @@ class OptionsPanel(wx.ScrolledWindow):
             parent_sizer.Add(sizer, 0, wx.BOTTOM, 5)
 
         elif opt_type == Option.COLOR:
-            color = wx.ColourPickerCtrl(self, wx.ID_ANY, wx.Colour(*[x*255 for x in option.value.rgb.rgb_list]))
+            color = wx.ColourPickerCtrl(self, wx.ID_ANY, wx.Colour(*[x * 255 for x in option.value.rgb.rgb_list]))
             label = wx.StaticText(self, wx.ID_ANY, option.name)
             sizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -178,7 +178,7 @@ class OptionsPanel(wx.ScrolledWindow):
         if color in self._options:
             option = self._options[color]
             c = color.GetColour()
-            option.value = RGBColor(*[x/255 for x in [c.red, c.green, c.blue]])
+            option.value = RGBColor(*[x / 255 for x in [c.red, c.green, c.blue]])
             option.option_updated()
 
     def OnCheck(self, event):

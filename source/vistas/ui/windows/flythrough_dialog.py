@@ -69,13 +69,13 @@ class FlythroughDialog(wx.Frame):
         reset_button = wx.BitmapButton(playback_panel, self.FLYTHROUGH_RESET,
                                        get_resource_bitmap("reset_button.png"))
         reset_button.SetToolTip("Reset flythrough")
-        
+
         # fps
         fps_label = wx.StaticText(playback_panel, wx.ID_ANY, "Frames Per Second:")
         self.fps_ctrl = wx.TextCtrl(playback_panel, wx.ID_ANY, self.flythrough.fps)
         self.fps_ctrl.SetWindowStyle(wx.TE_CENTRE)
         self.fps_ctrl.SetToolTip("Change Frames Per Second")
-        
+
         # length
         length_label = wx.StaticText(playback_panel, wx.ID_ANY, "Length (sec):")
         self.length_ctrl = wx.TextCtrl(playback_panel, wx.ID_ANY, self.flythrough.length)

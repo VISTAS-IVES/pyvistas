@@ -38,7 +38,7 @@ class FileChooserCtrl(wx.Panel):
             target = self.label.GetSize().x - overflow
             dc = wx.MemoryDC()
             while len(label) > 0 and dc.GetTextExtent(label).GetWidth() > target:
-                label = label[0:len(label)-1]
+                label = label[0:len(label) - 1]
             self.label.SetLabel(label + '...')
             self.Fit()
 

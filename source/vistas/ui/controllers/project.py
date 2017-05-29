@@ -681,5 +681,3 @@ class ProjectController(wx.EvtHandler):
             elif child.is_folder:
                 tree_item = tree.AppendFolderItem(parent, child.label, child)
                 self.AddTreeChildrenFromNode(project, child, tree, tree_item)
-
-

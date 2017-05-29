@@ -13,14 +13,14 @@ class BoundingBox:
     @property
     def center(self):
         return Vector(
-            self.max_x - (self.max_x-self.min_x)/2,
-            self.max_y - (self.max_y-self.min_y)/2,
-            self.max_z - (self.max_z-self.min_z)/2
+            self.max_x - (self.max_x - self.min_x) / 2,
+            self.max_y - (self.max_y - self.min_y) / 2,
+            self.max_z - (self.max_z - self.min_z) / 2
         )
 
     @property
     def diameter(self):
-        return max(max(self.max_x-self.min_x, self.max_y-self.min_y), self.max_z-self.min_z)
+        return max(max(self.max_x - self.min_x, self.max_y - self.min_y), self.max_z - self.min_z)
 
     def scale(self, factor: Vector):
         self.min_x *= factor.x

@@ -99,9 +99,9 @@ class ViewMatrix:
         radians = math.radians(degrees)
 
         r = ViewMatrix()
-        r[2, 2] = r[1,1] = math.cos(radians)
+        r[2, 2] = r[1, 1] = math.cos(radians)
         r[1, 2] = math.sin(radians)
-        r[2, 1] = -1 * r[1,2]
+        r[2, 1] = -1 * r[1, 2]
 
         return r
 
@@ -110,9 +110,9 @@ class ViewMatrix:
         radians = math.radians(degrees)
 
         r = ViewMatrix()
-        r[2, 2] = r[0,0] = math.cos(radians)
+        r[2, 2] = r[0, 0] = math.cos(radians)
         r[2, 0] = math.sin(radians)
-        r[0, 2] = -1 * r[2,0]
+        r[0, 2] = -1 * r[2, 0]
 
         return r
 
@@ -121,9 +121,9 @@ class ViewMatrix:
         radians = math.radians(degrees)
 
         r = ViewMatrix()
-        r[0, 0] = r[1,1] = math.cos(radians)
+        r[0, 0] = r[1, 1] = math.cos(radians)
         r[0, 1] = math.sin(radians)
-        r[1, 0] = -1 * r[0,1]
+        r[1, 0] = -1 * r[0, 1]
 
         return r
 
@@ -131,13 +131,13 @@ class ViewMatrix:
     def perspective(fovy, aspect, z_near, z_far):
         result = ViewMatrix()
 
-        top = math.tan(math.radians(fovy)/2) * z_near
+        top = math.tan(math.radians(fovy) / 2) * z_near
         right = top * aspect
 
         result[0, 0] = z_near / right
         result[1, 1] = z_near / top
-        result[2, 2] = -1 * (z_far+z_near) / (z_far-z_near)
-        result[3, 2] = -2*z_far*z_near / (z_far-z_near)
+        result[2, 2] = -1 * (z_far + z_near) / (z_far - z_near)
+        result[3, 2] = -2 * z_far * z_near / (z_far - z_near)
         result[2, 3] = -1
         result[3, 3] = 0
 

@@ -15,7 +15,7 @@ class Renderable:
         pass
 
     def render_bounding_box(self, color, camera):
-        pass # Todo
+        pass  # Todo
 
     def render_for_selection_hit(self, color):
         pass  # Todo

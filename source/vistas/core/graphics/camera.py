@@ -29,20 +29,20 @@ class Camera:
         pass  # Todo
 
     def get_position(self):
-        relative_pos = Vector(self.matrix[3,0], self.matrix[3,1], self.matrix[3,2])
+        relative_pos = Vector(self.matrix[3, 0], self.matrix[3, 1], self.matrix[3, 2])
         relative_pos *= -1
 
         actual_pos = Vector(0, 0, 0)
-        for i, attr in enumerate(['x','y','z']):
+        for i, attr in enumerate(['x', 'y', 'z']):
             setattr(
                 actual_pos, attr,
-                self.matrix[i,0]*relative_pos.x + self.matrix[i,1]*relative_pos.y + self.matrix[i,2]*relative_pos.z
+                self.matrix[i, 0] * relative_pos.x + self.matrix[i, 1] * relative_pos.y + self.matrix[i, 2] * relative_pos.z
             )
 
         return actual_pos
 
     def get_direction(self):
-        return Vector(self.matrix[0,2]*-1, self.matrix[1,2]*-1, self.matrix[2,2]*-1)
+        return Vector(self.matrix[0, 2] * -1, self.matrix[1, 2] * -1, self.matrix[2, 2] * -1)
 
     def set_point_of_interest(self, poi):
         pos = self.get_position()
@@ -55,48 +55,48 @@ class Camera:
         up = right.cross(forward)
         up.normalize()
 
-        self.matrix[0,0] = right.x
-        self.matrix[1,0] = right.y
-        self.matrix[2,0] = right.z
+        self.matrix[0, 0] = right.x
+        self.matrix[1, 0] = right.y
+        self.matrix[2, 0] = right.z
 
-        self.matrix[0,1] = up.x
-        self.matrix[1,1] = up.y
-        self.matrix[2,1] = up.z
+        self.matrix[0, 1] = up.x
+        self.matrix[1, 1] = up.y
+        self.matrix[2, 1] = up.z
 
-        self.matrix[0,2] = forward.x * -1
-        self.matrix[1,2] = forward.y * -1
-        self.matrix[2,2] = forward.z * -1
+        self.matrix[0, 2] = forward.x * -1
+        self.matrix[1, 2] = forward.y * -1
+        self.matrix[2, 2] = forward.z * -1
 
         self.set_position(pos)
 
     def set_position(self, position):
         relative_pos = self.matrix * position * -1
-        self.matrix[3,0] = relative_pos.x
-        self.matrix[3,1] = relative_pos.y
-        self.matrix[3,2] = relative_pos.z
+        self.matrix[3, 0] = relative_pos.x
+        self.matrix[3, 1] = relative_pos.y
+        self.matrix[3, 2] = relative_pos.z
 
     def get_up_vector(self):
-        return Vector(self.matrix[0,1], self.matrix[1,1], self.matrix[2,1])
+        return Vector(self.matrix[0, 1], self.matrix[1, 1], self.matrix[2, 1])
 
     def set_up_vector(self, up):
         unit_up = up.normalized
         pos = self.get_position()
 
-        self.matrix[0,1] = unit_up.x
-        self.matrix[1,1] = unit_up.y
-        self.matrix[2,1] = unit_up.z
+        self.matrix[0, 1] = unit_up.x
+        self.matrix[1, 1] = unit_up.y
+        self.matrix[2, 1] = unit_up.z
 
         right = self.get_direction().cross(unit_up)
         right.normalize()
-        self.matrix[0,0] = right.x
-        self.matrix[1,0] = right.y
-        self.matrix[2,0] = right.z
+        self.matrix[0, 0] = right.x
+        self.matrix[1, 0] = right.y
+        self.matrix[2, 0] = right.z
 
         forward = unit_up.cross(right)
         forward.normalize()
-        self.matrix[0,2] = forward.x * -1
-        self.matrix[1,2] = forward.y * -1
-        self.matrix[2,2] = forward.z * -1
+        self.matrix[0, 2] = forward.x * -1
+        self.matrix[1, 2] = forward.y * -1
+        self.matrix[2, 2] = forward.z * -1
 
         self.set_position(pos)
 
@@ -142,10 +142,10 @@ class Camera:
         pass  # Todo
 
     def update(self, observable):
-        pass # Todo
+        pass  # Todo
 
     def reset(self, width, height, color):
-        scene_box = self.scene.bounding_box
+        # scene_box = self.scene.bounding_box
 
         glEnable(GL_DEPTH_TEST)
         glDepthFunc(GL_LESS)
@@ -156,9 +156,9 @@ class Camera:
 
         glViewport(0, 0, width, height)
 
-        #c = (self.matrix * Vector(*scene_box.center.v[:3], 1))     # Todo - fix z_near/z_far calculations or remove?
-        #z_near = max(1, c.z - scene_box.diameter / 2)
-        #z_far = (c.z + scene_box.diameter) * 2
-        #self.proj_matrix = ViewMatrix.perspective(80.0, width / height, z_near, z_far)
+        # c = (self.matrix * Vector(*scene_box.center.v[:3], 1))     # Todo - fix z_near/z_far calculations or remove?
+        # z_near = max(1, c.z - scene_box.diameter / 2)
+        # z_far = (c.z + scene_box.diameter) * 2
+        # self.proj_matrix = ViewMatrix.perspective(80.0, width / height, z_near, z_far)
 
         self.proj_matrix = ViewMatrix.perspective(80.0, width / height, 1, 10000)

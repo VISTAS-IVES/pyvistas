@@ -1,7 +1,6 @@
 from vistas.ui.events import PluginOptionEvent
 from vistas.ui.utils import get_main_window
 
-import wx
 import sys
 
 

@@ -132,4 +132,3 @@ class AppController(wx.EvtHandler):
     def OnWindowClose(self, event):
         # Todo: check project save status
         wx.Exit()
-

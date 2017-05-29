@@ -77,7 +77,7 @@ class HistogramCtrl(wx.Control):
         if get_platform() == 'windows':
             win = self if self.UseBgCol() else self.GetParent()
             bg = win.GetBackgroundColour()
-            scrim_color = wx.Colour(max(0, bg.Red()-50), max(0, bg.Green()-50), max(0, bg.Blue()-50))
+            scrim_color = wx.Colour(max(0, bg.Red() - 50), max(0, bg.Green() - 50), max(0, bg.Blue() - 50))
         else:
             scrim_color = wx.Colour(0, 0, 0, 50)
 
@@ -99,7 +99,7 @@ class HistogramCtrl(wx.Control):
         paint_lines(min_pos, max_pos)
 
         dc.SetPen(wx.GREY_PEN)
-        paint_lines(max_pos+1, length)
+        paint_lines(max_pos + 1, length)
 
         if self.min_stop > self.min_value + (self.max_value - self.min_value) / 2:
             right_edge = self.PaintHandle(dc, height, self.max_stop, -1, size[0]) - self.LABEL_PADDING

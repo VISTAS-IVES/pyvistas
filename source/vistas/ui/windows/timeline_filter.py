@@ -132,7 +132,7 @@ class TimeFilterWindow(wx.Frame):
         self.apply_button.Bind(wx.EVT_BUTTON, self.OnApply)
         self.reset_button.Bind(wx.EVT_BUTTON, self.OnReset)
 
-        #self.Bind(EVT_TIMELINE, self.OnTimelineChange)
+        # self.Bind(EVT_TIMELINE, self.OnTimelineChange)
 
         self.SetFocus()
 
@@ -149,9 +149,10 @@ class TimeFilterWindow(wx.Frame):
             self.timeline.filter_start = start
             self.timeline.filter_end = end
             self.timeline.filter_interval = interval
-            self.timeline.use_filter = self.timeline.filter_start == self.timeline.start and \
-                                       self.timeline.filter_end == self.timeline.end and \
-                                       self.timeline.filter_interval == self.timeline.min_step
+            self.timeline.use_filter = \
+                self.timeline.filter_start == self.timeline.start and \
+                self.timeline.filter_end == self.timeline.end and \
+                self.timeline.filter_interval == self.timeline.min_step
             self._filter_has_changed = False
             self.RefreshTimeline()
             self.Refresh()

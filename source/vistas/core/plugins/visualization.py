@@ -87,9 +87,9 @@ class VisualizationPlugin(Plugin):
 
 class VisualizationPlugin2D(VisualizationPlugin):
     def visualize(self, width, height, back_thread=True):
-        """ 
-        Actualize the visualization. Returns the visualization if `back_thread` is False, otherwise generates an event 
-        when the visualization is ready. 
+        """
+        Actualize the visualization. Returns the visualization if `back_thread` is False, otherwise generates an event
+        when the visualization is ready.
         """
 
         NotImplemented  # Todo
@@ -117,9 +117,9 @@ class VisualizationPlugin3D(VisualizationPlugin):
         return os.path.join(self.plugin_dir, 'shaders', name)
 
     def refresh(self):
-        """ 
-        Signals the visualization to refresh itself if needed. E.g., after changing the configuration or setting new 
-        data. 
+        """
+        Signals the visualization to refresh itself if needed. E.g., after changing the configuration or setting new
+        data.
         """
 
         pass

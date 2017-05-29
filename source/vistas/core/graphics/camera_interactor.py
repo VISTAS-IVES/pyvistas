@@ -91,11 +91,11 @@ class SphereInteractor(CameraInteractor):
         dummy_cam.matrix = self.default_matrix
         z_shift = dummy_cam.distance_to_point(center)
         self.camera.matrix = self.default_matrix * \
-                             ViewMatrix.translate(0, 0, z_shift) * \
-                             ViewMatrix.rotate_y(self._angle_x) * \
-                             ViewMatrix.rotate_x(self._angle_y) * \
-                             ViewMatrix.translate(0, 0, -z_shift) * \
-                             ViewMatrix.translate(self._shift_x, self._shift_y, self._distance)
+            ViewMatrix.translate(0, 0, z_shift) * \
+            ViewMatrix.rotate_y(self._angle_x) * \
+            ViewMatrix.rotate_x(self._angle_y) * \
+            ViewMatrix.translate(0, 0, -z_shift) * \
+            ViewMatrix.translate(self._shift_x, self._shift_y, self._distance)
         post_redisplay()
 
     def reset_position(self, reset_mv=True):
@@ -134,7 +134,7 @@ class FreelookInteractor(CameraInteractor):
     def key_down(self, key):
         self._forward = 0.0
         self._strafe = 0.0
-        friction =self.camera.scene.bounding_box.diameter / 500.0
+        friction = self.camera.scene.bounding_box.diameter / 500.0
         if key == "W":
             self._forward = self._forward - friction
         elif key == "S":
@@ -148,7 +148,7 @@ class FreelookInteractor(CameraInteractor):
     def refresh_position(self):
         self.camera.move_relative(Vector(self._strafe, 0.0, self._forward))
         pos = self.camera.get_position()
-        self.camera.matrix = self.default_matrix*ViewMatrix.rotate_y(self._angle_y)*ViewMatrix.rotate_x(self._angle_x)
+        self.camera.matrix = self.default_matrix * ViewMatrix.rotate_y(self._angle_y) * ViewMatrix.rotate_x(self._angle_x)
         self.camera.set_position(pos)
         post_redisplay()
 
