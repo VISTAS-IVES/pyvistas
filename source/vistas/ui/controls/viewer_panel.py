@@ -57,7 +57,7 @@ class ViewerPanel(wx.Panel):
         self.camera = Camera()
         self.gl_canvas = GLCanvas(
             self, wx.ID_ANY, self.camera, attrib_list=[
-                WX_GL_CORE_PROFILE, WX_GL_RGBA, WX_GL_DOUBLEBUFFER,
+                WX_GL_RGBA, WX_GL_DOUBLEBUFFER,
                 WX_GL_DEPTH_SIZE, 16
             ]
         )
