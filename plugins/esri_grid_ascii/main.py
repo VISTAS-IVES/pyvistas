@@ -197,7 +197,6 @@ class ESRIGridAscii(RasterDataPlugin):
             grid = self.get_data("")
             stats.min_value = float(grid.min())
             stats.max_value = float(grid.max())
-            print(type(stats.max_value))
 
         stats.nodata_value = self._header['nodata_value']
         stats.misc['shape'] = "({},{})".format(*self.shape)
