@@ -1,4 +1,4 @@
-from ctypes import c_uint, sizeof, c_float
+from ctypes import sizeof, c_float
 
 import numpy
 import math
@@ -12,7 +12,7 @@ from vistas.core.graphics.mesh import Mesh, MeshShaderProgram
 from vistas.core.graphics.mesh_renderable import MeshRenderable
 from vistas.core.graphics.vector_field_renderable import VectorFieldRenderable
 from vistas.core.graphics.texture import Texture
-from vistas.core.graphics.vector import normalize_v3
+from vistas.core.graphics.vector import Vector, normalize_v3
 from vistas.core.graphics.utils import map_buffer
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.option import Option, OptionGroup
@@ -90,7 +90,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         self._boundary_group.items = [self._boundary_color, self._boundary_width]
 
         self._flow_group = OptionGroup("Flow Options")
-        self._show_flow = Option(self, Option.CHECKBOX, "Show Flow Direction", False)
+        self._show_flow = Option(self, Option.CHECKBOX, "Show Flow Direction", True)
         self._hide_no_data_vectors = Option(self, Option.CHECKBOX, "Hide No Data Vectors", True)
         self._flow_stride = Option(self, Option.INT, "Stride", 1, 1, 10)
         self._flow_color = Option(self, Option.COLOR, "Vector Color", RGBColor(1, 1, 0))
@@ -99,17 +99,17 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                                   self._flow_scale]
 
         self._animation_group = OptionGroup("Animation Options")
-        self._animation_flow = Option(self, Option.CHECKBOX, "Enable Flow Animation", False)
+        self._animate_flow = Option(self, Option.CHECKBOX, "Enable Flow Animation", False)
         self._animation_speed = Option(self, Option.INT, "Animation Speed (ms)", 100)
         self._vector_speed = Option(self, Option.SLIDER, "Animation Speed Factor", 1.0, 0.01, 5.0)
-        self._animation_group.items = [self._animation_flow, self._animation_speed, self._vector_speed]
+        self._animation_group.items = [self._animate_flow, self._animation_speed, self._vector_speed]
 
         self._accumulation_group = OptionGroup("Flow Accumulation Options")
-        self._accumulation_filter = Option(self, Option.CHECKBOX, "Enable Accumulation Filter", False)
+        self._acc_filter = Option(self, Option.CHECKBOX, "Enable Accumulation Filter", False)
         self._acc_min = Option(self, Option.INT, "Accumulation Min", 0)
         self._acc_max = Option(self, Option.INT, "Accumulation Max", 0)
         self._acc_scale = Option(self, Option.CHECKBOX, "Scale Flow by Acc. Value", False)
-        self._accumulation_group.items = [self._accumulation_filter, self._acc_min, self._acc_max, self._acc_scale]
+        self._accumulation_group.items = [self._acc_filter, self._acc_min, self._acc_max, self._acc_scale]
 
     def get_options(self):
         options = OptionGroup()
@@ -118,13 +118,16 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             options.items.append(self._boundary_group)
         if self.flow_dir_data is not None:
             options.items.append(self._flow_group)
+            options.items.append(self._animation_group)
             if self.flow_acc_data is not None:
                 options.items.append(self._accumulation_group)
         return options
 
     def update_option(self, option: Option=None):
 
-        if option.name == self._attribute.name:
+        name = option.name
+
+        if name == self._attribute.name:
             self._needs_color = True
 
             # Todo - handle multiple attributes (i.e. NetCDF)
@@ -133,13 +136,49 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             self._max_value.value = stats.max_value
             post_newoptions_available(self)
 
-        elif option.name == self._elevation_attribute.name:
+        elif name == self._elevation_attribute.name:
             self._needs_terrain = True
-        elif option.name is self._boundary_width.name:
+
+        elif name is self._boundary_width.name:
             self._needs_boundaries = True
 
         if self.flow_dir_data is not None:
-            pass    # Todo - handle flow vector events
+
+            if name == self._animate_flow.name:
+                self.vector_renderable.animate = self._animate_flow.value
+
+            elif name == self._animation_speed.name:
+                self.vector_renderable.animation_speed = self._animation_speed.value
+
+            elif name == self._elevation_factor.name:
+                self.vector_renderable.offset_multipliers = Vector(1, self._elevation_factor.value, 1)
+
+            elif name == self._flow_color.name:
+                self.vector_renderable.color = self._flow_color.value
+
+            elif name == self._flow_scale.name:
+                self.vector_renderable.vector_scale = self._flow_scale.value
+
+            elif name == self._show_flow.name:
+                self.vector_renderable.visible = self._show_flow.value
+
+            elif name == self._hide_no_data_vectors.name:
+                self.vector_renderable.hide_no_data = self._hide_no_data_vectors.value
+
+            elif name == self._acc_filter.name:
+                self.vector_renderable.use_mag_filter = \
+                    self._acc_filter.value and self.flow_acc_data is not None
+
+            elif name == self._vector_speed.name:
+                self.vector_renderable.vector_speed = self._vector_speed.value
+
+            elif name in [self._acc_min.name, self._acc_max.name]:
+                self.vector_renderable.mag_min = self._acc_min.value
+                self.vector_renderable.mag_max = self._acc_max.value
+
+            elif name == self._acc_scale.name:
+                self.vector_renderable.use_magnitude_scale = \
+                    self._acc_scale.value and self.flow_acc_data is not None
 
         self.refresh()
 
@@ -324,7 +363,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             min_value = height_stats.min_value
             max_value = height_stats.max_value
             cellsize = self.terrain_data.resolution
-            height_data = self.terrain_data.get_data("")        # Todo - get elevation attribute label (i.e. NetCDF support)
+            height_data = self.terrain_data.get_data("")  # Todo - get elevation attribute label (i.e. NetCDF support)
 
             if type(height_data) is numpy.ma.MaskedArray:
                 height_data = height_data.data
@@ -339,7 +378,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             if max_value > max_height:
                 factor = max_height / max_value
 
-            # Compute heightfield
+            # Compute heightfield and keep it to use for vector_renderable
             heightfield = numpy.zeros((height, width, 3))
             indices = numpy.indices((height, width))
             heightfield[:, :, 0] = indices[0] * cellsize   # x
@@ -370,7 +409,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
             assert(len(index_array) == num_indices)
 
-            # Compute normals
+            # Compute normals and keep them for using in vector_renderable
             normals = self._compute_normals(heightfield, index_array)
             self.normals = normals
 
@@ -491,12 +530,22 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                              MessageEvent.ERROR)
                 return
 
-            vector_data = numpy.zeros((height, width, 6), dtype=numpy.float32)
-            vector_data[:, :, 0:3] = self.heightfield        # x, y, z
-            vector_data[:, :, 3] = flow_dir * -45.0 + 45.0   # VELMA flow direction, converted to polar degrees
-            #blah = 90 - numpy.arcsin(numpy.abs(self.normals[:, :, 1] * 180 / numpy.pi))
+            # Clobber all the data into one big array
+            vector_data = numpy.zeros((height, width, 7), dtype=numpy.float32)
+            vector_data[:, :, 0:3] = self.heightfield
+            vector_data[:, :, 3] = flow_dir * -45.0 + 45.0       # VELMA flow direction, converted to polar degrees
             vector_data[:, :, 4] = numpy.zeros((height, width), dtype=numpy.float32)   # tilt of vector
-            vector_data[:, :, 5] = numpy.ones((height, width), dtype=numpy.float32)  # vector magnitude # TODO - calculate from flow accumulation data
+            vector_data[:, :, 4] = 90 - numpy.arcsin(numpy.abs(self.normals[:, :, 1])) * 180 / numpy.pi
+            vector_data[:, :, 5] = numpy.ones((height, width), dtype=numpy.float32) if self.flow_acc_data is None else \
+                self.flow_acc_data.get_data("", Timeline.app().current)
+            vector_data[:, :, 6] = numpy.zeros((height, width), dtype=numpy.float32) if self.attribute_data is None \
+                else self.attribute_data.get_data("", Timeline.app().current)
+
+            # Inform vector_renderable of attribute grid (if set) so shader knows whether to hide nodata values
+            if self.attribute_data is not None:
+                nodata_value = self.attribute_data.variable_stats("").nodata_value
+            else:
+                nodata_value = 1.0
 
             if self.vector_renderable is None:
                 self.vector_renderable = VectorFieldRenderable(data=vector_data)
@@ -504,11 +553,11 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             else:
                 self.vector_renderable.set_vector_data(vector_data)
 
-            enable_filters = self._accumulation_filter.value and self.flow_acc_data is not None
-            self.vector_renderable.use_mag_filter = enable_filters
+            self.vector_renderable.nodata_value = nodata_value
+            self.vector_renderable.use_mag_filter = self._acc_filter.value and self.flow_acc_data is not None
             self.vector_renderable.mag_min = self._acc_min.value
             self.vector_renderable.mag_max = self._acc_max.value
-            self.vector_renderable._use_magnitude_scale = enable_filters
+            self.vector_renderable.use_magnitude_scale = self._acc_scale.value and self.flow_acc_data is not None
             self.vector_renderable.visible = self._show_flow.value
 
         elif self.vector_renderable is not None:

@@ -5,8 +5,8 @@ layout(location = 1) in vec3 offset;
 layout(location = 2) in float direction;
 layout(location = 3) in float tilt;
 layout(location = 4) in float magnitude;
+layout(location = 5) in float value;
 
-uniform vec3 color;
 uniform float scale;
 uniform vec3 offsetMultipliers;
 uniform float timer;
@@ -16,8 +16,8 @@ uniform float vectorSpeed;
 uniform mat4 projectionMatrix;
 uniform mat4 modelViewMatrix;
 
-out vec3 fColor;
 out float fMag;
+out float fValue;
 
 mat3  rotateXYZ(vec3 r) {
     float cx = cos(radians(r.x));
@@ -52,6 +52,6 @@ vec3 rotateAndScaleInstance() {
 
 void main() {
     gl_Position = projectionMatrix * modelViewMatrix * vec4(rotateAndScaleInstance() + offset * offsetMultipliers, 1.0);
-    fColor = color;
     fMag = magnitude;
+    fValue = value;
 }

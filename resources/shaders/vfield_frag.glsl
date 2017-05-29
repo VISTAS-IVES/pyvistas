@@ -1,7 +1,10 @@
 #version 330 core
 
-in vec3 fColor;
-out vec4 color;
+uniform vec3 color;
+uniform bool hideNoData;
+uniform float noDataValue;
+
+out vec4 finalColor;
 
 // Filter on magnitude
 uniform bool filterMag;
@@ -9,8 +12,12 @@ uniform float magMin;
 uniform float magMax;
 in float fMag;
 
+// Filter on attribute value
+in float fValue;
+
 void main()
 {
     if (filterMag && (fMag > magMax || fMag < magMin)) discard;
-    color = vec4(fColor, 1.0f);
+    if (hideNoData && (round(fValue) == round(noDataValue))) discard;
+    finalColor = vec4(color, 1.0f);
 }
