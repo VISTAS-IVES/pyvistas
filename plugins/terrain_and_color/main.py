@@ -2,6 +2,9 @@ from ctypes import sizeof, c_float
 
 import numpy
 import math
+import shapely.geometry as geometry
+from rasterio import features
+
 from OpenGL.GL import *
 
 from vistas.core.color import RGBColor
@@ -431,8 +434,8 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             # Set mesh texture coordinates
             texcoord_buf = mesh.acquire_texcoords_array()
             tex_coords = numpy.zeros((height, width, 2))
-            tex_coords[:, :, 0] = indices[0] / width    # u
-            tex_coords[:, :, 1] = indices[1] / height   # v
+            tex_coords[:, :, 0] = indices[0] / height  # u
+            tex_coords[:, :, 1] = indices[1] / width   # v
             texcoord_buf[:] = tex_coords.ravel()
             mesh.release_texcoords_array()
 
@@ -500,18 +503,35 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         if self.terrain_data is not None:
             shader.has_boundaries = True
 
-            # Create boundary texture
+            # Create boundary image
             texture_w, texture_h = 512, 512
 
-            height, width = self.terrain_data.get_data("", Timeline.app().current).shape
-            extent = self.terrain_data.extent
+            image_data = numpy.ones((texture_h, texture_w, 3), dtype=numpy.uint8) * 255
 
-            # Todo - rasterize shapes from boundary
+            if self.boundary_data is not None:
+
+                feature_extent = self.boundary_data.extent
+                xscale = texture_w / feature_extent.width
+                yscale = texture_h / feature_extent.height
+                xmin = feature_extent.xmin
+                ymin = feature_extent.ymin
+
+                # Poor-mans image transform
+                shapes = self.boundary_data.get_features()
+                for f in shapes:
+                    if f['geometry']['type'] == 'Polygon':
+                        for ring in f['geometry']['coordinates']:
+                            for i in range(len(ring)):
+                                ring[i] = (int((ring[i][0] - xmin) * xscale), int((ring[i][1] - ymin) * yscale))
+
+                    # Todo - handle other geometry types?
+
+                image_data[:, :, 0] = features.rasterize([geometry.shape(f['geometry']).exterior for f in shapes],
+                                                         out_shape=(texture_h, texture_w), fill=255, default_value=0)
 
             # Todo - mark selected point on terrain
 
-            img_data = (numpy.ones((texture_w, texture_h, 3)).astype(numpy.uint8) * 255).ravel()
-            shader.boundary_texture = Texture(data=img_data, width=texture_w, height=texture_h)
+            shader.boundary_texture = Texture(data=image_data.ravel(), width=texture_w, height=texture_h)
         else:
             shader.has_boundaries = False
             shader.boundary_texture = Texture()

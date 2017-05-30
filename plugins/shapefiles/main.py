@@ -1,7 +1,6 @@
 import os
 import fiona
 from pyproj import Proj
-import shapely.geometry as geometry
 
 from vistas.core.timeline import Timeline
 from vistas.core.gis.extent import Extent
@@ -122,5 +121,5 @@ class Shapefile(FeatureDataPlugin):
 
     def get_features(self, date=None):
         with fiona.open(self.path, 'r') as shp:
-                features = [geometry.shape(f['geometry']) for f in shp]
+                features = [f for f in shp]
         return features

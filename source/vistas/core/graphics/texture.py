@@ -15,7 +15,7 @@ class Texture:
             self.teximage2d(data, width, height, use_rgb)
 
     def __del__(self):
-        glDeleteTextures(1, self.texture)
+        glDeleteTextures([self.texture])
 
     def teximage2d(self, data, width, height, use_rgb=True):
 
