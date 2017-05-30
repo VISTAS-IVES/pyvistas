@@ -7,6 +7,7 @@ from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.ui.controllers.project import ProjectChangedEvent
 from vistas.ui.controls.gl_canvas import GLCanvas
 from vistas.ui.project import Project
+from vistas.core.utils import get_platform
 
 
 class ViewerPanel(wx.Panel):
@@ -55,8 +56,13 @@ class ViewerPanel(wx.Panel):
         self.geodata_button.SetToolTip('Show place names')
 
         self.camera = Camera()
+
+        attrib_list = [WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16]
+        if get_platform() == 'macos':
+            attrib_list += [WX_GL_CORE_PROFILE]
+
         self.gl_canvas = GLCanvas(
-            self, wx.ID_ANY, self.camera, attrib_list=[WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16]
+            self, wx.ID_ANY, self.camera, attrib_list=attrib_list
         )
         self.gl_canvas.Refresh()
 
