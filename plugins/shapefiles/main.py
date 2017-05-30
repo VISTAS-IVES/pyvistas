@@ -1,7 +1,7 @@
 import os
 import fiona
 from pyproj import Proj
-from shapely.geometry import Point, Polygon, MultiPolygon
+import shapely.geometry as geometry
 
 from vistas.core.timeline import Timeline
 from vistas.core.gis.extent import Extent
@@ -121,33 +121,6 @@ class Shapefile(FeatureDataPlugin):
         self._stats = all_stats
 
     def get_features(self, date=None):
-
-        features = []
         with fiona.open(self.path, 'r') as shp:
-
-            for f in shp:
-
-                # Convert feature geometry into shapely objects
-                geometry_type = f['geometry']['type']
-                coords = f['geometry']['coordinates']
-
-                try:
-                    if geometry_type == 'Point':
-                        shape = Point(coords)
-
-                    elif geometry_type == 'Polygon':
-                        shape = Polygon(coords)
-
-                    elif geometry_type == 'MultiPolygon':
-                        shape = MultiPolygon(coords)
-
-                    else:
-                        continue    # Todo - handle all types?
-
-                    features.append(shape)
-
-                except:
-                    print("Failed to import geometry.")
-                    continue
-
+                features = [geometry.shape(f['geometry']) for f in shp]
         return features
