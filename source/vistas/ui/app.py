@@ -1,11 +1,11 @@
 import asyncio
-import sys
-
 import logging
+import sys
 import traceback
 
 import wx
 
+import vistas
 from vistas.ui.controllers.app import AppController
 from vistas.ui.windows.exception_dialog import ExceptionDialog
 
@@ -31,7 +31,7 @@ class App(wx.App):
         self.Bind(EVT_HANDLE_EXCEPTION, self.OnHandleException)
 
     def OnInit(self):
-        logger.debug('VISTAS starting...')
+        logger.debug('VISTAS {} starting...'.format(vistas.__version__))
 
         sys.excepthook = exception_hook
 
