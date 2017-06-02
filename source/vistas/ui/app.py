@@ -16,6 +16,7 @@ HandleExceptionEvent, EVT_HANDLE_EXCEPTION = wx.lib.newevent.NewEvent()
 
 class App(wx.App):
     _global_app = None
+    init = False
 
     @classmethod
     def get(cls):
@@ -44,6 +45,8 @@ class App(wx.App):
 
         logger.debug('VISTAS started')
 
+        App.init = True
+
         return True
 
     def OnHandleException(self, event):
@@ -56,4 +59,5 @@ def exception_hook(exc_type, value, trace):
     exception_message = ''.join(traceback.format_exception(exc_type, value, trace))
     logger.error('Unhandled exception\n{}'.format(exception_message))
 
-    wx.PostEvent(App.get(), HandleExceptionEvent(message=exception_message))
+    if App.init:
+        wx.PostEvent(App.get(), HandleExceptionEvent(message=exception_message))
