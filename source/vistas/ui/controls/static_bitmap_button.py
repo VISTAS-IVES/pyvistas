@@ -4,21 +4,14 @@ import wx
 
 class StaticBitmapButton(wx.Window):
     def __init__(self, parent, id, label: wx.Bitmap, pos=None, size=wx.Size(20, 20), style=0):
-        super().__init__(parent, id)
-        self.SetWindowStyle(style)
-        if pos is not None:
-            self.SetPosition(pos)
-
-        if size is not None:
-            self.SetSize(size)
+        super().__init__(parent, id, pos, size, style)
 
         self._click = False
         self._hover = False
-        self._current_bitmap = label
-        self._label_bitmap = label
-        self._disabled_bitmap = wx.Bitmap()
-        self._hover_bitmap = wx.Bitmap()
-        self._selected_bitmap = wx.Bitmap()
+        self._label_bitmap = self._selected_bitmap = self._hover_bitmap = self._disabled_bitmap = wx.Bitmap()
+        
+        self.label_bitmap = label
+
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ENTER_WINDOW, self.OnMouseEnter)
         self.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouseLeave)
@@ -31,11 +24,11 @@ class StaticBitmapButton(wx.Window):
             bitmap = self._selected_bitmap
         elif enabled and (self._click or self._hover) and self._hover_bitmap.IsOk():
             bitmap = self._hover_bitmap
-        elif not (enabled and self._disabled_bitmap.IsOk()):
+        elif not enabled and self._disabled_bitmap.IsOk():
             bitmap = self._disabled_bitmap
         else:
             bitmap = self._label_bitmap
-        self.SetSize(bitmap.GetWidth() + 2, bitmap.GetHeight() + 2)
+        self.SetMinSize((bitmap.GetWidth() + 2, bitmap.GetHeight() + 2))
         self._current_bitmap = bitmap
         self.Refresh()
 
@@ -92,12 +85,12 @@ class StaticBitmapButton(wx.Window):
         self.UpdateBitmap()
 
     def OnLeftDown(self, event):
-        self._click = False
+        self._click = True
         self.UpdateBitmap()
 
     def OnLeftUp(self, event):
         if self._click:
-            evt = wx.CommandEvent(wx.EVT_BUTTON)
+            evt = wx.CommandEvent(wx.wxEVT_BUTTON)
             evt.SetEventObject(self)
             wx.PostEvent(self, evt)
         self._click = False

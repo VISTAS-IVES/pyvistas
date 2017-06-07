@@ -1,5 +1,6 @@
 import os
 
+import logging
 import wx
 import wx.adv
 from OpenGL.GL import *
@@ -11,6 +12,8 @@ from vistas.core.preferences import Preferences
 from vistas.ui.windows.main import MainWindow
 from vistas.ui.windows.plugins import PluginsWindow
 from vistas.ui.windows.timeline_filter import TimeFilterWindow
+
+logger = logging.getLogger(__name__)
 
 
 class AppController(wx.EvtHandler):
@@ -40,13 +43,16 @@ class AppController(wx.EvtHandler):
         self.timer.Start(1, True)
 
     def ShowSplashScreen(self, event):
+        gl_version = glGetString(GL_VERSION).decode()
+        logger.debug('OpenGL Version: {}'.format(gl_version))
+
         splash_background = wx.Image(
             os.path.join(paths.get_resources_directory(), 'images', 'splash.png'), wx.BITMAP_TYPE_ANY
         ).ConvertToBitmap()
         splash_composite = wx.Bitmap(500, 225)
         dc = wx.MemoryDC(splash_composite)
         version_string = 'VISTAS Version: {} (Python)'.format(version)
-        opengl_string = 'OpenGL Version: {}'.format(glGetString(GL_VERSION).decode())
+        opengl_string = 'OpenGL Version: {}'.format(gl_version)
 
         dc.SetFont(wx.Font(12, wx.DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
         version_extent = dc.GetTextExtent(version_string)

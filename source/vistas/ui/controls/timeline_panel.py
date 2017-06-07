@@ -175,7 +175,7 @@ class TimelineCtrl(wx.Control):
         y_offset = dc.GetTextExtent(current.strftime(format)).y + 5
 
         dc.SetPen(wx.Pen(wx.BLACK, 1))
-        dc.DrawRectangle(0, y_offset, w, self.HEIGHT)
+        dc.DrawRectangle(0, y_offset, w, self.HEIGHT + 1)
 
         if start == end:
             return
@@ -300,38 +300,19 @@ class TimelinePanel(wx.Panel):
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.SetSizer(sizer)
 
-        self.step_to_beginning_button = wx.BitmapButton(
-            self, wx.ID_ANY, bitmap=get_resource_bitmap('step_to_beginning_button.png')
-        )
-        self.step_backward_button = wx.BitmapButton(
-            self, wx.ID_ANY, bitmap=get_resource_bitmap('step_backward_button.png')
-        )
-        self.play_button = wx.BitmapButton(
-            self, wx.ID_ANY, bitmap=get_resource_bitmap('play_button.png')
-        )
-        self.step_forward_button = wx.BitmapButton(
-            self, wx.ID_ANY, bitmap=get_resource_bitmap('step_forward_button.png')
-        )
-        self.step_to_end_button = wx.BitmapButton(
-            self, wx.ID_ANY, bitmap=get_resource_bitmap('step_to_end_button.png')
-        )
-        self.playback_options_button = wx.BitmapButton(
-            self, wx.ID_ANY, bitmap=get_resource_bitmap('playback_options_button.png')
-        )
-
         # Todo: fix StaticBitmapButton
-        # self.step_to_beginning_button = StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap('step_to_beginning_button.png'),
-        #                                                    wx.DefaultPosition, wx.Size(20, 20))
-        # self.step_backward_button = StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap('step_backward_button.png'),
-        #                                                    wx.DefaultPosition, wx.Size(20, 20))
-        # self.play_button = StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap('play_button.png'),
-        #                                                    wx.DefaultPosition, wx.Size(20, 20))
-        # self.step_forward_button = StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap('step_forward_button.png'),
-        #                                                    wx.DefaultPosition, wx.Size(20, 20))
-        # self.step_to_end_button = StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap('step_to_end_button.png'),
-        #                                                    wx.DefaultPosition, wx.Size(20, 20))
-        # self.playback_options_button = StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap('playback_options_button.png'),
-        #                                                   wx.DefaultPosition, wx.Size(20, 20))
+        self.step_to_beginning_button = StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap('step_to_beginning_button.png'),
+                                                           wx.DefaultPosition, wx.Size(20, 20))
+        self.step_backward_button = StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap('step_backward_button.png'),
+                                                           wx.DefaultPosition, wx.Size(20, 20))
+        self.play_button = StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap('play_button.png'),
+                                                           wx.DefaultPosition, wx.Size(20, 20))
+        self.step_forward_button = StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap('step_forward_button.png'),
+                                                           wx.DefaultPosition, wx.Size(20, 20))
+        self.step_to_end_button = StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap('step_to_end_button.png'),
+                                                           wx.DefaultPosition, wx.Size(20, 20))
+        self.playback_options_button = StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap('playback_options_button.png'),
+                                                          wx.DefaultPosition, wx.Size(20, 20))
 
         # Todo: tooltips
         # tooltips = ("Step to beginning",
@@ -349,7 +330,7 @@ class TimelinePanel(wx.Panel):
         sizer.Add(self.timeline_ctrl, 1, wx.LEFT, 8)
         sizer.Add(self.playback_options_button, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
 
-        self.play_bitmap = self.play_button.GetBitmap()
+        self.play_bitmap = get_resource_bitmap('play_button.png')
         self.pause_bitmap = get_resource_bitmap("pause_button.png")
 
         self.timer = wx.Timer(self, wx.ID_ANY)
@@ -400,7 +381,7 @@ class TimelinePanel(wx.Panel):
             else:
                 bitmap = self.play_bitmap
 
-            self.play_button.SetBitmap(bitmap)
+            self.play_button.label_bitmap = bitmap
         event.Skip()
 
     def OnStepForwardButton(self, event):

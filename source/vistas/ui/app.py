@@ -1,11 +1,11 @@
 import asyncio
-import sys
-
 import logging
+import sys
 import traceback
 
 import wx
 
+import vistas
 from vistas.ui.controllers.app import AppController
 from vistas.ui.windows.exception_dialog import ExceptionDialog
 
@@ -16,6 +16,7 @@ HandleExceptionEvent, EVT_HANDLE_EXCEPTION = wx.lib.newevent.NewEvent()
 
 class App(wx.App):
     _global_app = None
+    init = False
 
     @classmethod
     def get(cls):
@@ -31,7 +32,7 @@ class App(wx.App):
         self.Bind(EVT_HANDLE_EXCEPTION, self.OnHandleException)
 
     def OnInit(self):
-        logger.debug('VISTAS starting...')
+        logger.debug('VISTAS {} starting...'.format(vistas.__version__))
 
         sys.excepthook = exception_hook
 
@@ -43,6 +44,8 @@ class App(wx.App):
         self.app_controller = AppController()
 
         logger.debug('VISTAS started')
+
+        App.init = True
 
         return True
 
@@ -56,4 +59,5 @@ def exception_hook(exc_type, value, trace):
     exception_message = ''.join(traceback.format_exception(exc_type, value, trace))
     logger.error('Unhandled exception\n{}'.format(exception_message))
 
-    wx.PostEvent(App.get(), HandleExceptionEvent(message=exception_message))
+    if App.init:
+        wx.PostEvent(App.get(), HandleExceptionEvent(message=exception_message))
