@@ -21,13 +21,11 @@ class PlaybackOptionsFrame(wx.Frame):
         panel.SetSize(self.GetSize())
         panel_sizer = wx.BoxSizer(wx.VERTICAL)
         self._live_update = wx.CheckBox(panel, wx.ID_ANY, "Live Update")
-        self._show_every_frame = wx.CheckBox(panel, wx.ID_ANY, "Show Every Frame")
         self._uniform_time_intervals = wx.CheckBox(panel, wx.ID_ANY, "Uniform Time Intervals")
         label = wx.StaticText(panel, wx.ID_ANY, "Animation Speed")
         self._animation_slider = EditableSlider(panel, wx.ID_ANY, min_value=0.5, max_value=20.0, value=1.0)
 
         self._live_update.SetToolTip("Dragging the timeline cursor automatically updates the scene")
-        self._show_every_frame.SetToolTip("Force the visualization to render every timestep (performace many be affected")
         self._uniform_time_intervals.SetToolTip("Display timestamps evenly on the timeline")
 
         panel.SetSizer(panel_sizer)
@@ -35,13 +33,10 @@ class PlaybackOptionsFrame(wx.Frame):
         panel_sizer.Add(self._animation_slider, 0, wx.EXPAND | wx.BOTTOM, 5)
         panel_sizer.Add(self._live_update, 0, wx.ALIGN_LEFT, 5)
         panel_sizer.AddSpacer(2)
-        panel_sizer.Add(self._show_every_frame, 0, wx.ALIGN_LEFT, 5)
-        panel_sizer.AddSpacer(2)
         panel_sizer.Add(self._uniform_time_intervals, 0, wx.ALIGN_LEFT, 5)
 
         self._animation_slider.Bind(EVT_SLIDER_CHANGE_EVENT, timeline_panel.OnAnimationSpeedSlider)
         self._live_update.Bind(wx.EVT_CHECKBOX, timeline_panel.OnLiveUpdate)
-        self._show_every_frame.Bind(wx.EVT_CHECKBOX, timeline_panel.OnShowEveryFrame)
         self._uniform_time_intervals.Bind(wx.EVT_CHECKBOX, timeline_panel.OnUniformTimeIntervals)
 
         while parent is not None:
@@ -60,10 +55,6 @@ class PlaybackOptionsFrame(wx.Frame):
     @property
     def live_update(self):
         return self._live_update.GetValue()
-
-    @property
-    def show_every_frame(self):
-        return self._show_every_frame.GetValue()
 
     @property
     def uniform_time_intervals(self):
@@ -107,7 +98,6 @@ class TimelineCtrl(wx.Control):
         self._scrub_time = None
         self.animation_speed = 1
         self.live_update = False
-        self.show_every_frame = False
         self._uniform_time_intervals = False
         self._dragging = False
         self.px_per_step = None
@@ -300,7 +290,6 @@ class TimelinePanel(wx.Panel):
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.SetSizer(sizer)
 
-        # Todo: fix StaticBitmapButton
         self.step_to_beginning_button = StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap('step_to_beginning_button.png'),
                                                            wx.DefaultPosition, wx.Size(20, 20))
         self.step_backward_button = StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap('step_backward_button.png'),
@@ -314,13 +303,12 @@ class TimelinePanel(wx.Panel):
         self.playback_options_button = StaticBitmapButton(self, wx.ID_ANY, get_resource_bitmap('playback_options_button.png'),
                                                           wx.DefaultPosition, wx.Size(20, 20))
 
-        # Todo: tooltips
-        # tooltips = ("Step to beginning",
-        #            "Step backward one frame",
-        #            "Play animation",
-        #            "Step forward one frame",
-        #            "Step to end",
-        #            "Expand playback options")
+        self.step_to_beginning_button.SetToolTip("Step to beginning")
+        self.step_backward_button.SetToolTip("Step backward one frame")
+        self.play_button.SetToolTip("Play animation")
+        self.step_forward_button.SetToolTip("Step forward one frame")
+        self.step_to_end_button.SetToolTip("Step to end")
+        self.playback_options_button.SetToolTip("Expand playback options")
 
         sizer.Add(self.step_to_beginning_button, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
         sizer.Add(self.step_backward_button, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
@@ -335,7 +323,6 @@ class TimelinePanel(wx.Panel):
 
         self.timer = wx.Timer(self, wx.ID_ANY)
         self._playing = False
-        self._last_frame = None
 
         self.step_to_beginning_button.Bind(wx.EVT_BUTTON, self.OnStepToBeginningButton)
         self.step_backward_button.Bind(wx.EVT_BUTTON, self.OnStepBackwardButton)
@@ -346,17 +333,6 @@ class TimelinePanel(wx.Panel):
 
         self.Bind(wx.EVT_TIMER, self.OnTimer)
         self.Fit()
-
-    def _calc_frames_skipped(self, value):
-        return 0
-
-        # Todo - Fix calculation here
-        # now = datetime.datetime.now()
-        # diff = (self._last_frame - now).seconds
-        # if value < diff:
-        #     return int(diff / value)
-        # else:
-        #     return 0
 
     def OnStepToBeginningButton(self, event):
         if self.timeline_ctrl.timeline.enabled:
@@ -371,7 +347,6 @@ class TimelinePanel(wx.Panel):
             self._playing = not self._playing
 
             if self._playing and not self.timer.IsRunning():
-                self._last_frame = datetime.datetime.now()
                 self.timer.Start(1, wx.TIMER_ONE_SHOT)
             elif self.timer.IsRunning():
                 self.timer.Stop()
@@ -395,18 +370,13 @@ class TimelinePanel(wx.Panel):
 
     def OnTimer(self, event):
         if self.timeline_ctrl.timeline.enabled and self.timeline_ctrl.timeline.current < self.timeline_ctrl.timeline.end:
-            speed = 1000 / self.timeline_ctrl.animation_speed
+            speed = self.timeline_ctrl.animation_speed
 
-            if self.timeline_ctrl.show_every_frame:
-                self.timeline_ctrl.timeline.forward()
-            else:
-                self.timeline_ctrl.timeline.forward(1 + self._calc_frames_skipped(speed))
-            self._last_frame = datetime.datetime.now()
-            self.timer.Start(speed, wx.TIMER_ONE_SHOT)
+            self.timeline_ctrl.timeline.forward()
+            self.timer.Start(1000 / speed, wx.TIMER_ONE_SHOT)
         else:
             self._playing = False
-            # self.play_button.label_bitmap = self.play_bitmap   # Todo - fix StaticBitmapButton
-            self.play_button.SetBitmap(self.play_bitmap)
+            self.play_button.label_bitmap = self.play_bitmap
 
     def OnAnimationSpeedSlider(self, event):
         self.timeline_ctrl.animation_speed = self.playback_options_frame.animation_speed
@@ -419,9 +389,6 @@ class TimelinePanel(wx.Panel):
 
     def OnLiveUpdate(self, event):
         self.timeline_ctrl.live_update = self.playback_options_frame.live_update
-
-    def OnShowEveryFrame(self, event):
-        self.timeline_ctrl.show_every_frame = self.playback_options_frame.show_every_frame
 
     def OnUniformTimeIntervals(self, event):
         self.timeline_ctrl.uniform_time_intervals = self.playback_options_frame.uniform_time_intervals
