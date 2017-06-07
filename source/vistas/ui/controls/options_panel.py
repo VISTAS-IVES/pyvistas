@@ -151,7 +151,8 @@ class OptionsPanel(wx.ScrolledWindow):
 
     @options.setter
     def options(self, value: OptionGroup=None):
-        self.sizer.Clear()
+        self._options = {}
+        self.sizer.Clear(True)
         if value is None or len(value.items) < 1:
             self.AddOption(Option(name="No Options"), self.sizer)
             self.plugin = None
