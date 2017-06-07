@@ -435,7 +435,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             texcoord_buf = mesh.acquire_texcoords_array()
             tex_coords = numpy.zeros((height, width, 2))
             tex_coords[:, :, 0] = indices[0] / height  # u
-            tex_coords[:, :, 1] = indices[1] / width   # v
+            tex_coords[:, :, 1] = 1 - indices[1] / width   # v
             texcoord_buf[:] = tex_coords.ravel()
             mesh.release_texcoords_array()
 
@@ -513,18 +513,16 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 feature_extent = self.boundary_data.extent
                 xscale = texture_w / feature_extent.width
                 yscale = texture_h / feature_extent.height
-                xmin = feature_extent.xmin
-                ymin = feature_extent.ymin
+                xmin = feature_extent.xmin + self.terrain_data.resolution / 2.0
+                ymin = feature_extent.ymin - self.terrain_data.resolution / 2.0
 
-                # Poor-mans image transform
+                # Fit geometry to texture
                 shapes = self.boundary_data.get_features()
                 for f in shapes:
                     if f['geometry']['type'] == 'Polygon':
                         for ring in f['geometry']['coordinates']:
                             for i in range(len(ring)):
                                 ring[i] = (int((ring[i][0] - xmin) * xscale), int((ring[i][1] - ymin) * yscale))
-
-                    # Todo - handle other geometry types?
 
                 image_data[:, :, 0] = features.rasterize([geometry.shape(f['geometry']).exterior for f in shapes],
                                                          out_shape=(texture_h, texture_w), fill=255, default_value=0)
