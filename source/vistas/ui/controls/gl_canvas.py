@@ -63,8 +63,8 @@ class GLCanvas(wx.glcanvas.GLCanvas):
             self._x = self._y = -1
 
     def OnMouseWheel(self, event: wx.MouseEvent):
-        self.camera_interactor.mouse_wheel(event.GetWheelRotation(), event.ShiftDown(), event.AltDown(),
-                                           event.ControlDown())
+        self.camera_interactor.mouse_wheel(event.GetWheelRotation(), event.GetWheelDelta(), event.ShiftDown(),
+                                           event.AltDown(), event.ControlDown())
         self._x = self._y = -1
         self.Refresh()
 

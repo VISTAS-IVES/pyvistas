@@ -35,7 +35,7 @@ class CameraInteractor:
     def mouse_motion(self, dx, dy, shift, alt, ctrl):
         pass  # implemented by subclasses
 
-    def mouse_wheel(self, value, shift, alt, ctrl):
+    def mouse_wheel(self, value, delta, shift, alt, ctrl):
         pass  # implemented by subclasses
 
     def refresh_position(self):
@@ -64,8 +64,7 @@ class SphereInteractor(CameraInteractor):
             self._angle_y = self._angle_y - dy / friction * 10
         self.refresh_position()
 
-    def mouse_wheel(self, value, shift, alt, ctrl):
-        wheel_delta = 120                               # Todo: Take windows/linux delta value?
+    def mouse_wheel(self, value, delta, shift, alt, ctrl):
         bbox = self.camera.scene.bounding_box
         diameter = bbox.diameter
         orig_dist = bbox.max_z + diameter
@@ -74,7 +73,7 @@ class SphereInteractor(CameraInteractor):
         if dist_ratio < 0:
             dist_ratio = -math.log(-dist_ratio)
         scene_size_mult = 0.8 * diameter / 2
-        zoom_amt = value / wheel_delta * scene_size_mult * dist_ratio
+        zoom_amt = value / delta * scene_size_mult * dist_ratio
         if value < 0 and zoom_amt <= 0:
             zoom_amt = zoom_amt - 1
         if shift is True:
