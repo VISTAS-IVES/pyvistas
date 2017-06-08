@@ -118,7 +118,7 @@ class AppController(wx.EvtHandler):
         elif event_id == MainWindow.MENU_DEBUG:
             pass
         elif event_id == MainWindow.MENU_DEBUG_TOGGLE_WIREFRAME:
-            pass
+            self.main_window.viewer_container_panel.ToggleWireframe()
         elif event_id == MainWindow.MENU_DEBUG_TOGGLE_SELECTION_VIEW:
             pass
 

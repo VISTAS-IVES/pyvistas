@@ -40,10 +40,9 @@ class Scene:
             camera.matrix.push()
             camera.matrix *= ViewMatrix.translate(*obj.position.v[:3]) * ViewMatrix.scale(*obj.scale.v[:3])
             obj.render(camera)
-            camera.matrix.pop()
-
             if self.render_bounding_boxes:
                 obj.render_bounding_box(self.bounding_box_color, camera)
+            camera.matrix.pop()
 
     def select_object(self, x, y):
         pass  # Todo
