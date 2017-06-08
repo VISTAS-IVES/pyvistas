@@ -24,7 +24,7 @@ class Timeline:
         self._start = init_time if start is None else start
         self._end = init_time if end is None else end
         self._current = init_time if current is None else current
-        self._min_step = None
+        self._min_step = datetime.timedelta(days=1)
         self._timestamps = []
         self._current_idx = 0
 
@@ -40,17 +40,20 @@ class Timeline:
         low_idx = 0
         high_idx = len(self.timestamps) - 1
 
-        if self._current == self._end:
+        start = self.filter_start if self.use_filter else self._start
+        end = self.filter_end if self.use_filter else self._end
+
+        if self._current == end:
             self._current_idx = high_idx
             return False
 
-        if self._current < self._start:
-            self._current = self._start
+        if self._current < start:
+            self._current = start
             self._current_idx = low_idx
             return True
 
-        if self._current > self._end:
-            self._current = self._end
+        if self._current > end:
+            self._current = end
             self._current_idx = high_idx
             return True
 
@@ -137,8 +140,8 @@ class Timeline:
         zero = datetime.datetime.fromtimestamp(0)
         self._timestamps = []
         self._start, self._end, self._current = [zero] * 3
-        self.filter_start, self.filter_end, self.filter_interval = [zero] * 3
-        self._min_step, self.filter_interval = [zero] * 2
+        self.filter_start, self.filter_end = [zero] * 2
+        self._min_step, self.filter_interval = [datetime.timedelta(days=1)] * 2
         self.use_filter = False
 
     def add_timestamp(self, timestamp: datetime.datetime):
@@ -156,6 +159,12 @@ class Timeline:
                 diff = self._timestamps[i + 1] - self._timestamps[i]
                 if diff < self._min_step:
                     self._min_step = diff
+
+        # Update filter ranges
+        if not self.use_filter:
+            self.filter_start = self.start
+            self.filter_end = self.end
+            self.filter_interval = self._min_step
 
     def index_at_time(self, time: datetime.datetime):
         return self.timestamps.index(time)

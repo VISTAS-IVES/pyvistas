@@ -120,7 +120,9 @@ class TimelineCtrl(wx.Control):
         elif self._uniform_time_intervals:
             self.px_per_step = width / (self.timeline.num_timestamps - 1)
         else:
-            self.px_per_step = width / ((self.timeline.end - self.timeline.start) / self.timeline.min_step)
+            end = self.timeline.filter_end if self.timeline.use_filter else self.timeline.end
+            start = self.timeline.filter_start if self.timeline.use_filter else self.timeline.start
+            self.px_per_step = width / ((end - start) / self.timeline.min_step)
 
     @property
     def uniform_time_intervals(self):
@@ -155,10 +157,11 @@ class TimelineCtrl(wx.Control):
 
     def OnPaint(self, event):
         dc = get_paint_dc(self)
+        use_filter = self.timeline.use_filter
         current = self.timeline.current
-        start = self.timeline.start
-        end = self.timeline.end
-        min_step = self.timeline.min_step
+        start = self.timeline.filter_start if use_filter else self.timeline.start
+        end = self.timeline.filter_end if use_filter else self.timeline.end
+        min_step = self.timeline.filter_interval if use_filter else self.timeline.min_step
         format = self.timeline.time_format
 
         w = self.GetSize().x - 1
@@ -167,7 +170,7 @@ class TimelineCtrl(wx.Control):
         dc.SetPen(wx.Pen(wx.BLACK, 1))
         dc.DrawRectangle(0, y_offset, w, self.HEIGHT + 1)
 
-        if start == end:
+        if not self.timeline.enabled:
             return
 
         def draw_polygon(position):
