@@ -12,7 +12,7 @@ from vistas.core.paths import get_resources_directory
 class Renderable:
 
     bbox_shader_program = None
-    indices = numpy.array([
+    bbox_indices = numpy.array([
         0, 1,
         4, 5,
         2, 3,
@@ -85,7 +85,7 @@ class Renderable:
 
         index_buffer = glGenBuffers(1)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer)
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.indices.nbytes, self.indices, GL_STATIC_DRAW)
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.bbox_indices.nbytes, self.bbox_indices, GL_STATIC_DRAW)
 
         # Render
         glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, None)
