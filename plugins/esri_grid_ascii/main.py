@@ -4,6 +4,7 @@ import datetime
 import numpy
 import os
 import re
+from bisect import insort
 from pyproj import Proj
 
 from vistas.core.timeline import Timeline
@@ -106,7 +107,8 @@ class ESRIGridAscii(RasterDataPlugin):
                 days = int(match.group(5 if self._has_layer else 4))
                 hours = int(match.group(6 if self._has_layer else 5)) if self._is_subday else 0
                 minutes = int(match.group(7 if self._has_layer else 6)) if self._is_subday else 0
-                timestamps.append(datetime.datetime(years, 1, 1, hours, minutes) + datetime.timedelta(days - 1))
+                insort(timestamps, datetime.datetime(years, 1, 1, hours, minutes) + datetime.timedelta(days - 1))
+
         self._temporal_info.timestamps = timestamps
 
     @property
@@ -137,12 +139,18 @@ class ESRIGridAscii(RasterDataPlugin):
             filename = "{}_{}".format(self._name, self._loop)
             if self._has_layer:
                 filename = filename + '_{}'.format(self._layer)
-            filename = filename + "_{}_{}".format(date.year, date.timetuple().tm_yday)
+
+            day_of_year = (date - datetime.datetime(date.year, 1, 1)).days + 1
+            print(date)
+            print(day_of_year)
+            #print(date.timetuple().tm_yday)
+            filename = filename + "_{}_{}".format(date.year, day_of_year)
             if self._is_subday:
                 filename = filename + '_{:2d}_{:2d}'.format(date.hour, date.minute)
             filename = "{}.asc".format(filename)
             path = os.path.join(os.path.dirname(path), filename)
 
+        print(path)
         data = numpy.loadtxt(path, skiprows=6).astype(numpy.float32)
         data = numpy.ma.masked_where(data == nodata_value, data)    # Mask out nodata
         return data.T
