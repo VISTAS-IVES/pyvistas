@@ -440,7 +440,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             mesh.release_texcoords_array()
 
             mesh.bounding_box = BoundingBox(0, min_value * factor, 0,
-                                            width * cellsize, max_value * factor, height * cellsize)
+                                            height * cellsize, max_value * factor, width * cellsize)
 
             self.mesh_renderable = MeshRenderable(mesh)
             self._scene.add_object(self.mesh_renderable)
