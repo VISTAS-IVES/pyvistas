@@ -126,7 +126,7 @@ class ESRIGridAscii(RasterDataPlugin):
         if self._is_velma and self._temporal_info.is_temporal:
 
             if date is None:
-                date = Timeline.app().current_time
+                date = Timeline.app().current
 
             start = self._temporal_info.timestamps[0]
             end = self._temporal_info.timestamps[-1]

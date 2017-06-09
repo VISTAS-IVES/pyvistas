@@ -181,7 +181,7 @@ class DataNode(ProjectNode):
     def serialize(self):
         data = super().serialize()
         data.update({
-            'plugin': self.data.name,
+            'plugin': self.data.id,
             'path': self.data.path
         })
 
@@ -189,7 +189,7 @@ class DataNode(ProjectNode):
 
     @classmethod
     def load(cls, data):
-        plugin = Plugin.by_name(data['plugin'])
+        plugin = Plugin.by_name(data['plugin'])()
         plugin.set_path(data['path'])
 
         return cls(plugin, data.get('label'), data.get('parent'), data.get('id'))
@@ -215,9 +215,11 @@ class VisualizationNode(ProjectNode):
     def serialize(self):
         data = super().serialize()
         data.update({
-            'plugin': self.visualization.name,
+            'plugin': self.visualization.id,
             'data': self.visualization.data_roles
         })
+
+        return data
 
     @classmethod
     def load(cls, data):
@@ -278,6 +280,7 @@ NODE_TYPES = {
     'folder': FolderNode,
     'data': DataNode,
     'visualization': VisualizationNode,
+    'scene': SceneNode,
     'flythrough': FlythroughNode
 }
 
