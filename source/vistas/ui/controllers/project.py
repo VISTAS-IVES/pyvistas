@@ -159,6 +159,11 @@ class ProjectController(wx.EvtHandler):
                 self.SetProjectName()
             except:
                 logger.exception('Error loading project')
+
+                md = wx.MessageDialog(None, 'Error loading project', style=wx.OK | wx.ICON_ERROR)
+                md.ShowModal()
+                md.Destroy()
+
                 self.NewProject(False)
         else:
             wx.MessageBox('Error: {} is not a valid file'.format(path), 'Invalid File', wx.ICON_ERROR)
