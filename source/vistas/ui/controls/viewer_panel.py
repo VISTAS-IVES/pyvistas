@@ -16,6 +16,8 @@ class ViewerPanel(wx.Panel):
     SOUTH = 'south'
     WEST = 'west'
 
+    POPUP_COPY = 1
+
     def __init__(self, parent, id):
         super().__init__(parent, id)
 
@@ -303,10 +305,25 @@ class ViewerPanel(wx.Panel):
         pass  # Todo
 
     def OnCanvasRightClick(self, event):
-        pass  # Todo
+        menu = wx.Menu()
+        menu.Append(self.POPUP_COPY, 'Copy')
+        menu.Bind(wx.EVT_MENU, self.OnCanvasPopupMenu)
+
+        self.PopupMenu(menu)
 
     def OnCanvasPopupMenu(self, event):
-        pass  # Todo
+        if event.GetId() == self.POPUP_COPY:
+            if wx.TheClipboard.IsOpened():
+                opened = True
+            else:
+                opened = wx.TheClipboard.Open()
+
+            if opened:
+                size = self.gl_canvas.GetSize()
+                im = self.gl_canvas.camera.render_to_bitmap(size.x, size.y)
+                wx_image = wx.EmptyImage(size.x, size.y)
+                wx_image.SetData(im.convert('RGB').tobytes())
+                wx.TheClipboard.SetData(wx.BitmapDataObject(wx_image.ConvertToBitmap()))
 
     def RefreshScenes(self):
         visualization_root = Project.get().visualization_root
