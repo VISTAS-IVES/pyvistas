@@ -1,4 +1,5 @@
 from OpenGL.GL import *
+from PIL import Image
 
 from vistas.core.color import RGBColor
 from vistas.core.graphics.matrix import ViewMatrix
@@ -7,6 +8,11 @@ from vistas.core.graphics.vector import Vector
 
 
 class Camera:
+    offscreen_buffers_initialized = False
+    offscreen_frame_buffer = None
+    offscreen_color_buffer = None
+    offscreen_depth_buffer = None
+
     def __init__(self, scene=None, color=RGBColor(0, 0, 0)):
         if scene is None:
             scene = Scene()
@@ -136,7 +142,27 @@ class Camera:
             self.scene.render(self)
 
     def render_to_bitmap(self, width, height):
-        pass  # Todo
+        if not Camera.offscreen_buffers_initialized:
+            Camera.offscreen_frame_buffer = glGenFramebuffers(1)
+            Camera.offscreen_color_buffer = glGenRenderbuffers(1)
+            Camera.offscreen_depth_buffer = glGenRenderbuffers(1)
+            Camera.offscreen_buffers_initialized = True
+
+        glBindFramebuffer(GL_FRAMEBUFFER, Camera.offscreen_frame_buffer)
+        glBindRenderbuffer(GL_RENDERBUFFER, Camera.offscreen_depth_buffer)
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height)
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, Camera.offscreen_depth_buffer)
+        glBindRenderbuffer(GL_RENDERBUFFER, Camera.offscreen_color_buffer)
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA, width, height)
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, Camera.offscreen_color_buffer)
+
+        self.render(width, height)
+
+        glPixelStorei(GL_PACK_ALIGNMENT, 1)
+        image_data = glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE)
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
+
+        return Image.frombuffer('RGBA', (width, height), image_data)
 
     def select_object(self, width, height, x, y):
         pass  # Todo
