@@ -39,9 +39,7 @@ class NetCDF4DataPlugin(RasterDataPlugin):
         self._name = self.path.split(os.sep)[-1].split('.')[0]
         with Dataset(self.path, 'r') as ds:
             dimensions = list(ds.dimensions.keys())
-            print(dimensions)
             self._variables = [var for var in ds.variables if var not in dimensions]
-            print(self._variables)
 
             if 'x' in dimensions:
                 self.x_dim, self.y_dim = 'x', 'y'
@@ -85,6 +83,7 @@ class NetCDF4DataPlugin(RasterDataPlugin):
                                   ymin - self.y_cellsize / 2,
                                   ymax + self.y_cellsize / 2)    # Todo - projection info?
 
+    @staticmethod
     def is_valid_file(path):
         with Dataset(path, 'r') as ds:
             if len(ds.variables.keys()) > 0:
@@ -100,7 +99,7 @@ class NetCDF4DataPlugin(RasterDataPlugin):
             data = ds.variables[variable][:][self._temporal_info.timestamps.index(date)]
             if isinstance(data, numpy.ma.MaskedArray):
                 data = data.data
-        return data
+        return data.T
 
     @property
     def shape(self):

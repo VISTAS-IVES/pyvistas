@@ -126,15 +126,16 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 options.items.append(self._accumulation_group)
         return options
 
+    def _get_attribute(self, option: Option):
+        return option.labels[option.value]
+
     def update_option(self, option: Option=None):
 
         name = option.name
 
         if name == self._attribute.name:
             self._needs_color = True
-
-            # Todo - handle multiple attributes (i.e. NetCDF)
-            stats = self.attribute_data.variable_stats("")
+            stats = self.attribute_data.variable_stats(self._get_attribute(self._attribute))
             self._min_value.value = stats.min_value
             self._max_value.value = stats.max_value
             post_newoptions_available(self)
@@ -222,9 +223,10 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             self._needs_color = True
 
             if data is not None:
-                stats = data.variable_stats("")     # Todo - get attribute variable names
+                stats = data.variable_stats(data.variables[0])
                 self._min_value.value = stats.min_value
                 self._max_value.value = stats.max_value
+                self._attribute.value = 0
                 self._attribute.labels = data.variables
             else:
                 self._min_value.value, self._max_value.value = 0, 0
@@ -245,7 +247,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             self._needs_flow = True
 
             if data is not None:
-                stats = data.variable_stats("")
+                stats = data.variable_stats(data.variables[0])
                 self._acc_min.value, self._acc_max.value = stats.min_value, stats.max_value
             else:
                 self._acc_min.value, self._acc_max.value = 0, 0
@@ -275,7 +277,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
     @property
     def filter_histogram(self):
         if self.attribute_data is not None:
-            return Histogram(self.get_data(1).get_data("", Timeline.app().current))
+            return Histogram(self.attribute_data.get_data(self._get_attribute(self._attribute), Timeline.app().current))
         else:
             return Histogram()
 
@@ -314,7 +316,6 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
         if self.mesh_renderable is not None and self._scene is not None:
             self._scene.add_object(self.mesh_renderable)
-            # Todo: handle vector_renderable
 
         if self.vector_renderable is not None and self._scene is not None:
             self._scene.add_object(self.vector_renderable)
@@ -361,13 +362,13 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
     def _create_terrain_mesh(self):
         if self.terrain_data is not None:
-            height_stats = self.terrain_data.variable_stats("")
+            elevation_attribute = self._get_attribute(self._elevation_attribute)
+            height_stats = self.terrain_data.variable_stats(elevation_attribute)
             nodata_value = height_stats.nodata_value
             min_value = height_stats.min_value
             max_value = height_stats.max_value
             cellsize = self.terrain_data.resolution
-            height_data = self.terrain_data.get_data("")  # Todo - get elevation attribute label (i.e. NetCDF support)
-
+            height_data = self.terrain_data.get_data(elevation_attribute)
             if type(height_data) is numpy.ma.MaskedArray:
                 height_data = height_data.data
 
@@ -474,7 +475,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 shader.has_color = True
 
                 # Retrieve color layer
-                attribute = ''  # Todo - get attribute
+                attribute = self._get_attribute(self._attribute)
                 data = self.attribute_data.get_data(attribute, Timeline.app().current)
 
                 if type(data) is numpy.ma.MaskedArray:
@@ -538,8 +539,13 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
         if self.terrain_data is not None and self.flow_dir_data is not None:
 
-            height_data = self.terrain_data.get_data("", Timeline.app().current)
-            flow_dir = self.flow_dir_data.get_data("", Timeline.app().current)
+            height_label = self._get_attribute(self._elevation_attribute)
+            flow_dir_label = self.flow_dir_data.variables[0]
+            flow_acc_label = self.flow_acc_data.variables[0] if self.flow_acc_data is not None else ""
+            attribute_label = self._get_attribute(self._attribute)
+
+            height_data = self.terrain_data.get_data(height_label, Timeline.app().current)
+            flow_dir = self.flow_dir_data.get_data(flow_dir_label, Timeline.app().current)
 
             height, width = flow_dir.shape
 
@@ -555,13 +561,13 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             vector_data[:, :, 4] = numpy.zeros((height, width), dtype=numpy.float32)   # tilt of vector
             vector_data[:, :, 4] = 90 - numpy.arcsin(numpy.abs(self.normals[:, :, 1])) * 180 / numpy.pi
             vector_data[:, :, 5] = numpy.ones((height, width), dtype=numpy.float32) if self.flow_acc_data is None else \
-                self.flow_acc_data.get_data("", Timeline.app().current)
+                self.flow_acc_data.get_data(flow_acc_label, Timeline.app().current)
             vector_data[:, :, 6] = numpy.zeros((height, width), dtype=numpy.float32) if self.attribute_data is None \
-                else self.attribute_data.get_data("", Timeline.app().current)
+                else self.attribute_data.get_data(attribute_label, Timeline.app().current)
 
             # Inform vector_renderable of attribute grid (if set) so shader knows whether to hide nodata values
             if self.attribute_data is not None:
-                nodata_value = self.attribute_data.variable_stats("").nodata_value
+                nodata_value = self.attribute_data.variable_stats(attribute_label).nodata_value
             else:
                 nodata_value = 1.0
 
