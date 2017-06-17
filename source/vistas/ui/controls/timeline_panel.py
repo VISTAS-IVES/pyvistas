@@ -28,12 +28,17 @@ class PlaybackOptionsFrame(wx.Frame):
         self._live_update.SetToolTip("Dragging the timeline cursor automatically updates the scene")
         self._uniform_time_intervals.SetToolTip("Display timestamps evenly on the timeline")
 
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        self.SetSizer(sizer)
+
         panel.SetSizer(panel_sizer)
         panel_sizer.Add(label)
         panel_sizer.Add(self._animation_slider, 0, wx.EXPAND | wx.BOTTOM, 5)
         panel_sizer.Add(self._live_update, 0, wx.ALIGN_LEFT, 5)
         panel_sizer.AddSpacer(2)
         panel_sizer.Add(self._uniform_time_intervals, 0, wx.ALIGN_LEFT, 5)
+
+        sizer.Add(panel)
 
         self._animation_slider.Bind(EVT_SLIDER_CHANGE_EVENT, timeline_panel.OnAnimationSpeedSlider)
         self._live_update.Bind(wx.EVT_CHECKBOX, timeline_panel.OnLiveUpdate)
