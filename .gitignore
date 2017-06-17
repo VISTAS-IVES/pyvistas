@@ -1,2 +1,4 @@
 *.pyc
 source/build/
+*.pyd
+source/vistas/core/encoders/wmv/_wmv\.cpp
