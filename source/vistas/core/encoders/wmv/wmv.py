@@ -154,3 +154,6 @@ class WMVEncoder(VideoEncoder):
 
         raise_on_error(self.plat_lib.MFShutdown())
         self.ole_lib.CoUninitialize()
+
+    def is_ok(self):
+        return self.ok
