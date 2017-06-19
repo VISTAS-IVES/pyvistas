@@ -3,17 +3,30 @@ from vistas.core.utils import get_paint_dc
 import wx
 import wx.lib.newevent
 
-DraggableValueEvent, EVT_DRAG_VALUE_EVENT = wx.lib.newevent.NewEvent()
+DraggableValueEventBase, EVT_DRAG_VALUE_EVENT = wx.lib.newevent.NewEvent()
+
+
+class DraggableValueEvent(DraggableValueEventBase):
+    def __init__(self, value):
+        super().__init__(value=value)
 
 
 class DraggableValue(wx.Window):
     def __init__(self, parent, id, value, per_px):
         super().__init__(parent, id)
 
-        self._value = value
+        self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
+        self._value = None
         self._per_px = per_px
         self._dragging = False
         self._mouse_pos = None
+        self.value = value
+        self.SetCursor(wx.Cursor(wx.CURSOR_SIZEWE))
+
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+        self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
+        self.Bind(wx.EVT_MOTION, self.OnMotion)
 
     @property
     def value(self):
@@ -31,7 +44,7 @@ class DraggableValue(wx.Window):
         dc = get_paint_dc(self)
         dc.SetTextForeground(wx.Colour(0, 0, 255))
         dc.SetPen(wx.Pen(wx.Colour(0, 0, 255), 1, wx.DOT))
-        dc.DrawText("{:.2f}".format(self._value))
+        dc.DrawText("{:.2f}".format(self._value), 0, 0)
         width, height = self.GetSize().Get()
         dc.DrawLine(0, height - 2, width, height - 2)
 
@@ -52,14 +65,12 @@ class DraggableValue(wx.Window):
         self._dragging = False
 
     def OnMotion(self, event):
-        if self._dragging or not event.LeftIsDown():
+        if not self._dragging or not event.LeftIsDown():
             return
 
         current_mouse_pos = event.GetPosition()
-
-        # intentional use of value.setter
-        self.value = current_mouse_pos.x - self._mouse_pos.x * self._per_px
+        self.value = self.value + (current_mouse_pos.x - self._mouse_pos.x * self._per_px)
         self._mouse_pos = current_mouse_pos
 
-        evt = DraggableValueEvent()
+        evt = DraggableValueEvent(value=self.value)
         wx.PostEvent(self, evt)
