@@ -1,9 +1,10 @@
 from vistas.core.paths import get_icon, get_resource_bitmap
 from vistas.core.graphics.vector import Vector
+from vistas.core.utils import get_platform
 from vistas.ui.controls.gl_canvas import GLCanvas
 from vistas.ui.controls.draggable_value import DraggableValue, EVT_DRAG_VALUE_EVENT
-from vistas.ui.controls.keyframe_timeline import KeyframeTimeline, KeyframeTimelineEvent
-from vistas.core.utils import get_platform
+from vistas.ui.controls.keyframe_timeline import KeyframeTimeline, KeyframeTimelineEvent, EVT_KEYTIMELINE
+from vistas.ui.utils import post_redisplay
 
 
 import wx
@@ -15,6 +16,8 @@ class FlythroughDialog(wx.Frame):
 
     FLYTHROUGH_POPUP_AUTOKEYFRAME = 201
     VALUE_PER_PX = 0.01
+
+    active_dialogs = []
 
     def __init__(self, parent, id, flythrough):
         super().__init__(
@@ -46,9 +49,6 @@ class FlythroughDialog(wx.Frame):
         self.gl_canvas = GLCanvas(
             main_panel, wx.ID_ANY, flythrough.camera, attrib_list=attrib_list
         )
-
-        keyframe_panel = wx.Panel(main_panel, wx.ID_ANY)
-        self.keyframe_timeline = KeyframeTimeline(keyframe_panel, wx.ID_ANY, flythrough.num_keyframes, flythrough.fps)
 
         # camera controls
         draggable_panel = wx.Panel(main_panel, wx.ID_ANY)
@@ -90,7 +90,8 @@ class FlythroughDialog(wx.Frame):
         self.length_ctrl = wx.lib.intctrl.IntCtrl(playback_panel, wx.ID_ANY, value=self.flythrough.length)
         self.length_ctrl.SetToolTip("Change length of flythrough animation")
 
-
+        keyframe_panel = wx.Panel(main_panel, wx.ID_ANY)
+        self.keyframe_timeline = KeyframeTimeline(keyframe_panel, wx.ID_ANY, flythrough.num_keyframes, flythrough.fps)
 
         keyframe_sizer = wx.BoxSizer(wx.VERTICAL)
         keyframe_panel.SetSizer(keyframe_sizer)
@@ -136,8 +137,7 @@ class FlythroughDialog(wx.Frame):
         # Bind events
         self.Bind(wx.EVT_TIMER, self.OnTimer)
         self.Bind(wx.EVT_SIZE, self.OnSize)
-
-        self.Bind(EVT_DRAG_VALUE_EVENT, self.OnDragValue)
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
 
         self.record_button.Bind(wx.EVT_BUTTON, self.RecordKeyframe)
         self.play_pause_button.Bind(wx.EVT_BUTTON, self.OnPlayPause)
@@ -150,17 +150,14 @@ class FlythroughDialog(wx.Frame):
         self.length_ctrl.Bind(wx.EVT_TEXT_ENTER, self.OnLengthChange)
         self.length_ctrl.Bind(wx.EVT_KILL_FOCUS, self.OnLengthChange)
 
-        # create popup menu once
-        self.popup_menu = wx.Menu()
-        self.popup_menu.AppendCheckItem(self.FLYTHROUGH_POPUP_AUTOKEYFRAME, "Auto Keyframe",
-                                        "If enabled, moving the camera will set a keyframe.")
-        self.popup_menu.Bind(wx.EVT_MENU, self.OnPopupMenu)
+        self.keyframe_timeline.Bind(EVT_KEYTIMELINE, self.OnKeyframe)
 
         # bind events to gl_canvas
         self.gl_canvas.Bind(wx.EVT_RIGHT_DOWN, self.OnRightClick)
         self.gl_canvas.Bind(wx.EVT_MOUSEWHEEL, self.OnCanvasWheel)
         self.gl_canvas.Bind(wx.EVT_MOTION, self.OnCanvasMotion)
 
+        # bind draggable events
         self.position_x.Bind(EVT_DRAG_VALUE_EVENT, self.OnDragValue)
         self.position_y.Bind(EVT_DRAG_VALUE_EVENT, self.OnDragValue)
         self.position_z.Bind(EVT_DRAG_VALUE_EVENT, self.OnDragValue)
@@ -175,12 +172,10 @@ class FlythroughDialog(wx.Frame):
         self.flythrough.update_camera_to_keyframe(0)
         self.gl_canvas.Refresh()
         self.UpdateDraggablesFromCamera()
+        self.Refresh()
         # Todo: Reset camera interactor position?
 
-    def __del__(self):
-        pass
-        # self.timer.Stop()
-        # Todo: other?
+        self.active_dialogs.append(self)
 
     def UpdateDraggablesFromCamera(self):
         self.position_x.value, self.position_y.value, self.position_z.value, _ = \
@@ -203,20 +198,29 @@ class FlythroughDialog(wx.Frame):
         ))
         direction = Vector(self.direction_x.value, self.direction_y.value, self.direction_z.value)
         self.flythrough.camera.set_point_of_interest(pos + direction)
+        post_redisplay()
 
         self.gl_canvas.Refresh()
         # Todo: reset camera interactor position?
         self.UpdateTimeline()
 
-    def OnSelectKeyframe(self, event):
+    def OnKeyframe(self, event: KeyframeTimelineEvent):
+        if event.change == event.SELECTED:
+            self.SelectKeyframe(event)
+        elif event.change == event.UPDATED:
+            self.UpdateKeyframe(event)
+        elif event.change == event.DELETED:
+            self.DeleteKeyframe(event)
+
+    def SelectKeyframe(self, event):
         self.flythrough.update_camera_to_keyframe(event.frame)
         self.UpdateDraggablesFromCamera()
         # Todo: reset camera interactor position?
 
-    def OnDeleteKeyframe(self, event):
+    def DeleteKeyframe(self, event):
         self.flythrough.remove_keyframe(event.frame)
 
-    def OnUpdateKeyframe(self, event):
+    def UpdateKeyframe(self, event):
         frame = event.frame
         point = self.flythrough.get_keyframe_at_index(frame)
         self.flythrough.remove_keyframe(frame)
@@ -287,21 +291,25 @@ class FlythroughDialog(wx.Frame):
         self.keyframe_timeline.Clear()
         self.keyframe_timeline.max_frame = new_max_frame
         self.keyframe_timeline.current_frame = new_current_frame
-        self.keyframe_timeline.keyframes = self.flythrough.keyframes
+        self.keyframe_timeline.keyframes = list(self.flythrough.keyframes.keys())
 
     def OnFPSChange(self, event):
-        fps = int(self.fps_ctrl.GetValue())
+        fps = self.fps_ctrl.GetValue()
         if fps >= 0:
             self.flythrough.fps = fps
             self.keyframe_timeline.fps = fps
             self.RecalculateKeyframeIndices()
+        else:
+            self.fps_ctrl.SetValue(1)
 
     def OnLengthChange(self, event):
-        length = int(self.length_ctrl.GetValue())
+        length = self.length_ctrl.GetValue()
         if length >= 0:
             self.flythrough.length = length
             self.keyframe_timeline.length = length
             self.RecalculateKeyframeIndices()
+        else:
+            self.length_ctrl.SetValue(1)
 
     def OnCanvasWheel(self, event):
         if not self.timer.IsRunning():
@@ -317,8 +325,13 @@ class FlythroughDialog(wx.Frame):
 
     def OnRightClick(self, event):
         if event.RightIsDown():
-            self.popup_menu.Check(self.FLYTHROUGH_POPUP_AUTOKEYFRAME, self._auto_keyframe)
-            self.PopupMenu(self.popup_menu, self.gl_canvas.ScreenToClient(event.GetPosition()))
+            popup_menu = wx.Menu()
+            popup_menu.AppendCheckItem(
+                self.FLYTHROUGH_POPUP_AUTOKEYFRAME, "Auto Keyframe", "Camera movement will set keyframes."
+            )
+            popup_menu.Check(self.FLYTHROUGH_POPUP_AUTOKEYFRAME, self._auto_keyframe)
+            popup_menu.Bind(wx.EVT_MENU, self.OnPopupMenu)
+            self.PopupMenu(popup_menu)
 
     def OnPopupMenu(self, event):
         event_id = event.GetId()
@@ -328,4 +341,8 @@ class FlythroughDialog(wx.Frame):
     def OnSize(self, event):
         self.gl_canvas.Refresh()
         self.keyframe_timeline.Refresh()
+        event.Skip()
+
+    def OnClose(self, event):
+        self.active_dialogs.remove(self)
         event.Skip()

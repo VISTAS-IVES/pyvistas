@@ -11,6 +11,7 @@ from vistas.ui.controls.timeline_panel import TimelinePanel
 from vistas.ui.controls.main_status_bar import MainStatusBar
 from vistas.ui.controls.expand_button import ExpandButton
 from vistas.ui.windows.viz_dialog import VisualizationDialog
+from vistas.ui.windows.flythrough_dialog import FlythroughDialog
 
 
 class MainWindow(wx.Frame):
@@ -252,6 +253,9 @@ class MainWindow(wx.Frame):
             for viewer in row.viewers:
                 if viewer is not None:
                     viewer.gl_canvas.Refresh()
+
+        for win in FlythroughDialog.active_dialogs:
+            win.gl_canvas.Refresh()
 
     def OnNewLegend(self, event):
         pass    # Todo - legend_window

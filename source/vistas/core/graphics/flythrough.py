@@ -1,6 +1,7 @@
 from vistas.core.graphics.vector import Vector
 from vistas.core.graphics.camera import Camera
-from vistas.core.math import catmull_rom_splines
+#from vistas.core.math import catmull_rom_splines, cubic_interpolation
+from vistas.ui.utils import post_redisplay
 
 from math import floor
 
@@ -13,22 +14,18 @@ class FlythroughPoint:
 
 
 class Flythrough:
-    def __init__(self, camera=None, fps=30, length=60, name='', ):
-        if camera is None:
-            camera = Camera()
+    def __init__(self, scene, fps=30, length=60):
 
-        self.camera = camera
+        self.camera = Camera(scene=scene)
         self._fps = fps
         self._length = length
-        self.name = name
 
         self._keyframes = {}
 
     def __del__(self):
-        pass  # Todo
+        post_redisplay()
 
     def _rescale_keyframes(self, fps=None, length=None):
-        rescaled_keyframes = {}
 
         if fps is None:
             fps = self._fps
@@ -40,13 +37,10 @@ class Flythrough:
 
         if new_max != old_max:
             if new_max < old_max:
-                for p_idx, p in enumerate(self._keyframes):
-                    rescaled_keyframes[int(floor(p_idx * new_max) / old_max)] = p
-            elif new_max > old_max:
-                for p_idx, p in reversed(enumerate(self._keyframes)):
-                    rescaled_keyframes[int(floor(p_idx * new_max) / old_max)] = p
-
-            self._keyframes = rescaled_keyframes
+                items = self._keyframes.items()
+            else:
+                items = reversed(list(self._keyframes.items()))
+            self._keyframes = {int(floor(p_idx * new_max) / old_max): p for p_idx, p in items}
 
             # Appease delayed setters
             self._fps = fps
@@ -74,10 +68,10 @@ class Flythrough:
 
     def update_camera_to_keyframe(self, index: int):
         p = self.get_keyframe_at_index(index)
-
         self.camera.set_position(p.position)
         self.camera.set_up_vector(p.up)
         self.camera.set_point_of_interest(p.direction + p.position)
+        post_redisplay()
 
     def add_keyframe(self, index: int, point=None):
         if point is None:
@@ -112,7 +106,7 @@ class Flythrough:
         high_value = FlythroughPoint()
         higher_value = None
 
-        for p_idx, p in enumerate(self._keyframes):
+        for p_idx, p in self._keyframes.items():
 
             # find the low keyframe and the one before if there is one
             if low_index < p_idx < index:
@@ -138,6 +132,7 @@ class Flythrough:
             return low_value
         else:
             t = (index - low_index) / (high_index - low_index)
+            print("Index: {}\nLow: {} \nHigh: {}\n t: {}".format(index, low_index, high_index, t))
             if higher_value is None:
                 higher_value = FlythroughPoint(
                     high_value.position + high_value.position - low_value.position,
@@ -146,12 +141,14 @@ class Flythrough:
                 )
 
             return FlythroughPoint(
-                catmull_rom_splines(
-                    lower_value.position, low_value.position, high_value.position, higher_value.position, t
-                ),
-                catmull_rom_splines(
-                    lower_value.direction, low_value.direction, high_value.direction, higher_value.direction, t
-                ),
+                (low_value.position * (1.0 - t)) + (high_value.position * t),
+                (low_value.direction * (1.0 - t)) + (high_value.direction * t),
+                #cubic_interpolation(
+                #    lower_value.position, low_value.position, high_value.position, higher_value.position, t
+                #),
+                #cubic_interpolation(
+                #    lower_value.direction, low_value.direction, high_value.direction, higher_value.direction, t
+                #),
                 (low_value.up * (1.0 - t)) + (high_value.up * t)
             )
 
