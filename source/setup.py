@@ -1,6 +1,8 @@
 import os
 import sys
+from distutils.extension import Extension
 
+from Cython.Build import cythonize
 from cx_Freeze import setup, Executable
 
 SOURCE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -23,10 +25,20 @@ executables = [
     )
 ]
 
+extensions = [
+    Extension(
+        'vistas.core.encoders.wmv._wmv',
+        sources=['vistas/core/encoders/wmv/_wmv.pyx'],
+        libraries=['Mfuuid'],
+        language='c++'
+    )
+]
+
 setup(
     name='VISTAS',
     version='1.0',
     description='VISTAS',
     options=dict(build_exe=build_options),
-    executables=executables
+    executables=executables,
+    ext_modules=cythonize(extensions)
 )
