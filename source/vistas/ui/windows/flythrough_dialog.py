@@ -12,15 +12,8 @@ from wx.glcanvas import WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, WX_GL_
 
 
 class FlythroughDialog(wx.Frame):
-    #FLYTHROUGH_ADD_POINT = 101
-    #FLYTHROUGH_FORWARD = 102
-    #FLYTHROUGH_BACKWARD = 103
-    #FLYTHROUGH_PLAY = 104
-    #FLYTHROUGH_PAUSE = 105
-    #FLYTHROUGH_RESET = 106
 
     FLYTHROUGH_POPUP_AUTOKEYFRAME = 201
-
     VALUE_PER_PX = 0.01
 
     def __init__(self, parent, id, flythrough):
@@ -37,8 +30,13 @@ class FlythroughDialog(wx.Frame):
         self.SetSize(size)
         self.SetIcon(get_icon("flythrough.ico"))
 
+        main_panel = wx.Panel(self, wx.ID_ANY)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(main_sizer)
+        main_sizer.Add(main_panel, 1, wx.EXPAND, 1)
+
+        main_panel_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_panel.SetSizer(main_panel_sizer)
 
         # GLCanvas setup
         attrib_list = [WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16]
@@ -46,14 +44,14 @@ class FlythroughDialog(wx.Frame):
             attrib_list += [WX_GL_CORE_PROFILE]
 
         self.gl_canvas = GLCanvas(
-            self, wx.ID_ANY, flythrough.camera, attrib_list=attrib_list
+            main_panel, wx.ID_ANY, flythrough.camera, attrib_list=attrib_list
         )
 
-        keyframe_panel = wx.Panel(self, wx.ID_ANY)
+        keyframe_panel = wx.Panel(main_panel, wx.ID_ANY)
         self.keyframe_timeline = KeyframeTimeline(keyframe_panel, wx.ID_ANY, flythrough.num_keyframes, flythrough.fps)
 
         # camera controls
-        draggable_panel = wx.Panel(self, wx.ID_ANY)
+        draggable_panel = wx.Panel(main_panel, wx.ID_ANY)
         position_label = wx.StaticText(draggable_panel, wx.ID_ANY, "Position: ")
         self.position_x = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
         self.position_y = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
@@ -68,7 +66,7 @@ class FlythroughDialog(wx.Frame):
         self.up_z = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
 
         # playback
-        playback_panel = wx.Panel(self, wx.ID_ANY)
+        playback_panel = wx.Panel(main_panel, wx.ID_ANY)
         self.record_button = wx.BitmapButton(playback_panel, wx.ID_ANY, get_resource_bitmap("camera_capture_2.png"))
         self.record_button.SetToolTip("Record Keyframe")
         self.backward_button = wx.BitmapButton(playback_panel, wx.ID_ANY, get_resource_bitmap("camera_backward.png"))
@@ -128,10 +126,10 @@ class FlythroughDialog(wx.Frame):
         playback_sizer.Add(self.length_ctrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         playback_panel.SetSizer(playback_sizer)
 
-        main_sizer.Add(self.gl_canvas, 1, wx.ALL | wx.EXPAND, 10)
-        main_sizer.Add(keyframe_panel, 0, wx.ALL | wx.EXPAND, 10)
-        main_sizer.Add(draggable_panel, 0, wx.ALL | wx.EXPAND, 10)
-        main_sizer.Add(playback_panel, 0, wx.ALL | wx.EXPAND, 5)
+        main_panel_sizer.Add(self.gl_canvas, 1, wx.ALL | wx.EXPAND, 10)
+        main_panel_sizer.Add(keyframe_panel, 0, wx.ALL | wx.EXPAND, 10)
+        main_panel_sizer.Add(draggable_panel, 0, wx.ALL | wx.EXPAND, 10)
+        main_panel_sizer.Add(playback_panel, 0, wx.ALL | wx.EXPAND, 5)
 
         self.timer = wx.Timer(self, wx.ID_ANY)
 
