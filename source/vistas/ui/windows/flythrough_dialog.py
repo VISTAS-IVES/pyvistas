@@ -2,89 +2,97 @@ from vistas.core.paths import get_icon, get_resource_bitmap
 from vistas.core.graphics.vector import Vector
 from vistas.ui.controls.gl_canvas import GLCanvas
 from vistas.ui.controls.draggable_value import DraggableValue, EVT_DRAG_VALUE_EVENT
-from vistas.ui.controls.keyframe_timeline import KeyframeTimeline, EVT_KEYTIMELINE_DEL, EVT_KEYTIMELINE_SEL, \
-    EVT_KEYTIMELINE_UPDATE
+from vistas.ui.controls.keyframe_timeline import KeyframeTimeline, KeyframeTimelineEvent
+from vistas.core.utils import get_platform
+
 
 import wx
+import wx.lib.intctrl
+from wx.glcanvas import WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, WX_GL_CORE_PROFILE
 
 
 class FlythroughDialog(wx.Frame):
-    FLYTHROUGH_ADD_POINT = 101
-    FLYTHROUGH_FORWARD = 102
-    FLYTHROUGH_BACKWARD = 103
-    FLYTHROUGH_PLAY = 104
-    FLYTHROUGH_PAUSE = 105
-    FLYTHROUGH_RESET = 106
+    #FLYTHROUGH_ADD_POINT = 101
+    #FLYTHROUGH_FORWARD = 102
+    #FLYTHROUGH_BACKWARD = 103
+    #FLYTHROUGH_PLAY = 104
+    #FLYTHROUGH_PAUSE = 105
+    #FLYTHROUGH_RESET = 106
 
     FLYTHROUGH_POPUP_AUTOKEYFRAME = 201
 
     VALUE_PER_PX = 0.01
 
     def __init__(self, parent, id, flythrough):
-        super().__init__(parent, id, 'Flythrough Animation')
+        super().__init__(
+            parent, id, 'Flythrough Animation', style=wx.CLOSE_BOX | wx.FRAME_FLOAT_ON_PARENT
+            | wx.FRAME_TOOL_WINDOW | wx.CAPTION | wx.SYSTEM_MENU | wx.RESIZE_BORDER
+        )
 
         self.flythrough = flythrough
         self._auto_keyframe = True
         self.CenterOnParent()
-        size = wx.Size(600,580)
+        size = wx.Size(600, 580)
         self.SetMinSize(size)
         self.SetSize(size)
-
-        main_panel = wx.Panel(self, wx.ID_ANY)
         self.SetIcon(get_icon("flythrough.ico"))
-        # Todo: add PNG handler?
 
-        self.gl_canvas = GLCanvas(main_panel, wx.ID_ANY, flythrough.camera)  # Todo: attributes?
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.SetSizer(main_sizer)
 
-        keyframe_panel = wx.Panel(main_panel, wx.ID_ANY)
+        # GLCanvas setup
+        attrib_list = [WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16]
+        if get_platform() == 'macos':
+            attrib_list += [WX_GL_CORE_PROFILE]
 
+        self.gl_canvas = GLCanvas(
+            self, wx.ID_ANY, flythrough.camera, attrib_list=attrib_list
+        )
+
+        keyframe_panel = wx.Panel(self, wx.ID_ANY)
         self.keyframe_timeline = KeyframeTimeline(keyframe_panel, wx.ID_ANY, flythrough.num_keyframes, flythrough.fps)
 
         # camera controls
-        draggable_panel = wx.Panel(main_panel, wx.ID_ANY)
+        draggable_panel = wx.Panel(self, wx.ID_ANY)
         position_label = wx.StaticText(draggable_panel, wx.ID_ANY, "Position: ")
+        self.position_x = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
+        self.position_y = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
+        self.position_z = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
         direction_label = wx.StaticText(draggable_panel, wx.ID_ANY, "Direction: ")
+        self.direction_x = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
+        self.direction_y = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
+        self.direction_z = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
         up_label = wx.StaticText(draggable_panel, wx.ID_ANY, "Up: ")
-
-        # setup all draggable controls and init with 0 value
-        self.position_x, self.position_y, self.position_z, self.direction_x, self.direction_y, self.direction_z, \
-            self.up_x, self.up_y, self.up_z = [DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
-                                               for _ in range(9)]
+        self.up_x = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
+        self.up_y = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
+        self.up_z = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
 
         # playback
-        playback_panel = wx.Panel(main_panel, wx.ID_ANY)
-        record_button = wx.BitmapButton(playback_panel, self.FLYTHROUGH_ADD_POINT,
-                                        get_resource_bitmap("camera_capture_2.png"))
-        record_button.SetToolTip("Record Keyframe")
-        backward_button = wx.BitmapButton(playback_panel, self.FLYTHROUGH_BACKWARD,
-                                          get_resource_bitmap("camera_backward.png"))
-        backward_button.SetToolTip("Back one frame")
+        playback_panel = wx.Panel(self, wx.ID_ANY)
+        self.record_button = wx.BitmapButton(playback_panel, wx.ID_ANY, get_resource_bitmap("camera_capture_2.png"))
+        self.record_button.SetToolTip("Record Keyframe")
+        self.backward_button = wx.BitmapButton(playback_panel, wx.ID_ANY, get_resource_bitmap("camera_backward.png"))
+        self.backward_button.SetToolTip("Back one frame")
         self.play_label = get_resource_bitmap("go_button.png")
         self.pause_label = get_resource_bitmap("pause_button.png")
-        self.play_pause_button = wx.BitmapButton(playback_panel, self.FLYTHROUGH_PLAY, self.play_label)
+        self.play_pause_button = wx.BitmapButton(playback_panel, wx.ID_ANY, self.play_label)
         self.play_pause_button.SetToolTip("Play flythrough")
-        forward_button = wx.BitmapButton(playback_panel, self.FLYTHROUGH_FORWARD,
-                                         get_resource_bitmap("camera_forward.png"))
-        forward_button.SetToolTip("Forward one frame")
-        reset_button = wx.BitmapButton(playback_panel, self.FLYTHROUGH_RESET,
-                                       get_resource_bitmap("reset_button.png"))
-        reset_button.SetToolTip("Reset flythrough")
+        self.forward_button = wx.BitmapButton(playback_panel, wx.ID_ANY, get_resource_bitmap("camera_forward.png"))
+        self.forward_button.SetToolTip("Forward one frame")
+        self.reset_button = wx.BitmapButton(playback_panel, wx.ID_ANY, get_resource_bitmap("reset_button.png"))
+        self.reset_button.SetToolTip("Reset flythrough")
 
         # fps
         fps_label = wx.StaticText(playback_panel, wx.ID_ANY, "Frames Per Second:")
-        self.fps_ctrl = wx.TextCtrl(playback_panel, wx.ID_ANY, self.flythrough.fps)
-        self.fps_ctrl.SetWindowStyle(wx.TE_CENTRE)
+        self.fps_ctrl = wx.lib.intctrl.IntCtrl(playback_panel, wx.ID_ANY, value=self.flythrough.fps)
         self.fps_ctrl.SetToolTip("Change Frames Per Second")
 
         # length
         length_label = wx.StaticText(playback_panel, wx.ID_ANY, "Length (sec):")
-        self.length_ctrl = wx.TextCtrl(playback_panel, wx.ID_ANY, self.flythrough.length)
-        self.length_ctrl.SetWindowStyle(wx.TE_CENTRE)
+        self.length_ctrl = wx.lib.intctrl.IntCtrl(playback_panel, wx.ID_ANY, value=self.flythrough.length)
         self.length_ctrl.SetToolTip("Change length of flythrough animation")
 
-        # layout
-        main_sizer = wx.BoxSizer(wx.VERTICAL)
-        main_panel.SetSizer(main_sizer)
+
 
         keyframe_sizer = wx.BoxSizer(wx.VERTICAL)
         keyframe_panel.SetSizer(keyframe_sizer)
@@ -108,11 +116,11 @@ class FlythroughDialog(wx.Frame):
         draggable_panel.SetSizer(draggable_sizer)
 
         playback_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        playback_sizer.Add(record_button, 0, wx.ALIGN_CENTRE_VERTICAL | wx.ALL, 5)
-        playback_sizer.Add(backward_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        playback_sizer.Add(self.record_button, 0, wx.ALIGN_CENTRE_VERTICAL | wx.ALL, 5)
+        playback_sizer.Add(self.backward_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         playback_sizer.Add(self.play_pause_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
-        playback_sizer.Add(reset_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
-        playback_sizer.Add(forward_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        playback_sizer.Add(self.reset_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        playback_sizer.Add(self.forward_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         playback_sizer.AddStretchSpacer()
         playback_sizer.Add(fps_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 1)
         playback_sizer.Add(self.fps_ctrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
@@ -131,11 +139,13 @@ class FlythroughDialog(wx.Frame):
         self.Bind(wx.EVT_TIMER, self.OnTimer)
         self.Bind(wx.EVT_SIZE, self.OnSize)
 
-        self.Bind(wx.EVT_BUTTON, self.RecordKeyframe, id=self.FLYTHROUGH_ADD_POINT)
-        self.Bind(wx.EVT_BUTTON, self.OnPlayPause, id=self.FLYTHROUGH_PLAY)
-        self.Bind(wx.EVT_BUTTON, self.OnReset, id=self.FLYTHROUGH_RESET)
-        self.Bind(wx.EVT_BUTTON, self.OnBackward, id=self.FLYTHROUGH_BACKWARD)
-        self.Bind(wx.EVT_BUTTON, self.OnForward, id=self.FLYTHROUGH_FORWARD)
+        self.Bind(EVT_DRAG_VALUE_EVENT, self.OnDragValue)
+
+        self.record_button.Bind(wx.EVT_BUTTON, self.RecordKeyframe)
+        self.play_pause_button.Bind(wx.EVT_BUTTON, self.OnPlayPause)
+        self.reset_button.Bind(wx.EVT_BUTTON, self.OnReset)
+        self.backward_button.Bind(wx.EVT_BUTTON, self.OnBackward)
+        self.forward_button.Bind(wx.EVT_BUTTON, self.OnForward)
 
         self.fps_ctrl.Bind(wx.EVT_TEXT_ENTER, self.OnFPSChange)
         self.fps_ctrl.Bind(wx.EVT_KILL_FOCUS, self.OnFPSChange)
@@ -153,7 +163,15 @@ class FlythroughDialog(wx.Frame):
         self.gl_canvas.Bind(wx.EVT_MOUSEWHEEL, self.OnCanvasWheel)
         self.gl_canvas.Bind(wx.EVT_MOTION, self.OnCanvasMotion)
 
-        self.Bind(EVT_DRAG_VALUE_EVENT, self.OnDragValue)
+        self.position_x.Bind(EVT_DRAG_VALUE_EVENT, self.OnDragValue)
+        self.position_y.Bind(EVT_DRAG_VALUE_EVENT, self.OnDragValue)
+        self.position_z.Bind(EVT_DRAG_VALUE_EVENT, self.OnDragValue)
+        self.direction_x.Bind(EVT_DRAG_VALUE_EVENT, self.OnDragValue)
+        self.direction_y.Bind(EVT_DRAG_VALUE_EVENT, self.OnDragValue)
+        self.direction_z.Bind(EVT_DRAG_VALUE_EVENT, self.OnDragValue)
+        self.up_x.Bind(EVT_DRAG_VALUE_EVENT, self.OnDragValue)
+        self.up_y.Bind(EVT_DRAG_VALUE_EVENT, self.OnDragValue)
+        self.up_z.Bind(EVT_DRAG_VALUE_EVENT, self.OnDragValue)
 
         # Todo: RecalculateKeyframeIndices?
         self.flythrough.update_camera_to_keyframe(0)
@@ -162,7 +180,8 @@ class FlythroughDialog(wx.Frame):
         # Todo: Reset camera interactor position?
 
     def __del__(self):
-        self.timer.Stop()
+        pass
+        # self.timer.Stop()
         # Todo: other?
 
     def UpdateDraggablesFromCamera(self):

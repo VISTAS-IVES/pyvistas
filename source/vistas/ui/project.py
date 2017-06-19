@@ -293,7 +293,7 @@ class Project:
         self.data_root = FolderNode('Project Data')
         self.visualization_root = FolderNode('Project Visualizations')
         self.exporter = object()  # Todo: VI_Exporter()
-        self.dirty = False
+        self.dirty = False  # Todo: make into property?
 
     @property
     def is_dirty(self):

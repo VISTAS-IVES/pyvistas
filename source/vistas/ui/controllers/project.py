@@ -8,9 +8,11 @@ from vistas.core.graphics.scene import Scene
 from vistas.core.timeline import Timeline
 from vistas.core.plugins.management import get_data_plugins, get_visualization_plugins, get_2d_visualization_plugins
 from vistas.core.plugins.visualization import VisualizationPlugin3D
-from vistas.ui.project import Project, SceneNode, FolderNode, VisualizationNode, DataNode
+from vistas.core.graphics.flythrough import Flythrough
+from vistas.ui.project import Project, SceneNode, FolderNode, VisualizationNode, DataNode, FlythroughNode
 from vistas.ui.events import ProjectChangedEvent
 from vistas.ui.windows.viz_dialog import VisualizationDialog
+from vistas.ui.windows.flythrough_dialog import FlythroughDialog
 from vistas.ui.windows.data_dialog import DataDialog, CalculateStatsThread
 from vistas.ui.windows.task_dialog import TaskDialog
 
@@ -130,7 +132,7 @@ class ProjectController(wx.EvtHandler):
 
         self.project.save(self.save_path)
         self.SetProjectName()
-        # Todo: i_project->SetDirty(false)
+        self.project.dirty = False
 
         return True
 
@@ -346,7 +348,30 @@ class ProjectController(wx.EvtHandler):
         wx.PostEvent(wx.GetTopLevelParent(self.project_panel), pce)
 
     def AddFlythrough(self, parent):
-        pass  # Todo
+        ProjectController.flythrough_count += 1
+
+        node = FlythroughNode(
+            label="Flythrough {}".format(ProjectController.flythrough_count), flythrough=Flythrough(parent.scene)
+        )
+        tree_parent = self.RecursiveFindByNode(
+            self.project_panel.visualization_tree, self.project_panel.visualization_tree.GetRootItem(), parent
+        )
+        if not tree_parent.IsOk():
+            tree_parent = self.project_panel.visualization_tree.GetRootItem()
+
+        tree_item = self.project_panel.visualization_tree.AppendFlythroughItem(tree_parent, node.label, node)
+
+        self.project_panel.visualization_tree.Collapse(tree_parent)
+        self.project_panel.visualization_tree.EnsureVisible(tree_item)
+        self.project_panel.visualization_tree.EditLabel(tree_item)
+        edit_ctrl = self.project_panel.visualization_tree.GetEditControl()
+        if edit_ctrl is not None:
+            edit_ctrl.SetSelection(-1, -1)
+
+        FlythroughDialog(wx.GetTopLevelParent(self.project_panel), wx.ID_ANY, node.flythrough).Show()
+
+        pce = ProjectChangedEvent(node=node, change=ProjectChangedEvent.ADDED_FLYTHROUGH)
+        wx.PostEvent(wx.GetTopLevelParent(self.project_panel), pce)
 
     def DeleteSelectedItem(self, node, tree, tree_item):
         if node.is_folder:
@@ -415,7 +440,7 @@ class ProjectController(wx.EvtHandler):
             if tree == self.project_panel.visualization_tree and node.is_folder and not isinstance(node, SceneNode):
                 popup_menu.Append(self.POPUP_ADD_SCENE, 'Add scene')
 
-            if tree == self.project_panel.visualization_tree and not node.is_visualization:
+            if tree == self.project_panel.visualization_tree and not node.is_visualization and not node.is_flythrough:
                 popup_menu.Append(self.POPUP_ADD_VISUALIZATION, 'Add new visualization')
 
             if node.is_scene:
@@ -524,7 +549,9 @@ class ProjectController(wx.EvtHandler):
                 ).Show()
 
             elif proj_item.is_flythrough:
-                pass  # Todo: FlythroughDialog
+                FlythroughDialog(
+                    wx.GetTopLevelParent(self.project_panel), wx.ID_ANY, flythrough=proj_item.flythrough
+                ).Show()
 
             else:
                 event.Skip(True)
