@@ -11,6 +11,7 @@ from vistas.core.plugins.management import load_plugins
 from vistas.core.preferences import Preferences
 from vistas.ui.windows.main import MainWindow
 from vistas.ui.windows.plugins import PluginsWindow
+from vistas.ui.windows.fly_scene_selector import FlythroughSceneSelector
 from vistas.ui.windows.timeline_filter import TimeFilterWindow
 
 logger = logging.getLogger(__name__)
@@ -106,7 +107,14 @@ class AppController(wx.EvtHandler):
         elif event_id == MainWindow.MENU_EXPORT_CURRENT_SAVE:
             pass    # Todo - ExportController
         elif event_id == MainWindow.MENU_FLYTHROUGH_GENERATE:
-            pass    # Todo - implement GenerateFlythrough
+            all_scenes = self.main_window.project_controller.project.all_scenes
+            selector = FlythroughSceneSelector(all_scenes, None, wx.ID_ANY)
+            if selector.ShowModal() == wx.ID_OK:
+                selection = selector.GetSceneChoice()
+                for i in range(len(all_scenes)):
+                    if i == selection:
+                        self.main_window.project_controller.AddFlythrough(all_scenes[i])
+
         elif event_id == MainWindow.MENU_SYNC_CAMERAS:
             pass    # Todo - implement synced camera
         elif event_id == MainWindow.MENU_OPEN_TIMELINE_FILTER:

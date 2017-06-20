@@ -109,6 +109,15 @@ class FolderNode(ProjectNode):
         return nodes
 
     @property
+    def scene_nodes(self):
+        nodes = [x for x in self.children if x.is_scene]
+
+        for child in (x for x in self.children if x.is_folder):
+            nodes += child.scene_nodes
+
+        return nodes
+
+    @property
     def data_nodes(self):
         nodes = [x for x in self.children if x.is_data]
 
@@ -350,3 +359,7 @@ class Project:
     @property
     def all_data(self):
         return self.data_root.data_nodes
+
+    @property
+    def all_scenes(self):
+        return self.visualization_root.scene_nodes
