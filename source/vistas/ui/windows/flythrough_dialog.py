@@ -168,7 +168,7 @@ class FlythroughDialog(wx.Frame):
         self.up_y.Bind(EVT_DRAG_VALUE_EVENT, self.OnDragValue)
         self.up_z.Bind(EVT_DRAG_VALUE_EVENT, self.OnDragValue)
 
-        # Todo: RecalculateKeyframeIndices?
+        self.RecalculateKeyframeIndices()
         self.flythrough.update_camera_to_keyframe(0)
         self.gl_canvas.Refresh()
         self.UpdateDraggablesFromCamera()

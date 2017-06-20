@@ -1,6 +1,6 @@
 from vistas.core.graphics.vector import Vector
 from vistas.core.graphics.camera import Camera
-#from vistas.core.math import catmull_rom_splines, cubic_interpolation
+from vistas.core.math import catmull_rom_splines, cubic_interpolation
 from vistas.ui.utils import post_redisplay
 
 from math import floor
@@ -97,60 +97,45 @@ class Flythrough:
 
     def _get_keyframe_at_index(self, index: int, current_point) -> FlythroughPoint:
 
-        # find the keyframes directly above and below the requested indices
-        low_index = -1
-        num_keyframes = self.num_keyframes
-        high_index = num_keyframes + 1
-        low_value = FlythroughPoint()
-        lower_value = FlythroughPoint()
-        high_value = FlythroughPoint()
-        higher_value = None
+        # Determine keyframes directly above and below the requested index
+        indices = sorted(list(self._keyframes.keys()))
 
-        for p_idx, p in self._keyframes.items():
-
-            # find the low keyframe and the one before if there is one
-            if low_index < p_idx < index:
-                if 0 <= low_index < index:
-                    lower_value = self._keyframes[low_index]
-                else:
-                    lower_value = FlythroughPoint()
-                low_index = p_idx
-                low_value = p
-
-            # find the high keyframe and the one after if there is one
-            if index < p_idx < high_index:
-                if num_keyframes >= high_index > index:
-                    higher_value = self._keyframes[high_index]
-                high_index = p_idx
-                high_value = p
-
-        if low_index < 0 and high_index > num_keyframes:
+        if indices[0] > index or index > indices[-1]:
             return current_point
-        elif low_index < 0:
-            return high_value
-        elif high_index > num_keyframes:
-            return low_value
-        else:
-            t = (index - low_index) / (high_index - low_index)
-            print("Index: {}\nLow: {} \nHigh: {}\n t: {}".format(index, low_index, high_index, t))
-            if higher_value is None:
-                higher_value = FlythroughPoint(
-                    high_value.position + high_value.position - low_value.position,
-                    high_value.direction + high_value.direction - low_value.direction,
-                    high_value.up + high_value.up + low_value.up
-                )
 
-            return FlythroughPoint(
-                (low_value.position * (1.0 - t)) + (high_value.position * t),
-                (low_value.direction * (1.0 - t)) + (high_value.direction * t),
-                #cubic_interpolation(
-                #    lower_value.position, low_value.position, high_value.position, higher_value.position, t
-                #),
-                #cubic_interpolation(
-                #    lower_value.direction, low_value.direction, high_value.direction, higher_value.direction, t
-                #),
-                (low_value.up * (1.0 - t)) + (high_value.up * t)
+        low_index = indices[0] if index < indices[0] else [x for x in indices if x < index][-1]
+        low_value = self._keyframes[low_index]
+        high_index = indices[-1] if index > indices[-1] else [x for x in indices if x > index][0]
+        high_value = self._keyframes[high_index]
+
+        # Now get keyframes below low_value and above high_value, if they exist
+        lower_index = indices.index(low_index) - 1
+        if lower_index < 0:
+            lower_value = FlythroughPoint()
+        else:
+            lower_value = self._keyframes[indices[lower_index]]
+
+        higher_index = indices.index(high_index) + 1
+        if higher_index >= len(indices):
+            higher_value = FlythroughPoint(
+                position=high_value.position + high_value.position - low_value.position,
+                direction=high_value.direction + high_value.direction - low_value.direction,
+                up=high_value.up + high_value.up - low_value.up,
             )
+        else:
+            higher_value = self._keyframes[indices[higher_index]]
+
+        t = (index - low_index) / (high_index - low_index)
+
+        return FlythroughPoint(
+            catmull_rom_splines(
+                lower_value.position, low_value.position, high_value.position, higher_value.position, t
+            ),
+            catmull_rom_splines(
+                lower_value.direction, low_value.direction, high_value.direction, higher_value.direction, t
+            ),
+            (low_value.up * (1.0 - t)) + (high_value.up * t)
+        )
 
     def is_keyframe(self, idx):
         return idx in self._keyframes.keys()
