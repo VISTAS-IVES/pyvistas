@@ -1,4 +1,4 @@
-from vistas.core.graphics.vector import Vector
+from pyrr import Vector3
 from vistas.core.graphics.camera import Camera
 from vistas.core.math import catmull_rom_splines, cubic_interpolation
 from vistas.ui.utils import post_redisplay
@@ -7,7 +7,7 @@ from math import floor
 
 
 class FlythroughPoint:
-    def __init__(self, position=Vector(0, 0, 0), direction=Vector(0, 0, 0), up=Vector(0, 1, 0)):
+    def __init__(self, position=Vector3(), direction=Vector3(), up=Vector3([0, 1, 0])):
         self.position = position
         self.direction = direction
         self.up = up

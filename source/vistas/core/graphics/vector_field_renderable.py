@@ -4,12 +4,12 @@ import os
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
+from pyrr import Vector3
 
 import wx
 
 from vistas.core.color import RGBColor
 from vistas.core.graphics.shader import ShaderProgram
-from vistas.core.graphics.vector import Vector
 from vistas.core.graphics.renderable import Renderable
 from vistas.core.paths import get_resources_directory
 from vistas.ui.utils import post_redisplay
@@ -60,8 +60,8 @@ class VectorFieldRenderable(Renderable):
         self.shader.link_program()
 
         self.color = RGBColor(1, 1, 0)
-        self.offset = Vector(0, 0, 0)
-        self.offset_multipliers = Vector(1, 1, 1)
+        self.offset = Vector3()
+        self.offset_multipliers = Vector3([1, 1, 1])
         self.instances = 0
         self.visible = True
         self._animate = False

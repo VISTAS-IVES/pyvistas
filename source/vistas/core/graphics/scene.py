@@ -1,6 +1,6 @@
+from pyrr import Matrix44
 from vistas.core.color import RGBColor
 from vistas.core.graphics.bounds import BoundingBox
-from vistas.core.graphics.matrix import ViewMatrix
 
 
 class Scene:
@@ -37,12 +37,12 @@ class Scene:
 
     def render(self, camera):
         for obj in self.objects:
-            camera.matrix.push()
-            camera.matrix *= ViewMatrix.translate(*obj.position.v[:3]) * ViewMatrix.scale(*obj.scale.v[:3])
+            camera.push_matrix()
+            camera.matrix *= Matrix44.from_translation(obj.position) * Matrix44.from_scale(obj.scale)
             obj.render(camera)
             if self.render_bounding_boxes:
                 obj.render_bounding_box(self.bounding_box_color, camera)
-            camera.matrix.pop()
+            camera.pop_matrix()
 
     def select_object(self, x, y):
         pass  # Todo

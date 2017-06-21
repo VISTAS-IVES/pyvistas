@@ -3,8 +3,8 @@ import numpy
 import os
 
 from OpenGL.GL import *
+from pyrr import Vector3
 from vistas.core.graphics.bounds import BoundingBox
-from vistas.core.graphics.vector import Vector
 from vistas.core.graphics.shader import ShaderProgram
 from vistas.core.paths import get_resources_directory
 
@@ -39,9 +39,9 @@ class Renderable:
             )
             Renderable.bbox_shader_program.link_program()
 
-        self.scale = Vector(1, 1, 1)
-        self.position = Vector(0, 0, 0)
-        self.rotation = Vector(0, 0, 0)
+        self.scale = Vector3([1, 1, 1])
+        self.position = Vector3()
+        self.rotation = Vector3()
         self.bounding_box = BoundingBox(0, 0, 0, 0, 0, 0)
 
     def render(self, camera):

@@ -1,10 +1,10 @@
+import numpy
 from OpenGL.GL import *
 from PIL import Image
+from pyrr import Matrix44, Vector3
 
 from vistas.core.color import RGBColor
-from vistas.core.graphics.matrix import ViewMatrix
 from vistas.core.graphics.scene import Scene
-from vistas.core.graphics.vector import Vector
 
 
 class Camera:
@@ -19,73 +19,64 @@ class Camera:
 
         self.scene = scene
         self.color = color
-        self.matrix = ViewMatrix()
+        self._matrix_stack = []
+        self.matrix = Matrix44.identity(dtype=numpy.float32)
         self.saved_matrix_state = None
         self.wireframe = False
         self.selection_view = False
-        self.proj_matrix = ViewMatrix()
+        self.proj_matrix = Matrix44.identity(dtype=numpy.float32)
 
-        self.set_up_vector(Vector(0, 1, 0))
-        self.set_position(Vector(0, 0, 0))
-        self.set_point_of_interest(Vector(0, 0, -10))
+        self.set_up_vector(Vector3([0, 1, 0]))
+        self.set_position(Vector3())
+        self.set_point_of_interest(Vector3([0, 0, -10]))
 
         # Todo: VI_CameraSyncObservable::GetInstance()->AddObserver(this);
 
     def __del__(self):
         pass  # Todo
 
-    def get_position(self):
-        relative_pos = Vector(self.matrix[3, 0], self.matrix[3, 1], self.matrix[3, 2])
-        relative_pos *= -1
+    def push_matrix(self):
+        self._matrix_stack.append(self.matrix.copy())
 
-        actual_pos = Vector(0, 0, 0)
-        for i, attr in enumerate(['x', 'y', 'z']):
-            setattr(
-                actual_pos, attr,
-                self.matrix[i, 0] * relative_pos.x + self.matrix[i, 1] * relative_pos.y + self.matrix[i, 2] * relative_pos.z
-            )
+    def pop_matrix(self):
+        if self._matrix_stack:
+            self.matrix = self._matrix_stack.pop()
+
+    def get_position(self) -> Vector3:
+        mat = self.matrix
+        relative_pos = Vector3([mat[3, 0], mat[3, 1], mat[3, 2]])
+        relative_pos *= -1
+        actual_pos = Vector3()
+
+        for i in range(3):
+            actual_pos[i] = mat[i, 0] * relative_pos.x + mat[i, 1] * relative_pos.y + mat[i, 2] * relative_pos.z
 
         return actual_pos
 
-    def get_direction(self):
-        return Vector(self.matrix[0, 2] * -1, self.matrix[1, 2] * -1, self.matrix[2, 2] * -1)
+    def get_direction(self) -> Vector3:
+        return Vector3([self.matrix[0, 2] * -1, self.matrix[1, 2] * -1, self.matrix[2, 2] * -1])
 
-    def set_point_of_interest(self, poi):
-        pos = self.get_position()
-        forward = poi - pos
-        forward.normalize()
+    # Todo - deprecate?
+    def set_point_of_interest(self, poi: Vector3):
+        self.matrix = Matrix44.look_at(self.get_position(), poi, self.get_up_vector())
 
-        right = forward.cross(self.get_up_vector())
-        right.normalize()
+    def look_at(self, eye, target, up):
+        self.matrix = Matrix44.look_at(eye, target, up)
 
-        up = right.cross(forward)
-        up.normalize()
-
-        self.matrix[0, 0] = right.x
-        self.matrix[1, 0] = right.y
-        self.matrix[2, 0] = right.z
-
-        self.matrix[0, 1] = up.x
-        self.matrix[1, 1] = up.y
-        self.matrix[2, 1] = up.z
-
-        self.matrix[0, 2] = forward.x * -1
-        self.matrix[1, 2] = forward.y * -1
-        self.matrix[2, 2] = forward.z * -1
-
-        self.set_position(pos)
-
-    def set_position(self, position):
+    # Todo - deprecate?
+    def set_position(self, position: Vector3):
         relative_pos = self.matrix * position * -1
         self.matrix[3, 0] = relative_pos.x
         self.matrix[3, 1] = relative_pos.y
         self.matrix[3, 2] = relative_pos.z
 
-    def get_up_vector(self):
-        return Vector(self.matrix[0, 1], self.matrix[1, 1], self.matrix[2, 1])
+    def get_up_vector(self) -> Vector3:
+        return Vector3([self.matrix[0, 1], self.matrix[1, 1], self.matrix[2, 1]])
 
-    def set_up_vector(self, up):
-        unit_up = up.normalized
+    # Todo - deprecate?
+    def set_up_vector(self, up: Vector3):
+        unit_up = up.copy()
+        unit_up.normalise()
         pos = self.get_position()
 
         self.matrix[0, 1] = unit_up.x
@@ -93,13 +84,13 @@ class Camera:
         self.matrix[2, 1] = unit_up.z
 
         right = self.get_direction().cross(unit_up)
-        right.normalize()
+        right.normalise()
         self.matrix[0, 0] = right.x
         self.matrix[1, 0] = right.y
         self.matrix[2, 0] = right.z
 
         forward = unit_up.cross(right)
-        forward.normalize()
+        forward.normalise()
         self.matrix[0, 2] = forward.x * -1
         self.matrix[1, 2] = forward.y * -1
         self.matrix[2, 2] = forward.z * -1
@@ -107,14 +98,13 @@ class Camera:
         self.set_position(pos)
 
     def move_relative(self, movement):
-        self.matrix *= ViewMatrix.translate(*movement.v[:3])
+        self.matrix *= Matrix44.from_translation(movement)
 
     def rotate_relative(self, rotation):
         pos = self.get_position()
-        rotate_matrix = (
-            ViewMatrix.rotate_x(rotation.x) * ViewMatrix.rotate_y(rotation.y) * ViewMatrix.rotate_z(rotation.z)
-        )
-
+        rotate_matrix = Matrix44.from_x_rotation(rotation.x) * \
+                        Matrix44.from_y_rotation(rotation.y) * \
+                        Matrix44.from_z_rotation(rotation.z)
         self.matrix = rotate_matrix * self.matrix
         self.set_position(pos)
 
@@ -187,4 +177,4 @@ class Camera:
         # z_far = (c.z + scene_box.diameter) * 2
         # self.proj_matrix = ViewMatrix.perspective(80.0, width / height, z_near, z_far)
 
-        self.proj_matrix = ViewMatrix.perspective(80.0, width / height, 1, 100000)
+        self.proj_matrix = Matrix44.perspective_projection(80.0, width / height, 1, 100000)

@@ -12,6 +12,7 @@ mercantile==0.10.0
 multidict==2.1.5
 munch==2.1.1
 numpy==1.12.1
+pyrr==0.8.4
 olefile==0.44
 packaging==16.8
 Pillow==4.1.0

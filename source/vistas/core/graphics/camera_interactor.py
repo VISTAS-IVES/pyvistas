@@ -1,6 +1,7 @@
+import numpy
 import math
-from vistas.core.graphics.camera import Camera, ViewMatrix
-from vistas.core.graphics.vector import Vector
+from pyrr import Matrix44, Vector3
+from vistas.core.graphics.camera import Camera
 from vistas.ui.utils import post_redisplay
 
 
@@ -22,8 +23,8 @@ class CameraInteractor:
         self._shift_y = 0
         self._angle_x = 0
         self._angle_y = 0
-        self._friction = 100
-        self.default_matrix = ViewMatrix()
+        self._friction = 200
+        self.default_matrix = None
         self.reset_position(reset_mv=reset_mv)
 
     def key_down(self, key):
@@ -60,8 +61,8 @@ class SphereInteractor(CameraInteractor):
             self._shift_x = self._shift_x + dx * center_dist / friction
             self._shift_y = self._shift_y - dy * center_dist / friction
         else:
-            self._angle_x = self._angle_x + dx / friction * 10
-            self._angle_y = self._angle_y - dy / friction * 10
+            self._angle_x = self._angle_x + dx / friction
+            self._angle_y = self._angle_y - dy / friction
         self.refresh_position()
 
     def mouse_wheel(self, value, delta, shift, alt, ctrl):
@@ -89,22 +90,23 @@ class SphereInteractor(CameraInteractor):
         dummy_cam = Camera()
         dummy_cam.matrix = self.default_matrix
         z_shift = dummy_cam.distance_to_point(center)
-        self.camera.matrix = self.default_matrix * \
-            ViewMatrix.translate(0, 0, z_shift) * \
-            ViewMatrix.rotate_y(self._angle_x) * \
-            ViewMatrix.rotate_x(self._angle_y) * \
-            ViewMatrix.translate(0, 0, -z_shift) * \
-            ViewMatrix.translate(self._shift_x, self._shift_y, self._distance)
+        self.camera.matrix = Matrix44.from_translation([self._shift_x, self._shift_y, self._distance]) * \
+                             Matrix44.from_translation([0, 0, -z_shift]) * \
+                             Matrix44.from_x_rotation(-self._angle_y) * \
+                             Matrix44.from_y_rotation(-self._angle_x) * \
+                             Matrix44.from_translation([0, 0, z_shift]) * \
+                             self.default_matrix
+
         post_redisplay()
 
     def reset_position(self, reset_mv=True):
         if reset_mv:
-            self.camera.matrix = ViewMatrix()
+            self.camera.matrix = Matrix44.identity(dtype=numpy.float32)
             bbox = self.camera.scene.bounding_box
-            c = bbox.center
-            self.camera.set_position(Vector(c.x, c.y, bbox.max_z + bbox.diameter))
-            self.camera.set_up_vector(Vector(0, 1, 0))
-            self.camera.set_point_of_interest(c)
+            center = bbox.center
+            eye = Vector3([center.x, center.y, bbox.max_z + bbox.diameter])
+            up = Vector3([0, 1, 0])
+            self.camera.look_at(eye, center, up)
         self.default_matrix = self.camera.matrix
         self._distance = 0
         self._forward = 0
@@ -145,9 +147,10 @@ class FreelookInteractor(CameraInteractor):
         self.refresh_position()
 
     def refresh_position(self):
-        self.camera.move_relative(Vector(self._strafe, 0.0, self._forward))
+        self.camera.move_relative(Vector3([self._strafe, 0.0, self._forward]))
         pos = self.camera.get_position()
-        self.camera.matrix = self.default_matrix * ViewMatrix.rotate_y(self._angle_y) * ViewMatrix.rotate_x(self._angle_x)
+        self.camera.matrix = self.default_matrix * Matrix44.from_y_rotation(self._angle_y) * \
+                             Matrix44.from_x_rotation(self._angle_x)
         self.camera.set_position(pos)
         post_redisplay()
 
@@ -156,7 +159,7 @@ class FreelookInteractor(CameraInteractor):
         self._forward = 0.0
         self._angle_y = self._angle_x = 0.0
         if reset_mv:
-            self.camera.matrix = ViewMatrix()
+            self.camera.matrix = Matrix44.identity(dtype=numpy.float32)
         self.default_matrix = self.camera.matrix
         self.refresh_position()
 
