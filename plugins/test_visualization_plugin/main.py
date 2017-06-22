@@ -1,10 +1,10 @@
 from OpenGL.GL import *
+from pyrr import Vector3
 
 from vistas.core.color import RGBColor
 from vistas.core.graphics.bounds import BoundingBox
 from vistas.core.graphics.mesh import Mesh, MeshShaderProgram
 from vistas.core.graphics.mesh_renderable import MeshRenderable
-from vistas.core.graphics.vector import Vector
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.visualization import VisualizationPlugin3D
 
@@ -116,8 +116,8 @@ class TestVisualizationPlugin(VisualizationPlugin3D):
             mesh.release_normal_array()
 
             self.renderable = MeshRenderable(mesh)
-            self.renderable.position = Vector(.75, .75, -2)
-            self.renderable.scale = Vector(.5, .5, .5)
+            self.renderable.position = Vector3([.75, .75, -2])
+            self.renderable.scale = Vector3([.5, .5, .5])
             self.scene.add_object(self.renderable)
 
 

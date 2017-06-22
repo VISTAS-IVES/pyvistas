@@ -6,6 +6,7 @@ import shapely.geometry as geometry
 from rasterio import features
 
 from OpenGL.GL import *
+from pyrr import Vector3
 
 from vistas.core.color import RGBColor
 from vistas.core.histogram import Histogram
@@ -15,12 +16,21 @@ from vistas.core.graphics.mesh import Mesh, MeshShaderProgram
 from vistas.core.graphics.mesh_renderable import MeshRenderable
 from vistas.core.graphics.vector_field_renderable import VectorFieldRenderable
 from vistas.core.graphics.texture import Texture
-from vistas.core.graphics.vector import Vector, normalize_v3
 from vistas.core.graphics.utils import map_buffer
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.option import Option, OptionGroup
 from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.ui.utils import *
+
+
+def normalize_v3(arr):
+    """ Normalize a numpy array of 3 component vectors shape=(n,3) """
+
+    lens = numpy.sqrt(arr[:, 0]**2 + arr[:, 1]**2 + arr[:, 2]**2)
+    arr[:, 0] /= lens
+    arr[:, 1] /= lens
+    arr[:, 2] /= lens
+    return arr
 
 
 class TerrainAndColorPlugin(VisualizationPlugin3D):
@@ -155,7 +165,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 self.vector_renderable.animation_speed = self._animation_speed.value
 
             elif name == self._elevation_factor.name:
-                self.vector_renderable.offset_multipliers = Vector(1, self._elevation_factor.value, 1)
+                self.vector_renderable.offset_multipliers = Vector3([1, self._elevation_factor.value, 1])
 
             elif name == self._flow_color.name:
                 self.vector_renderable.color = self._flow_color.value
