@@ -1,5 +1,5 @@
+from pyrr import Vector3
 from vistas.core.paths import get_icon, get_resource_bitmap
-from vistas.core.graphics.vector import Vector
 from vistas.core.utils import get_platform
 from vistas.ui.controls.gl_canvas import GLCanvas
 from vistas.ui.controls.draggable_value import DraggableValue, EVT_DRAG_VALUE_EVENT
@@ -178,11 +178,11 @@ class FlythroughDialog(wx.Frame):
         self.active_dialogs.append(self)
 
     def UpdateDraggablesFromCamera(self):
-        self.position_x.value, self.position_y.value, self.position_z.value, _ = \
-            self.flythrough.camera.get_position().v
-        self.direction_x.value, self.direction_y.value, self.direction_z.value, _ = \
-            self.flythrough.camera.get_direction().v
-        self.up_x.value, self.up_y.value, self.up_z.value, _ = self.flythrough.camera.get_up_vector().v
+        self.position_x.value, self.position_y.value, self.position_z.value = \
+            self.flythrough.camera.get_position().xyz
+        self.direction_x.value, self.direction_y.value, self.direction_z.value = \
+            self.flythrough.camera.get_direction().xyz
+        self.up_x.value, self.up_y.value, self.up_z.value = self.flythrough.camera.get_up_vector().xyz
 
     def UpdateTimeline(self):
         if self._auto_keyframe:
@@ -191,17 +191,13 @@ class FlythroughDialog(wx.Frame):
             self.flythrough.add_keyframe(frame)
 
     def OnDragValue(self, event):
-        pos = Vector(self.position_x.value, self.position_y.value, self.position_z.value)
-        self.flythrough.camera.set_position(pos)
-        self.flythrough.camera.set_up_vector(Vector(
-            self.up_x.value, self.up_y.value, self.up_z.value
-        ))
-        direction = Vector(self.direction_x.value, self.direction_y.value, self.direction_z.value)
-        self.flythrough.camera.set_point_of_interest(pos + direction)
+        pos = Vector3([self.position_x.value, self.position_y.value, self.position_z.value])
+        up = Vector3([self.up_x.value, self.up_y.value, self.up_z.value])
+        direction = Vector3([self.direction_x.value, self.direction_y.value, self.direction_z.value])
+        self.flythrough.camera.look_at(pos, pos + direction, up)
         post_redisplay()
-
         self.gl_canvas.Refresh()
-        # Todo: reset camera interactor position?
+        #self.gl_canvas.camera_interactor.reset_position(False)
         self.UpdateTimeline()
 
     def OnKeyframe(self, event: KeyframeTimelineEvent):

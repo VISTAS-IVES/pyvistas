@@ -68,9 +68,7 @@ class Flythrough:
 
     def update_camera_to_keyframe(self, index: int):
         p = self.get_keyframe_at_index(index)
-        self.camera.set_position(p.position)
-        self.camera.set_up_vector(p.up)
-        self.camera.set_point_of_interest(p.direction + p.position)
+        self.camera.look_at(p.position, p.position + p.direction, p.up)
         post_redisplay()
 
     def add_keyframe(self, index: int, point=None):
@@ -100,13 +98,18 @@ class Flythrough:
         # Determine keyframes directly above and below the requested index
         indices = sorted(list(self._keyframes.keys()))
 
-        if indices[0] > index or index > indices[-1]:
-            return current_point
-
         low_index = indices[0] if index < indices[0] else [x for x in indices if x < index][-1]
         low_value = self._keyframes[low_index]
         high_index = indices[-1] if index > indices[-1] else [x for x in indices if x > index][0]
         high_value = self._keyframes[high_index]
+
+        # Catch if we're below the lowest recorded keyframe
+        if index < indices[0]:
+            return self._keyframes[indices[0]]
+
+        # Catch if we're above the highest recorded keyframe
+        if index > indices[-1]:
+            return self._keyframes[indices[-1]]
 
         # Now get keyframes below low_value and above high_value, if they exist
         lower_index = indices.index(low_index) - 1
