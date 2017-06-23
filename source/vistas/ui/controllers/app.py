@@ -9,6 +9,7 @@ from vistas import __version__ as version
 from vistas.core import paths
 from vistas.core.plugins.management import load_plugins
 from vistas.core.preferences import Preferences
+from vistas.ui.controllers.export import ExportController
 from vistas.ui.windows.main import MainWindow
 from vistas.ui.windows.plugins import PluginsWindow
 from vistas.ui.windows.fly_scene_selector import FlythroughSceneSelector
@@ -30,6 +31,8 @@ class AppController(wx.EvtHandler):
 
         self.time_filter_window = TimeFilterWindow(self.main_window, wx.ID_ANY)
         self.time_filter_window.Hide()
+
+        # self.export_controller = ExportController()   # Todo - remove comment when this stops breaking
 
         main_window_state = Preferences.app().get('main_window_state')
         if main_window_state:

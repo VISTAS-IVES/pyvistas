@@ -3,6 +3,7 @@ import os
 
 from vistas.core.graphics.scene import Scene
 from vistas.core.plugins.interface import Plugin
+from vistas.core.export import Exporter
 
 SAVE_FILE_VERSION = 1
 
@@ -301,7 +302,8 @@ class Project:
         self.name = name
         self.data_root = FolderNode('Project Data')
         self.visualization_root = FolderNode('Project Visualizations')
-        self.exporter = object()  # Todo: VI_Exporter()
+        #self.exporter = Exporter()
+        self.exporter = object()
         self.dirty = False  # Todo: make into property?
 
     @property
