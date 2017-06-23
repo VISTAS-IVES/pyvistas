@@ -365,3 +365,50 @@ class Project:
     @property
     def all_scenes(self):
         return self.visualization_root.scene_nodes
+
+    def get_node_by_id(self, id) -> ProjectNode:
+        node = self._get_node_by_id(self.data_root, id)
+        if node is None:
+            node = self._get_node_by_id(self.visualization_root, id)
+        return node
+
+    @staticmethod
+    def _get_node_by_id(node: FolderNode, id):
+        if node.node_id == id:
+            return node
+        else:
+            for child in node.children:
+                if child.node_id == id:
+                    return child
+                else:
+                    if child.node_type == 'folder':
+                        result = Project._get_node_by_id(child, id)
+                        if result is not None:
+                            return result
+        return None
+
+    def find_viz_with_parent_scene(self, parent_scene: Scene):
+        scene_node = self._recursive_find_scene_node(self.visualization_root, parent_scene)
+        visualizations = []
+        if scene_node is not None:
+            self._recursive_add_all_viz(scene_node, visualizations)
+        return visualizations
+
+    @staticmethod
+    def _recursive_add_all_viz(root: FolderNode, visualizations):
+        for child in root.children:
+            if child.is_folder:
+                Project._recursive_add_all_viz(child, visualizations)
+            if child.is_visualization:
+                visualizations.append(child.visualization)
+
+    @staticmethod
+    def _recursive_find_scene_node(root: FolderNode, scene):
+        for child in root.children:
+            if child.is_folder:
+                scene_node = Project._recursive_find_scene_node(child, scene)
+                if scene_node is not None:
+                    return scene_node
+            if child.is_scene and child.scene is scene:
+                return child
+        return None
