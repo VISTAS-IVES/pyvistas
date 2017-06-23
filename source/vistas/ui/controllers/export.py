@@ -16,6 +16,15 @@ class ExportController(wx.EvtHandler):
         self.export_frame.Hide()
         self.export_frame.SetCanvasSize(*self.project.exporter.size)
 
+        self.export_frame.Bind(wx.EVT_CLOSE, self.OnFrameClose)
+        self.export_frame.width_text.Bind(wx.EVT_TEXT, self.OnSizeTextChange)
+        self.export_frame.height_text.Bind(wx.EVT_TEXT, self.OnSizeTextChange)
+        self.export_frame.fit_frame_button.Bind(wx.EVT_BUTTON, self.OnFitFrameButton)
+        self.export_frame.export_button.Bind(wx.EVT_BUTTON, self.OnExportButton)
+        self.export_frame.canvas.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+        self.export_frame.canvas.Bind(wx.EVT_RIGHT_DOWN, self.OnRightDown)
+        self.export_frame.canvas.ConnectEvents()
+
     def __del__(self):
         self.export_frame.Destroy()
 
@@ -66,7 +75,7 @@ class ExportController(wx.EvtHandler):
 
     def OnFitFrameButton(self, event):
         self.project.exporter.fit_to_items()
-        self.export_frame.SetCanvasSize(self.project.exporter.size)
+        self.export_frame.SetCanvasSize(*self.project.exporter.size)
         self.export_frame.Refresh()
 
     def OnExportButton(self, event):
