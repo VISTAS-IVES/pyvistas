@@ -1,9 +1,8 @@
 import datetime
 
-from vistas.core.utils import get_platform
 from vistas.core.timeline import Timeline
 from vistas.core.paths import get_resource_bitmap
-from vistas.core.utils import get_paint_dc
+from vistas.ui.utils import get_paint_dc, get_platform
 from vistas.ui.controls.static_bitmap_button import StaticBitmapButton
 from vistas.ui.controls.editable_slider import EditableSlider, EVT_SLIDER_CHANGE_EVENT
 

@@ -1,4 +1,4 @@
-from vistas.core.utils import get_paint_dc
+from vistas.ui.utils import get_paint_dc
 import wx
 
 

@@ -1,5 +1,17 @@
+from vistas.core.utils import get_platform
 from vistas.ui.events import PluginOptionEvent, RedisplayEvent, NewLegendEvent, TimelineEvent, MessageEvent
 import wx
+
+
+def get_paint_dc(win):
+    if get_platform() == 'windows':
+        dc = wx.BufferedPaintDC(win)
+        dc.SetBrush(wx.Brush((win if win.UseBgCol() else win.GetParent()).GetBackgroundColour()))
+        dc.SetPen(wx.TRANSPARENT_PEN)
+        dc.DrawRectangle(0, 0, *win.GetSize().Get())
+    else:
+        dc = wx.PaintDC(win)
+    return dc
 
 
 def get_main_window() -> wx.Window:

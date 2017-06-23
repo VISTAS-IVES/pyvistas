@@ -2,7 +2,7 @@ import bisect
 from datetime import time
 import wx
 import wx.lib.newevent
-from vistas.core.utils import get_platform, get_paint_dc
+from vistas.ui.utils import get_platform, get_paint_dc
 
 KeyframeTimelineBase, EVT_KEYTIMELINE = wx.lib.newevent.NewEvent()
 
