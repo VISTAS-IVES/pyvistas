@@ -145,10 +145,8 @@ class FlythroughDialog(wx.Frame):
         self.backward_button.Bind(wx.EVT_BUTTON, self.OnBackward)
         self.forward_button.Bind(wx.EVT_BUTTON, self.OnForward)
 
-        self.fps_ctrl.Bind(wx.EVT_TEXT_ENTER, self.OnFPSChange)
-        self.fps_ctrl.Bind(wx.EVT_KILL_FOCUS, self.OnFPSChange)
-        self.length_ctrl.Bind(wx.EVT_TEXT_ENTER, self.OnLengthChange)
-        self.length_ctrl.Bind(wx.EVT_KILL_FOCUS, self.OnLengthChange)
+        self.fps_ctrl.Bind(wx.EVT_TEXT, self.OnFPSChange)
+        self.length_ctrl.Bind(wx.EVT_TEXT, self.OnLengthChange)
 
         self.keyframe_timeline.Bind(EVT_KEYTIMELINE, self.OnKeyframe)
 
@@ -296,7 +294,7 @@ class FlythroughDialog(wx.Frame):
             self.keyframe_timeline.fps = fps
             self.RecalculateKeyframeIndices()
         else:
-            self.fps_ctrl.SetValue(1)
+            self.fps_ctrl.ChangeValue(1)    # ChangeValue doesn't send an extra event
 
     def OnLengthChange(self, event):
         length = self.length_ctrl.GetValue()
@@ -305,7 +303,7 @@ class FlythroughDialog(wx.Frame):
             self.keyframe_timeline.length = length
             self.RecalculateKeyframeIndices()
         else:
-            self.length_ctrl.SetValue(1)
+            self.length_ctrl.ChangeValue(1)
 
     def OnCanvasWheel(self, event):
         if not self.timer.IsRunning():
