@@ -19,7 +19,7 @@ class ExportItemBitmap(wx.EvtHandler):
 
     ITEM_MIN_SIZE = 20
 
-    def __init__(self, canvas, item: ExportItem):
+    def __init__(self, canvas, item: ExportItem=None):
         super().__init__()
         self.canvas = canvas
         self.item = item
@@ -83,7 +83,7 @@ class ExportItemBitmap(wx.EvtHandler):
         pass    # Todo
 
     def RefreshCache(self, force=False):
-        if self.item.item_type in [ExportItem.SCENE, ExportItem.FIGURE]:
+        if self.item.item_type in [ExportItem.SCENE, ExportItem.VISUALIZATION]:
             self.cache = self.item.snapshot(force)  # Get as wx.Bitmap
         else:
             self.cache = self.item.snapshot(force)  # Get as wx.Bitmap (true) <-- true for getting transparency

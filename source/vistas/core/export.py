@@ -10,7 +10,7 @@ class ExportItem:
 
     SCENE = 'scene'
     LABEL = 'label'
-    FIGURE = 'figure'       # previous called 2D_VISUALIZATION
+    VISUALIZATION = 'visualization'
     TIMESTAMP = 'timestamp'
     LEGEND = 'legend'
 
@@ -103,7 +103,7 @@ class ExportItem:
         elif self.item_type == self.LEGEND and self.viz_plugin is not None:
             pass    # Todo - implement legends
             # snapshot = self.viz_plugin.get_legend(*self.size).as_bitmap(True)
-        elif self.item_type == self.FIGURE and self.viz_plugin is not None:
+        elif self.item_type == self.VISUALIZATION and self.viz_plugin is not None:
             pass    # Todo - implement 2D visualizations
             # snapshot = self.viz_plugin.render(*self.size).as_bitmap()
         elif self.item_type == self.LABEL:
