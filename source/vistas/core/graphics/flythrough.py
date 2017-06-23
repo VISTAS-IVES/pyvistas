@@ -1,6 +1,6 @@
 from pyrr import Vector3
 from vistas.core.graphics.camera import Camera
-from vistas.core.math import catmull_rom_splines, cubic_interpolation
+from vistas.core.math import catmull_rom_splines
 from vistas.ui.utils import post_redisplay
 
 from math import floor
@@ -83,17 +83,14 @@ class Flythrough:
             self._keyframes.pop(index)
 
     def get_keyframe_at_index(self, index: int):
-        current_point = FlythroughPoint(self.camera.get_position(),
-                                        self.camera.get_direction(),
-                                        self.camera.get_up_vector())
         if len(self._keyframes) < 2:
-            return current_point
+            return FlythroughPoint(self.camera.get_position(), self.camera.get_direction(), self.camera.get_up_vector())
         elif self.is_keyframe(index):
             return self._keyframes[index]
         else:
-            return self._get_keyframe_at_index(index, current_point)
+            return self._get_keyframe_at_index(index)
 
-    def _get_keyframe_at_index(self, index: int, current_point) -> FlythroughPoint:
+    def _get_keyframe_at_index(self, index: int) -> FlythroughPoint:
 
         # Determine keyframes directly above and below the requested index
         indices = sorted(list(self._keyframes.keys()))
