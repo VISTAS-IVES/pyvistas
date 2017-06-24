@@ -47,6 +47,32 @@ class ExportItemBitmap(wx.EvtHandler):
     def size(self):
         return wx.Size(*self.item.size)
 
+    @property
+    def rect(self):
+        return wx.Rect(self.position, self.size)
+
+    def Hit(self, point):
+
+        rect = self.rect
+        rect.x -= 3
+        rect.y -= 3
+        rect.width += 6
+        rect.height += 6
+
+        if rect.Contains(point):
+            rect.x += 3
+            rect.y += 3
+            rect.width -= 6
+            rect.height -= 6
+
+            if rect.Contains(point):
+                return True
+            else:
+                pos = self.position
+                return self.HitTest(wx.Point(point.x - pos.x, point.y - pos.y)) != self.HIT_NONE
+        else:
+            return False
+
     def HitTest(self, point):
         size = self.size
 

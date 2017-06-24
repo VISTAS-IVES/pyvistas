@@ -4,7 +4,7 @@ from vistas.core.timeline import Timeline
 from vistas.core.graphics.camera import Camera
 from vistas.core.graphics.camera_interactor import SphereInteractor
 from vistas.ui.project import Project
-from vistas.ui.windows.export import ExportFrame, ExportItemBitmap
+from vistas.ui.windows.export import ExportFrame
 from vistas.ui.windows.export_scene_dialog import ExportSceneDialog
 
 import wx
@@ -355,7 +355,29 @@ class ExportController(wx.EvtHandler):
         event.Skip(True)
 
     def OnItemDClick(self, event):
-        pass    # Todo - implement
+        canvas_item = event.GetEventObject()
+        item = canvas_item.item
+        rect = canvas_item.rect
+        item_type = item.item_type
+
+        # Edit the label or timestamp text
+        if item_type in [ExportItem.LABEL, ExportItem.TIMESTAMP]:
+            text_ctrl = wx.TextCtrl(
+                self.export_frame.canvas, wx.ID_ANY, item.label, pos=rect.GetPosition(),
+                size=wx.Size(rect.width + 20, rect.height + 20),
+                style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER | wx.TE_NO_VSCROLL
+            )
+
+            if item_type == ExportItem.TIMESTAMP:
+                text_ctrl.SetValue(item.time_format)
+
+            text_ctrl.SetFont(wx.Font(wx.FontInfo(item.font_size)))
+
+            # Todo - finish implementing text controls
+
+        # Edit the scene in an interactive viewer
+        elif item_type in [ExportItem.SCENE]:
+            self.CreateExportSceneDialog(item)
 
     def CreateExportSceneDialog(self, item: ExportItem):
         config = ExportSceneDialog(self.export_frame.canvas, wx.ID_ANY, item)
