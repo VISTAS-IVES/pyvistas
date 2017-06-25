@@ -107,3 +107,23 @@ class HSVColor(Color):
     @property
     def hsva_list(self):
         return self.hsv_list + (self.a,)
+
+
+def interpolate_color(range, min_color: Color, max_color: Color, t):
+    """ Linearly interpolate in the HSV color space """
+
+    if t < range[0]:
+        return min_color
+    elif t >= range[1]:
+        return max_color
+
+    min_hsv = min_color.hsv
+    max_hsv = max_color.hsv
+
+    pct = (t - range[0]) / (range[1] - range[0])
+    h = round(abs(min_hsv.h + (max_hsv.h - min_hsv.h) * pct))
+    s = abs(min_hsv.s + (max_hsv.s - min_hsv.s) * pct)
+    v = abs(min_hsv.v + (max_hsv.v - min_hsv.v) * pct)
+    a = round(abs(min_color.a + (max_color.a - min_color.a) * pct))
+
+    return HSVColor(h, s, v, a)
