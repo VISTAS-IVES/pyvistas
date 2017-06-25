@@ -20,6 +20,7 @@ from vistas.core.graphics.utils import map_buffer
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.option import Option, OptionGroup
 from vistas.core.plugins.visualization import VisualizationPlugin3D
+from vistas.core.legend import Legend
 from vistas.ui.utils import *
 
 
@@ -596,6 +597,14 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
         elif self.vector_renderable is not None:
             self.vector_renderable.visible = False
+
+    def has_legend(self):
+        return self.attribute_data is not None
+
+    def get_legend(self, width, height):
+        return Legend.stretched(
+            width, height, self._min_value.value, self._max_value.value, self._min_color.value, self._max_color.value
+        )
 
 
 class TerrainAndColorShaderProgram(MeshShaderProgram):

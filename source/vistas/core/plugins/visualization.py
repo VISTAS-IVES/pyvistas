@@ -84,6 +84,11 @@ class VisualizationPlugin(Plugin):
 
         return False
 
+    def get_legend(self, width, height):
+        """ A color legend for the visualization """
+
+        return None
+
 
 class VisualizationPlugin2D(VisualizationPlugin):
     def visualize(self, width, height, back_thread=True):
