@@ -14,6 +14,20 @@ def get_paint_dc(win):
     return dc
 
 
+def make_window_transparent(win):
+    if get_platform() == 'windows':
+        try:
+            import ctypes
+            handle = win.GetHandle()
+            _winlib = ctypes.windll.user32
+            old_flags = _winlib.GetWindowLongA(handle, -20)             # GWL_EXSTYLE
+            old_flags |= 0x00080000                                     # old_flags | WS_EX_LAYERED
+            _winlib.SetWindowLongA(handle, -20, old_flags)
+            _winlib.SetLayeredWindowAttributes(handle, 262914, 255, 3)  # 262914 = RGB(2,3,4), 3 = LWA_ALPHA | LWA_COLORKEY
+        except:
+            print("Something went terribly, terribly wrong!")
+
+
 def get_main_window() -> wx.Window:
     return wx.GetTopLevelWindows()[0]   # Assumed to be MainWindow
 

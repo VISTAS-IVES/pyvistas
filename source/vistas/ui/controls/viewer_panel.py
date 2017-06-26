@@ -126,9 +126,6 @@ class ViewerPanel(wx.Panel):
 
         # Todo: observable
 
-    def __del__(self):
-        pass  # Todo
-
     def SetNeighbor(self, neighbor, direction):
         if direction == self.NORTH:
             self.north_resize_area.Show()
@@ -388,10 +385,9 @@ class ViewerPanel(wx.Panel):
 
     def UpdateLegend(self):
         plugins = Project.get().find_viz_with_parent_scene(self.selected_scene)
-        print(plugins)
         if plugins:
             for p in plugins:
-                if p.has_legend:    # we also have to check if p is of correct type
+                if p.has_legend and isinstance(p, VisualizationPlugin3D):
                     self.legend_window.visualization = p
                     break
                 else:

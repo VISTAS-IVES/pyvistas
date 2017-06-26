@@ -85,6 +85,7 @@ class ViewerContainerPanel(wx.Panel):
                 index = row.viewers.index(viewer)
                 viewer = row.viewers[index]
                 row.viewers[index] = None
+                viewer.legend_window.Destroy()
                 viewer.Destroy()
                 self.num_viewers -= 1
                 self.Rebuild()

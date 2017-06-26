@@ -1,3 +1,4 @@
+from vistas.core.utils import get_platform
 import wx
 
 
@@ -38,8 +39,11 @@ class StaticImage(wx.Panel):
         else:
             self.cache = wx.Bitmap(size.GetWidth(), size.GetHeight())
             mem_dc = wx.MemoryDC(self.cache)
-            mem_dc.SetBrush(wx.BLACK_BRUSH)
-
+            mem_dc.SetBrush(wx.Brush(wx.Colour(0, 0, 0)))
+            if get_platform() == 'windows':
+                mem_dc.SetBackground(wx.Brush(wx.Colour(2, 3, 4)))      # Enable transparency effect
+            else:
+                mem_dc.SetBackground(wx.Brush(wx.Colour(0, 0, 0, 0)))
             mem_dc.Clear()
 
             if self.image is not None:
@@ -47,7 +51,7 @@ class StaticImage(wx.Panel):
                 image.SetData(self.image.convert("RGB").tobytes())
                 image.SetAlpha(self.image.convert("RGBA").tobytes()[3::4])
                 mem_dc.SetUserScale(*self.scale)
-                mem_dc.DrawBitmap(wx.BitmapFromImage(image), 0, 0)
+                mem_dc.DrawBitmap(wx.Bitmap(image), 0, 0)
                 mem_dc.SetUserScale(1.0, 1.0)
 
             mem_dc.SelectObject(empty)

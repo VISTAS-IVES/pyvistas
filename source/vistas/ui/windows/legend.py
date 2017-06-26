@@ -1,3 +1,4 @@
+from vistas.ui.utils import make_window_transparent
 from vistas.ui.controls.static_image import StaticImage
 
 from PIL import Image
@@ -11,6 +12,7 @@ class LegendWindow(wx.Frame):
     def __init__(self, parent, id):
         super().__init__(parent, id, size=wx.Size(140, 300), style=wx.FRAME_NO_TASKBAR | wx.FRAME_FLOAT_ON_PARENT)
         self.max_size = self.GetSize()
+        make_window_transparent(self)
         self.canvas = parent.gl_canvas
         self.mouse_pos = wx.DefaultPosition
         self.start_pos = wx.DefaultPosition
@@ -18,13 +20,13 @@ class LegendWindow(wx.Frame):
         self.width = 1
         self.height = 1
         self.dragging = False
-        #self.translucent_background = wx.Frame(
-        #    parent, wx.ID_ANY, pos=self.GetScreenPosition(), size=self.GetSize(),
-        #    style=wx.FRAME_NO_TASKBAR | wx.FRAME_FLOAT_ON_PARENT
-        #)
+        self.translucent_background = wx.Frame(
+            parent, wx.ID_ANY, pos=self.GetScreenPosition(), size=self.GetSize(),
+            style=wx.FRAME_NO_TASKBAR | wx.FRAME_FLOAT_ON_PARENT
+        )
 
-        #self.translucent_background.SetTransparent(150)
-        #self.translucent_background.SetBackgroundColour(wx.BLACK)
+        self.translucent_background.SetTransparent(150)
+        self.translucent_background.SetBackgroundColour(wx.BLACK)
 
         self.legend_image = StaticImage(self, wx.ID_ANY, Image.new("RGBA", self.GetSize().Get()))
         self.legend_image.SetSize(self.GetSize())
@@ -39,6 +41,9 @@ class LegendWindow(wx.Frame):
         self.legend_image.Bind(wx.EVT_MOUSE_CAPTURE_LOST, self.OnCaptureLost)
         self.legend_image.Bind(wx.EVT_RIGHT_DOWN, self.OnRightClick)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy)
+
+        self.translucent_background.Bind(wx.EVT_LEFT_DOWN, self.OnBackgroundFocus)
 
         parent = self.GetParent()
         while parent is not None:
@@ -48,12 +53,17 @@ class LegendWindow(wx.Frame):
 
         self.reset = True
 
-    def __del__(self):
+    def OnBackgroundFocus(self, event: wx.MouseEvent):
+        self.legend_image.SetFocus()
+        wx.PostEvent(self.legend_image, event)
+
+    def OnDestroy(self, event):
         parent = self.GetParent()
         while parent is not None:
-            parent.Unbind(wx.EVT_MOVE, self)
-            parent.Unbind(wx.EVT_PAINT, self)
+            parent.Unbind(wx.EVT_MOVE)
+            parent.Unbind(wx.EVT_PAINT)
             parent = parent.GetParent()
+        event.Skip()
 
     def CalculateProportions(self):
         canvas_size = self.canvas.GetSize()
@@ -101,7 +111,7 @@ class LegendWindow(wx.Frame):
 
         new_pos = wx.Point(x, y)
         self.SetPosition(new_pos)
-        #self.translucent_background.SetPosition(new_pos)
+        self.translucent_background.SetPosition(new_pos)
 
         new_size = wx.Size(self.max_size)
         if canvas_size.x < self.max_size.x:
@@ -110,8 +120,8 @@ class LegendWindow(wx.Frame):
             new_size.SetHeight(canvas_size.y)
         self.legend_image.SetSize(new_size)
         self.SetSize(new_size)
-        #self.translucent_background.SetSize(new_size)
-        #self.translucent_background.Refresh()
+        self.translucent_background.SetSize(new_size)
+        self.translucent_background.Refresh()
         self.legend_image.Refresh()
 
     def OnMove(self, event):
@@ -120,13 +130,13 @@ class LegendWindow(wx.Frame):
 
     def OnPaint(self, event):
         dc = wx.BufferedPaintDC(self)
-        dc.SetBackground(wx.BLACK_BRUSH)
+        dc.SetBackground(wx.Brush(wx.Colour(0, 0, 0), wx.BRUSHSTYLE_TRANSPARENT))
         dc.Clear()
 
-        #trans_dc = wx.BufferedPaintDC(self.translucent_background)
-        #trans_dc.Clear()
-        #trans_dc.SetBrush(wx.BLACK_BRUSH)
-        #trans_dc.DrawRectangle(0, 0, *self.GetSize().Get())
+        trans_dc = wx.BufferedPaintDC(self.translucent_background)
+        trans_dc.Clear()
+        trans_dc.SetBrush(wx.BLACK_BRUSH)
+        trans_dc.DrawRectangle(0, 0, *self.GetSize().Get())
 
         self.RepaintLegend()
         event.Skip()
@@ -153,7 +163,7 @@ class LegendWindow(wx.Frame):
                     new_pos.y = canvas_pos.y + canvas_size.y - size.y
 
                 self.SetPosition(new_pos)
-                #self.translucent_background.SetPosition(new_pos)
+                self.translucent_background.SetPosition(new_pos)
             else:
                 self.mouse_pos = event.GetPosition()
         else:
@@ -186,12 +196,12 @@ class LegendWindow(wx.Frame):
 
     def ShowWindow(self):
         self.mouse_pos = wx.DefaultPosition
-        #self.translucent_background.Show()
+        self.translucent_background.Show()
         self.Show()
         self.RepaintLegend()
 
     def HideWindow(self):
-        #self.translucent_background.Hide()
+        self.translucent_background.Hide()
         self.Hide()
 
     def RefreshLegend(self):
