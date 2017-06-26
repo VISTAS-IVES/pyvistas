@@ -302,8 +302,7 @@ class Project:
         self.name = name
         self.data_root = FolderNode('Project Data')
         self.visualization_root = FolderNode('Project Visualizations')
-        #self.exporter = Exporter()
-        self.exporter = object()
+        self.exporter = Exporter()
         self.dirty = False  # Todo: make into property?
 
     @property

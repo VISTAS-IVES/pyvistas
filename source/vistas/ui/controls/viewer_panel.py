@@ -319,7 +319,7 @@ class ViewerPanel(wx.Panel):
             if opened:
                 size = self.gl_canvas.GetSize()
                 im = self.gl_canvas.camera.render_to_bitmap(size.x, size.y)
-                wx_image = wx.EmptyImage(size.x, size.y)
+                wx_image = wx.Image(size.x, size.y)
                 wx_image.SetData(im.convert('RGB').tobytes())
                 wx.TheClipboard.SetData(wx.BitmapDataObject(wx_image.ConvertToBitmap()))
 

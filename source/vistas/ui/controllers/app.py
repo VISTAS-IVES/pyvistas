@@ -9,6 +9,8 @@ from vistas import __version__ as version
 from vistas.core import paths
 from vistas.core.plugins.management import load_plugins
 from vistas.core.preferences import Preferences
+from vistas.core.export import Exporter, ExportItem
+from vistas.core.timeline import Timeline
 from vistas.ui.controllers.export import ExportController
 from vistas.ui.windows.main import MainWindow
 from vistas.ui.windows.plugins import PluginsWindow
@@ -16,6 +18,8 @@ from vistas.ui.windows.fly_scene_selector import FlythroughSceneSelector
 from vistas.ui.windows.timeline_filter import TimeFilterWindow
 
 logger = logging.getLogger(__name__)
+
+PADDING = 5
 
 
 class AppController(wx.EvtHandler):
@@ -32,7 +36,7 @@ class AppController(wx.EvtHandler):
         self.time_filter_window = TimeFilterWindow(self.main_window, wx.ID_ANY)
         self.time_filter_window.Hide()
 
-        # self.export_controller = ExportController()   # Todo - remove comment when this stops breaking
+        self.export_controller = ExportController()
 
         main_window_state = Preferences.app().get('main_window_state')
         if main_window_state:
@@ -104,11 +108,12 @@ class AppController(wx.EvtHandler):
         elif event_id == MainWindow.MENU_VIEW_COLLAPSE:
             self.main_window.ToggleProjectPanel()
         elif event_id == MainWindow.MENU_EXPORT_EXPORT:
-            pass    # Todo - ExportController
+            self.export_controller.SetExportWindow(self.GetDefaultExporter(True))
+            self.export_controller.ShowWindow()
         elif event_id == MainWindow.MENU_EXPORT_CURRENT_COPY:
-            pass    # Todo - ExportController
+            self.RenderCurrentViewToClipboard()
         elif event_id == MainWindow.MENU_EXPORT_CURRENT_SAVE:
-            pass    # Todo - ExportController
+            self.RenderCurrentViewToFile()
         elif event_id == MainWindow.MENU_FLYTHROUGH_GENERATE:
             all_scenes = self.main_window.project_controller.project.all_scenes
             selector = FlythroughSceneSelector(all_scenes, None, wx.ID_ANY)
@@ -149,3 +154,63 @@ class AppController(wx.EvtHandler):
     def OnWindowClose(self, event):
         # Todo: check project save status
         wx.Exit()
+
+    def GetDefaultExporter(self, add_labels=False):
+        exporter = Exporter()
+        viewerpanels = self.main_window.viewer_container_panel.GetAllViewerPanels()
+        x_offset = 0
+        y_offset = 0
+        prev_height = 0
+        i = 0
+        num_columns = self.main_window.viewer_container_panel.num_columns
+        for panel in viewerpanels:
+            if i % num_columns == 0:
+                x_offset = 0
+                y_offset = prev_height
+                prev_height = 0
+
+            export_item = ExportItem(ExportItem.SCENE, (x_offset, y_offset), panel.GetSize().Get())
+            export_item.camera = panel.camera
+            for node in self.main_window.project_controller.project.all_scenes:
+                if panel.camera.scene is node.scene:
+                    export_item.project_node_id = node.node_id
+                    exporter.add_item(export_item)
+
+                    if add_labels:
+                        label = ExportItem(ExportItem.LABEL)
+                        label.size = (100, 100)
+                        label.label = export_item.camera.scene.name
+                        label.position = (x_offset + export_item.size[0] / 5 - 50, y_offset + export_item.size[1] / 5)
+                        exporter.add_item(label)
+
+                        timestamp = ExportItem(ExportItem.TIMESTAMP)
+                        timestamp.time_format = Timeline.app().time_format
+                        timestamp.position = (x_offset + export_item.size[0] / 2 - timestamp.size[0] / 2,
+                                              y_offset + export_item.size[1] / 5)
+                        exporter.add_item(timestamp)
+
+                    x_offset += export_item.size[0] + PADDING
+                    prev_height = max(prev_height, export_item.size[1] + PADDING)
+                    i += 1
+
+                    break
+
+        # Todo - add graph panels
+
+        exporter.fit_to_items()
+        return exporter
+
+    def RenderCurrentView(self):
+        return self.GetDefaultExporter().export_current_frame()
+
+    def RenderCurrentViewToClipboard(self):
+        if wx.TheClipboard.Open():
+            image = self.RenderCurrentView()
+            wximage = wx.Image(*image.size)
+            wximage.SetData(image.convert("RGB").tobytes())
+            wx.TheClipboard.SetData(wx.BitmapDataObject(wximage.ConvertToBitmap()))
+
+    def RenderCurrentViewToFile(self):
+        fd = wx.FileDialog(self.main_window, "Choose a file", wildcard="*.png", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+        if fd.ShowModal() == wx.ID_OK:
+            self.RenderCurrentView().save(fd.GetPath(), "PNG")

@@ -42,8 +42,8 @@ class ExportController(wx.EvtHandler):
         self.export_frame.SetCanvasSize(*self.project.exporter.size)
 
         self.export_frame.Bind(wx.EVT_CLOSE, self.OnFrameClose)
-        self.export_frame.width_text.Bind(wx.EVT_TEXT, self.OnSizeTextChange)
-        self.export_frame.height_text.Bind(wx.EVT_TEXT, self.OnSizeTextChange)
+        #self.export_frame.width_text.Bind(wx.EVT_TEXT, self.OnSizeTextChange)
+        #self.export_frame.height_text.Bind(wx.EVT_TEXT, self.OnSizeTextChange)
         self.export_frame.fit_frame_button.Bind(wx.EVT_BUTTON, self.OnFitFrameButton)
         self.export_frame.export_button.Bind(wx.EVT_BUTTON, self.OnExportButton)
         self.export_frame.canvas.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)

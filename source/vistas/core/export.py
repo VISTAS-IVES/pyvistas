@@ -8,6 +8,7 @@ from vistas.ui.utils import post_message
 
 from PIL import Image, ImageDraw, ImageFont
 
+
 class ExportItem:
 
     SCENE = 'scene'
@@ -93,7 +94,6 @@ class ExportItem:
             self.size = font.getsize(Timeline.app().current.strftime(self.time_format))
 
     def snapshot(self, force=False):
-
         if not force and self.cache.size == self.size:
             return self.cache
         else:
@@ -112,8 +112,7 @@ class ExportItem:
             else:
                 snapshot = self.camera.render_to_bitmap(*self.size)
         elif self.item_type == self.LEGEND and self.viz_plugin is not None:
-            pass    # Todo - implement legends
-            # snapshot = self.viz_plugin.get_legend(*self.size).as_bitmap(True)
+            snapshot = self.viz_plugin.get_legend(*self.size)
         elif self.item_type == self.VISUALIZATION and self.viz_plugin is not None:
             pass    # Todo - implement 2D visualizations
             # snapshot = self.viz_plugin.render(*self.size).as_bitmap()
@@ -163,7 +162,7 @@ class Exporter(Thread):
             top = min(top, item.position[1])
 
         for item in self.items:
-            old_pos = item.position.copy()
+            old_pos = item.position
             item.position = (old_pos[0] - left, old_pos[1] - top)
             width = max(width, item.position[0] + item.size[0])
             height = max(height, item.position[1] + item.size[1])
@@ -192,15 +191,11 @@ class Exporter(Thread):
         self.recalculate_z_order()
 
     def export_current_frame(self):
-        pass    # Todo - implement bitmap?
-        """
-        VI_Bitmap bitmap(i_size.x, i_size.y, VI_Color(0, 0, 0));
-        for (shared_ptr<VI_ExportItem> item: i_items) {
-            item->RefreshCache();
-            item->Draw(bitmap);
-        }
-        return bitmap;
-        """
+        result = Image.new("RGBA", self.size)
+        for item in self.items:
+            item.refresh_cache()
+            item.draw(result)
+        return result
 
     def export_frames(self, encoder: VideoEncoder, path):
 
