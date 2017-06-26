@@ -68,18 +68,20 @@ class GLCameraButton(wx.Frame):
         self.button = StaticBitmapButton(main_panel, id, bitmap)
 
         self.frame.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy)
 
         while parent is not None:
             wx.GetTopLevelParent(parent).Bind(wx.EVT_MOVE, self.OnMove)
             wx.GetTopLevelParent(parent).Bind(wx.EVT_PAINT, self.OnPaint)
             parent = parent.GetParent()
 
-    def __del__(self):
+    def OnDestroy(self, event):
         parent = self.GetParent()
         while parent is not None:
-            wx.GetTopLevelParent(parent).Unbind(wx.EVT_MOVE, self.OnMove)
-            wx.GetTopLevelParent(parent).Unbind(wx.EVT_PAINT, self.OnPaint)
+            wx.GetTopLevelParent(parent).Unbind(wx.EVT_MOVE)
+            wx.GetTopLevelParent(parent).Unbind(wx.EVT_PAINT)
             parent = parent.GetParent()
+        event.Skip()
 
     def Select(self, select=True):
         self.frame.selected = select
