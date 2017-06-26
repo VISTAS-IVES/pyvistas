@@ -4,7 +4,9 @@ from vistas.core.graphics.camera import Camera
 from vistas.core.task import Task
 from vistas.core.timeline import Timeline
 from vistas.core.encoders.interface import VideoEncoder
+from vistas.ui.utils import post_message
 
+from PIL import Image, ImageDraw, ImageFont
 
 class ExportItem:
 
@@ -14,7 +16,9 @@ class ExportItem:
     TIMESTAMP = 'timestamp'
     LEGEND = 'legend'
 
-    def __init__(self, item_type='scene', position=(-1, -1), size=(-1, -1), project_node_id=None, flythrough_node_id=None):
+    def __init__(
+            self, item_type='scene', position=(-1, -1), size=(-1, -1), project_node_id=None, flythrough_node_id=None
+    ):
         self.item_type = item_type
         self.position = position
         self.size = size
@@ -64,8 +68,13 @@ class ExportItem:
 
     @time_format.setter
     def time_format(self, time_format):
-        self._time_format = time_format
-        self.compute_bbox()
+        try:
+            time = Timeline.app().current.strftime(time_format)  # Throws a ValueError if supplied format is invalid
+            self._time_format = time_format
+            self.compute_bbox()
+        except ValueError:
+            post_message("Invalid time specifier", 1)
+
 
     @property
     def label(self):
@@ -77,10 +86,11 @@ class ExportItem:
         self.compute_bbox()
 
     def compute_bbox(self):
+        font = ImageFont.load_default()
         if self.item_type == self.LABEL:
-            pass    # Todo - set self.size from label text extent (VI_Bitmap::GetTextExtent?)
+            self.size = font.getsize(self.label)
         elif self.item_type == self.TIMESTAMP:
-            pass    # Todo - set self.size from Timeline.app().current, using time_format (VI_Bitmap::GetTextExtent?)
+            self.size = font.getsize(Timeline.app().current.strftime(self.time_format))
 
     def snapshot(self, force=False):
 
@@ -93,7 +103,8 @@ class ExportItem:
 
     def refresh_cache(self):
 
-        snapshot = None
+        snapshot = Image.new("RGBA", self.size)
+        draw = ImageDraw.Draw(snapshot)
 
         if self.item_type == self.SCENE:
             if self.use_flythrough_camera:
@@ -107,14 +118,14 @@ class ExportItem:
             pass    # Todo - implement 2D visualizations
             # snapshot = self.viz_plugin.render(*self.size).as_bitmap()
         elif self.item_type == self.LABEL:
-            pass    # Todo - draw text
+            draw.text((0, 0), self.label)
         elif self.item_type == self.TIMESTAMP:
-            pass    # Todo - draw timestamps
+            draw.text((0, 0), Timeline.app().current.strftime(self._time_format))
 
         self.cache = snapshot
 
-    def draw(self, bitmap):
-        bitmap.DrawBitmap(self.cache, *self.position)
+    def draw(self, image):
+        image.paste(self.cache, self.position)
 
 
 class Exporter(Thread):
