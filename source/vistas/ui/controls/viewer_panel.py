@@ -4,6 +4,7 @@ from wx.glcanvas import WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, WX_GL_
 from vistas.core.graphics.camera import Camera
 from vistas.core.paths import get_resource_bitmap
 from vistas.core.plugins.visualization import VisualizationPlugin3D
+from vistas.ui.windows.legend import LegendWindow
 from vistas.ui.controllers.project import ProjectChangedEvent
 from vistas.ui.controls.gl_canvas import GLCanvas
 from vistas.ui.project import Project
@@ -119,7 +120,7 @@ class ViewerPanel(wx.Panel):
 
         self.gl_canvas.SetFocus()
 
-        self.legend_window = object()  # Todo: LegendWindow()
+        self.legend_window = LegendWindow(self, wx.ID_ANY)
 
         self.RefreshScenes()
 
@@ -372,7 +373,12 @@ class ViewerPanel(wx.Panel):
         self.UpdateScene()
 
     def OnLegendLabel(self, event):
-        pass  # Todo
+        if self.legend_window.IsShown():
+            self.legend_window.HideWindow()
+            return
+        self.UpdateLegend()
+        self.legend_window.ShowWindow()
+        self.legend_window.Refresh()
 
     def OnGeographicLabel(self, event):
         pass  # Todo
@@ -381,7 +387,18 @@ class ViewerPanel(wx.Panel):
         pass  # Todo
 
     def UpdateLegend(self):
-        pass  # Todo
+        plugins = Project.get().find_viz_with_parent_scene(self.selected_scene)
+        print(plugins)
+        if plugins:
+            for p in plugins:
+                if p.has_legend:    # we also have to check if p is of correct type
+                    self.legend_window.visualization = p
+                    break
+                else:
+                    self.legend_window.visualization = None
+        else:
+            self.legend_window.visualization = None
+        self.legend_window.RefreshLegend()
 
     def ResetCameraInteractor(self):
         # Todo: observable
