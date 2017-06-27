@@ -89,12 +89,12 @@ class ExportItem:
     def compute_bbox(self):
         font = ImageFont.load_default()
         if self.item_type == self.LABEL:
-            self.size = font.getsize(self.label)
+            self.size = font.getsize(max(self.label.split('\n'), key=len))
         elif self.item_type == self.TIMESTAMP:
             self.size = font.getsize(Timeline.app().current.strftime(self.time_format))
 
     def snapshot(self, force=False):
-        if not force and self.cache.size == self.size:
+        if not force and self.cache is not None and self.cache.size == self.size:
             return self.cache
         else:
             self.refresh_cache()
@@ -212,16 +212,45 @@ class Exporter(Thread):
             item.refresh_cache()
 
     def run(self):
-
         self.task.target = self.video_frames-1
         self.encoder.fps = self.video_fps
         self.task.progress = 0
         self.task.status = Task.RUNNING
         timeline = Timeline.app()
         timeline.current = self.animation_start
-        self.encoder(self.path, *self.size)
+        self.encoder.open(self.path, *self.size)
 
-        pass # Todo - finish implementing
+        if self.is_temporal:
+            for frame in range(self.video_frames):
+                error = self.task.status == Task.SHOULD_STOP or not timeline.current <= self.animation_end or \
+                        not self.encoder.is_ok()
+                if error:
+                    post_message("There was an error exporting the animation. Export may be incomplete.", 1)
+                    break
+
+                timeline.current = timeline.time_at_index(frame * self.animation_frames / self.video_frames)
+
+                self.task.description = "Exporting frame {} of {}.".format(self.task.progress, self.task.target)
+
+                for item in self.items:
+                    if item.item_type is ExportItem.SCENE and item.flythrough is not None:
+                        local_fly_fps = item.flythrough.fps / self.flythrough_fps
+                        item.flythrough.update_camera_to_keyframe(
+                            (local_fly_fps * frame * item.flythrough.num_keyframes) / self.video_frames
+                        )
+
+                self.sync_with_main(self.refresh_item_caches, block=True)
+
+                frame_bitmap = Image.new("RGBA", self.size)
+                for item in self.items:
+                    item.draw(frame_bitmap)
+
+                self.encoder.write_frame(frame_bitmap, 1.0 / self.video_fps)
+
+                if timeline.current > timeline.end:
+                    break
+
+                self.task.inc_progress()
 
         self.encoder.finalize()
         self.task.status = Task.COMPLETE

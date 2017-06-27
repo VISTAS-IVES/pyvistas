@@ -4,10 +4,22 @@ from vistas.core.timeline import Timeline
 from vistas.core.graphics.camera import Camera
 from vistas.core.graphics.camera_interactor import SphereInteractor
 from vistas.ui.project import Project
-from vistas.ui.windows.export import ExportFrame
+from vistas.ui.windows.export import ExportFrame, ExportItemBitmap
 from vistas.ui.windows.export_scene_dialog import ExportSceneDialog
 
 import wx
+
+
+class ExportTextCtrl(wx.TextCtrl):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.item = None
+
+
+class ExportDeleteTimer(wx.Timer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.item_to_delete = None
 
 
 class ExportController(wx.EvtHandler):
@@ -42,8 +54,10 @@ class ExportController(wx.EvtHandler):
         self.export_frame.SetCanvasSize(*self.project.exporter.size)
 
         self.export_frame.Bind(wx.EVT_CLOSE, self.OnFrameClose)
-        #self.export_frame.width_text.Bind(wx.EVT_TEXT, self.OnSizeTextChange)
-        #self.export_frame.height_text.Bind(wx.EVT_TEXT, self.OnSizeTextChange)
+        self.export_frame.width_text.Bind(wx.EVT_TEXT_ENTER, self.OnSizeTextChange)
+        self.export_frame.height_text.Bind(wx.EVT_TEXT_ENTER, self.OnSizeTextChange)
+        self.export_frame.width_text.Bind(wx.EVT_KILL_FOCUS, self.OnSizeTextChange)
+        self.export_frame.height_text.Bind(wx.EVT_KILL_FOCUS, self.OnSizeTextChange)
         self.export_frame.fit_frame_button.Bind(wx.EVT_BUTTON, self.OnFitFrameButton)
         self.export_frame.export_button.Bind(wx.EVT_BUTTON, self.OnExportButton)
         self.export_frame.canvas.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
@@ -155,7 +169,7 @@ class ExportController(wx.EvtHandler):
             legends_menu.Enable(self.MENU_NO_LEGENDS, False)
 
         visualizations = [v for v in self.project.all_visualizations
-                          if isinstance(VisualizationPlugin2D, v.visualization)]
+                          if isinstance(v.visualization, VisualizationPlugin2D)]
         if visualizations:
             for viz_node in visualizations:
                 id = self.MENU_ADD_PROJECT_ITEM + index
@@ -180,7 +194,8 @@ class ExportController(wx.EvtHandler):
         popup_menu.Append(self.MENU_EDIT_CAMERA_POS, "Edit scene orientation")
 
         item = event.GetEventObject()
-        if item is not None and item.item is not None:
+
+        if item is not None and isinstance(item, ExportItemBitmap) and item.item is not None:
             self.export_frame.canvas.SelectItem(item)
 
             # If the item is not a label or timestamp, don't enable font size controls
@@ -239,8 +254,8 @@ class ExportController(wx.EvtHandler):
             popup_menu.Enable(self.MENU_BRING_TO_FRONT, False)
             popup_menu.Enable(self.MENU_SEND_TO_BACK, False)
             popup_menu.Enable(self.MENU_EDIT_CAMERA_POS, False)
-            popup_menu.Enable(self.MENU_CHANGE_FONT_SIZE, False)
-            popup_menu.Enable(self.MENU_SET_FLYTHROUGH, False)
+            popup_menu.Enable(font_menu_item.GetId(), False)
+            popup_menu.Enable(fly_menu_item.GetId(), False)
 
         popup_menu.Bind(wx.EVT_MENU, self.OnPopupMenu)
         self.mouse_pos = event.GetPosition()
@@ -362,7 +377,7 @@ class ExportController(wx.EvtHandler):
 
         # Edit the label or timestamp text
         if item_type in [ExportItem.LABEL, ExportItem.TIMESTAMP]:
-            text_ctrl = wx.TextCtrl(
+            text_ctrl = ExportTextCtrl(
                 self.export_frame.canvas, wx.ID_ANY, item.label, pos=rect.GetPosition(),
                 size=wx.Size(rect.width + 20, rect.height + 20),
                 style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER | wx.TE_NO_VSCROLL
@@ -373,7 +388,13 @@ class ExportController(wx.EvtHandler):
 
             text_ctrl.SetFont(wx.Font(wx.FontInfo(item.font_size)))
 
-            # Todo - finish implementing text controls
+            text_ctrl.SetFocus()
+            text_ctrl.SetSelection(-1, -1)
+            text_ctrl.Bind(wx.EVT_TEXT, self.OnTextUpdate)
+            text_ctrl.Bind(wx.EVT_KILL_FOCUS, self.OnTextEndInput)
+            text_ctrl.Bind(wx.EVT_TEXT_ENTER, self.OnTextEndInput)
+
+            text_ctrl.item = canvas_item
 
         # Edit the scene in an interactive viewer
         elif item_type in [ExportItem.SCENE]:
@@ -388,10 +409,45 @@ class ExportController(wx.EvtHandler):
         pass    # Todo - is this needed anymore? Probably...
 
     def OnTextUpdate(self, event):
-        pass    # Todo - implement
+        text_ctrl = event.GetEventObject()
+        old_size = text_ctrl.GetSize()
+        longest_line = max(text_ctrl.GetValue().split('\n'), key=len)
+        size = text_ctrl.GetFullTextExtent(longest_line)
+        if old_size.x < size[0] + 25:
+            old_size.x += 25
+            text_ctrl.SetSize(old_size)
+        event.Skip()
 
     def OnTextEndInput(self, event):
-        pass
+        text_ctrl = event.GetEventObject()
+        canvas_item = text_ctrl.item
+        mouse = wx.GetMouseState()
+
+        if not mouse.ShiftDown():
+            if not text_ctrl.IsShown():
+                return
+
+            input_text = text_ctrl.GetValue()
+
+            if canvas_item.item.item_type is ExportItem.LABEL:
+                canvas_item.item.label = input_text
+            else:
+                canvas_item.item.time_format = input_text
+            canvas_item.RefreshCache(True)
+            text_ctrl.Hide()
+
+            timer = ExportDeleteTimer(self)
+            timer.item_to_delete = text_ctrl
+            timer.Bind(wx.EVT_TIMER, self.OnTextTimer)
+            timer.Start(1, True)
+            self.export_frame.canvas.Refresh()
+
+        else:
+            old_size = text_ctrl.GetSize()
+            size = text_ctrl.GetFullTextExtent("0")
+            old_size.y += size[1]
+            text_ctrl.SetSize(old_size)
 
     def OnTextTimer(self, event):
-        pass
+        text_ctrl = event.GetEventObject().item_to_delete
+        text_ctrl.Destroy()

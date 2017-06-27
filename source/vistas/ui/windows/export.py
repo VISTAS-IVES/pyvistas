@@ -27,6 +27,7 @@ class ExportItemBitmap(wx.EvtHandler):
         self.selected = False
         self.moving = False
         self.sizing = False
+        self.cache = None
 
         self.start_position = wx.DefaultPosition
         self.start_size = wx.DefaultSize
@@ -39,9 +40,9 @@ class ExportItemBitmap(wx.EvtHandler):
 
     @property
     def position(self):
-        paint_x, paint_y = self.canvas.paint_offset_x, self.canvas.paint_offset_y
+        paint_x, paint_y = self.canvas.scroll_x, self.canvas.scroll_y
         pos_x, pos_y = self.item.position
-        return wx.Position(pos_x - paint_x, pos_y - paint_y)
+        return wx.Point(pos_x - paint_x, pos_y - paint_y)
 
     @property
     def size(self):
@@ -85,11 +86,11 @@ class ExportItemBitmap(wx.EvtHandler):
                 return self.HIT_SW
         elif point.x >= size.x - 3:
             if point.y <= 3:
-                return self.HIT_NW
+                return self.HIT_NE
             elif size.y / 2 - 3 <= point.y <= size.y / 2 + 3:
-                return self.HIT_W
+                return self.HIT_E
             elif point.y >= size.y - 3:
-                return self.HIT_SW
+                return self.HIT_SE
         elif point.y <= 3 and size.x / 2 - 3 <= point.x <= point.x / 2 + 3:
             return self.HIT_N
         elif point.y >= size.y - 3 and size.x / 2 - 3 <= point.x <= point.x / 2 + 3:
@@ -106,17 +107,21 @@ class ExportItemBitmap(wx.EvtHandler):
         return self.selected
 
     def Draw(self, dc: wx.AutoBufferedPaintDC):
-        pass    # Todo
+        size = self.item.size
+        if self.cache.GetWidth() != size[0] or self.cache.GetHeight() != size[1]:
+            self.RefreshCache()
+        dc.DrawBitmap(self.cache, *self.position)
 
-    def RefreshCache(self, force=False):
-        if self.item.item_type in [ExportItem.SCENE, ExportItem.VISUALIZATION]:
-            self.cache = self.item.snapshot(force)  # Get as wx.Bitmap
-        else:
-            self.cache = self.item.snapshot(force)  # Get as wx.Bitmap (true) <-- true for getting transparency
+    def RefreshCache(self):
+        image = self.item.snapshot()
+        wx_image = wx.Image(*image.size)
+        wx_image.SetData(image.convert("RGB").tobytes())
+        wx_image.SetAlpha(image.convert("RGBA").tobytes()[3::4])
+        self.cache = wx_image.ConvertToBitmap()
 
     def OnMotion(self, event):
-        paint_offset_x = self.canvas.paint_offset_x
-        paint_offset_y = self.canvas.paint_offset_y
+        paint_offset_x = self.canvas.scroll_x
+        paint_offset_y = self.canvas.scroll_y
         event_pos = event.GetPosition()
 
         if self.selected and self.moving:
@@ -139,39 +144,39 @@ class ExportItemBitmap(wx.EvtHandler):
                     diff_x = self.start_size.x * diff_y / self.start_size.y
 
             if self.sizing_handle in [self.HIT_NW, self.HIT_N, self.HIT_NE]:
-                rect.y += diff_y
-                rect.height -= diff_y
+                rect.SetY(rect.GetY() + diff_y)
+                rect.SetHeight(rect.GetHeight() - diff_y)
                 self.offset.y = -diff_y
                 new_size = True
                 new_position = True
 
             if self.sizing_handle in [self.HIT_NW, self.HIT_W, self.HIT_SW]:
-                rect.x += diff_x
-                rect.width -= diff_x
-                self.offset.y = -diff_x
+                rect.SetX(rect.GetX() + diff_x)
+                rect.SetWidth(rect.GetWidth() - diff_x)
+                self.offset.x = -diff_x
                 new_size = True
                 new_position = True
 
             if self.sizing_handle in [self.HIT_SW, self.HIT_S, self.HIT_SE]:
-                rect.height += diff_y
+                rect.SetHeight(rect.GetHeight() + diff_y)
                 new_size = True
 
             if self.sizing_handle in [self.HIT_NE, self.HIT_E, self.HIT_SE]:
-                rect.width += diff_x
+                rect.SetWidth(rect.GetWidth() + diff_x)
                 new_size = True
 
             if new_size:
-                adjust_x = max(rect.width, self.ITEM_MIN_SIZE) - rect.width
-                adjust_y = max(rect.height, self.ITEM_MIN_SIZE) - rect.height
-                rect.width += adjust_x
-                rect.height += adjust_y
-                rect.x -= adjust_x
-                rect.y -= adjust_y
+                adjust_x = max(rect.GetWidth(), self.ITEM_MIN_SIZE) - rect.GetWidth()
+                adjust_y = max(rect.GetHeight(), self.ITEM_MIN_SIZE) - rect.GetHeight()
+                rect.SetWidth(rect.GetWidth() + adjust_x)
+                rect.SetHeight(rect.GetHeight() + adjust_y)
+                rect.SetX(rect.GetX() - adjust_x)
+                rect.SetY(rect.GetY() - adjust_y)
 
-                self.item.size = (rect.width, rect.height)
+                self.item.size = rect.GetSize().Get()
 
             if new_position:
-                self.item.position = (rect.x, rect.y)
+                self.item.position = rect.GetPosition().Get()
 
             self.canvas.Refresh()
 
@@ -203,10 +208,8 @@ class ExportItemBitmap(wx.EvtHandler):
                 self.moving = True
             else:
                 position = self.position
-                self.canvas.CaptureItem(self)
                 self.sizing = True
-                self.offset = event.GetPosition()
-                self.start_position = (position.x + self.canvas.paint_offset_x, position.y + self.canvas.paint_offset_y)
+                self.start_position = (position.x + self.canvas.scroll_x, position.y + self.canvas.scroll_y)
                 self.start_size = self.size
                 self.sizing_handle = self.HitTest(event.GetPosition())
 
@@ -226,7 +229,7 @@ class ExportCanvas(wx.ScrolledWindow):
         self.captured_item = None
         self.selected_item = None
         self.items = []
-
+        self.removed_items = []
         self.scroll_x, self.scroll_y = 0, 0
 
         self.SetBackgroundStyle(wx.BG_STYLE_CUSTOM)
@@ -238,9 +241,6 @@ class ExportCanvas(wx.ScrolledWindow):
         self.Bind(wx.EVT_SCROLLWIN_BOTTOM, self.OnScroll)
         self.Bind(wx.EVT_SCROLLWIN_THUMBTRACK, self.OnScroll)
         self.Bind(wx.EVT_SCROLLWIN_THUMBRELEASE, self.OnScroll)
-
-    def __del__(self):
-        pass
 
     def HitTest(self, point):
         for item in reversed(self.items):
@@ -269,10 +269,11 @@ class ExportCanvas(wx.ScrolledWindow):
             if item is self.selected_item:
                 self.DeselectItem()
             self.items.remove(item)
+            self.removed_items.append(item)
             self.Refresh()
 
     def DeleteAllItems(self):
-        self.items = []
+        del self.items[:]
         self.Refresh()
 
     def CaptureItem(self, item: ExportItemBitmap):
@@ -350,8 +351,8 @@ class ExportCanvas(wx.ScrolledWindow):
         for export_item in self.items:
             export_item.Draw(dc)
             if export_item == self.selected_item:
-                position = self.selected_item.GetPosition()
-                size = self.selected_item.GetSize()
+                position = self.selected_item.position
+                size = self.selected_item.size
 
         if position != wx.DefaultPosition and size != wx.DefaultSize:
             dc.SetBrush(wx.WHITE_BRUSH)
@@ -360,7 +361,7 @@ class ExportCanvas(wx.ScrolledWindow):
             dc.DrawLine(position.x, position.y, position.x + size.x, position.y)
             dc.DrawLine(position.x + size.x, position.y - 3, position.x + size.x, position.y + size.y - 3)
             dc.DrawLine(position.x + size.x - 3, position.y + size.y, position.x - 3, position.y + size.y)
-            dc.DrawLine(position.x, position.y + size.y - 3, position.x + size.x, position.y - 3)
+            dc.DrawLine(position.x, position.y + size.y - 3, position.x, position.y - 3)
 
             # NW
             dc.DrawRectangle(position.x - 3, position.y - 3, 6, 6)
@@ -385,6 +386,8 @@ class ExportCanvas(wx.ScrolledWindow):
 
             # W
             dc.DrawRectangle(position.x - 3, position.y + size.y / 2 - 3, 6, 6)
+
+        del self.removed_items[:]   # Cleanup items from last pass
 
     def OnMouse(self, event: wx.MouseEvent):
         if self.HasCapture() and self.captured_item is not None:
