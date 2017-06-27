@@ -68,7 +68,6 @@ class ExportOptionsDialog(wx.Dialog):
 
         self.Fit()
 
-    @property
     def EncoderSelection(self):
         choice = self.encoder_choice.GetSelection()
         if choice == self.WMV:

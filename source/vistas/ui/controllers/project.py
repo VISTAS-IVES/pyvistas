@@ -617,7 +617,12 @@ class ProjectController(wx.EvtHandler):
             if isinstance(visualization, VisualizationPlugin3D):
                 visualization.scene = None
 
-        # Todo: remove exporter items
+        for item in self.project.exporter.items:
+            if node.node_id == item.project_node_id:
+                self.project.exporter.remove_item(item)
+            elif node.is_flythrough:
+                if node.flythrough is item.flythrough:
+                    item.flythrough = None
 
         if delete_root:
             node.delete()

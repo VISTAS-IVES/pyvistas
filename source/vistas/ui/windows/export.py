@@ -6,6 +6,16 @@ import wx.lib.intctrl
 
 
 class ExportItemBitmap(wx.EvtHandler):
+    """
+        A flexible handler for drawing customized bitmaps. Draw content has sizing handles and bounding boxes, with
+        customized content in the middle, specified using a PIL.Image object
+
+        NW----N----NE
+        |           |
+        W  Content  E
+        |           |
+        SW----S----SE
+    """
 
     HIT_NONE = 0
     HIT_NW = 1
@@ -91,9 +101,9 @@ class ExportItemBitmap(wx.EvtHandler):
                 return self.HIT_E
             elif point.y >= size.y - 3:
                 return self.HIT_SE
-        elif point.y <= 3 and size.x / 2 - 3 <= point.x <= point.x / 2 + 3:
+        elif point.y <= 3 and size.x / 2 - 3 <= point.x <= size.x / 2 + 3:
             return self.HIT_N
-        elif point.y >= size.y - 3 and size.x / 2 - 3 <= point.x <= point.x / 2 + 3:
+        elif point.y >= size.y - 3 and size.x / 2 - 3 <= point.x <= size.x / 2 + 3:
             return self.HIT_S
         return self.HIT_NONE
 
@@ -246,6 +256,7 @@ class ExportCanvas(wx.ScrolledWindow):
         for item in reversed(self.items):
             if item.Hit(point):
                 return item
+        return None
 
     def ConnectEvents(self):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
@@ -290,6 +301,7 @@ class ExportCanvas(wx.ScrolledWindow):
             self.selected_item.Deselect()
         self.selected_item = item
         self.selected_item.Select()
+        self.Refresh()
 
     def DeselectItem(self):
         if self.selected_item is not None:
@@ -358,33 +370,20 @@ class ExportCanvas(wx.ScrolledWindow):
             dc.SetBrush(wx.WHITE_BRUSH)
             dc.SetPen(wx.WHITE_PEN)
 
+            # Bounding box
             dc.DrawLine(position.x, position.y, position.x + size.x, position.y)
             dc.DrawLine(position.x + size.x, position.y - 3, position.x + size.x, position.y + size.y - 3)
             dc.DrawLine(position.x + size.x - 3, position.y + size.y, position.x - 3, position.y + size.y)
             dc.DrawLine(position.x, position.y + size.y - 3, position.x, position.y - 3)
 
-            # NW
+            # Sizing handles
             dc.DrawRectangle(position.x - 3, position.y - 3, 6, 6)
-
-            # N
             dc.DrawRectangle(position.x + size.x / 2 - 3, position.y - 3, 6, 6)
-
-            # NE
             dc.DrawRectangle(position.x + size.x - 3, position.y - 3, 6, 6)
-
-            # E
             dc.DrawRectangle(position.x + size.x - 3, position.y + size.y / 2 - 3, 6, 6)
-
-            # SE
             dc.DrawRectangle(position.x + size.x - 3, position.y + size.y - 3, 6, 6)
-
-            # S
             dc.DrawRectangle(position.x + size.x / 2 - 3, position.y + size.y - 3, 6, 6)
-
-            # SW
             dc.DrawRectangle(position.x - 3, position.y + size.y - 3, 6, 6)
-
-            # W
             dc.DrawRectangle(position.x - 3, position.y + size.y / 2 - 3, 6, 6)
 
         del self.removed_items[:]   # Cleanup items from last pass
@@ -456,8 +455,8 @@ class ExportFrame(wx.Frame):
         size = wx.Size(width, height)
         self.canvas.SetMinSize(size)
         self.canvas.SetMaxSize(size)
-        self.width_text.SetValue(width)
-        self.height_text.SetValue(height)
+        self.width_text.ChangeValue(width)
+        self.height_text.ChangeValue(height)
         self.canvas.SetClientSize(size)
         self.canvas.SetScrollRate(1, 1)
         self.canvas.SetVirtualSize(size)
