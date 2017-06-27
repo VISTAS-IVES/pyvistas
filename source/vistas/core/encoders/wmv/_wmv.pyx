@@ -69,7 +69,7 @@ cdef class Py_IMFMediaType:
     cdef IMFMediaType *c_obj
 
     def __cinit__(self):
-        raise_on_error(plat_lib.MFCreateMediaType(<int>&self.c_obj))
+        raise_on_error(plat_lib.MFCreateMediaType(ctypes.byref(ctypes.c_void_p(<int> self.c_obj))))
 
     def release(self):
         return raise_on_error(self.c_obj.Release())
@@ -91,7 +91,9 @@ cdef class Py_IMFSinkWritier:
     cdef IMFSinkWriter *c_obj
 
     def __cinit__(self, object path):
-        raise_on_error(readwrite_lib.MFCreateSinkWriterFromURL(path, None, None, <int>&self.c_obj))
+        raise_on_error(readwrite_lib.MFCreateSinkWriterFromURL(
+            path, None, None, ctypes.byref(ctypes.c_void_p(<int> self.c_obj))
+        ))
 
     def add_stream(self, Py_IMFMediaType target_media_type):
         cdef unsigned long stream_index
@@ -121,7 +123,7 @@ cdef class Py_IMFSample:
     cdef IMFSample *c_obj
 
     def __cinit__(self):
-        raise_on_error(plat_lib.MFCreateSample(<int>&self.c_obj))
+        raise_on_error(plat_lib.MFCreateSample(ctypes.byref(ctypes.c_void_p(<int> self.c_obj))))
 
     def add_buffer(self, Py_IMFMediaBuffer buffer):
         raise_on_error(self.c_obj.AddBuffer(buffer.c_obj))
@@ -140,7 +142,7 @@ cdef class Py_IMFMediaBuffer:
     cdef IMFMediaBuffer *c_obj
 
     def __cinit__(self, max_length):
-        raise_on_error(plat_lib.MFCreateMemoryBuffer(max_length, <int>&self.c_obj))
+        raise_on_error(plat_lib.MFCreateMemoryBuffer(max_length, ctypes.byref(ctypes.c_void_p(<int> self.c_obj))))
 
     def lock(self):
         cdef unsigned char *data
