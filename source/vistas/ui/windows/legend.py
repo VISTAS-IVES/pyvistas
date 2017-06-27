@@ -48,7 +48,7 @@ class LegendWindow(wx.Frame):
         parent = self.GetParent()
         while parent is not None:
             parent.Bind(wx.EVT_MOVE, self.OnMove)
-            parent.Bind(wx.EVT_PAINT, self.OnPaint)
+            parent.Bind(wx.EVT_PAINT, self.OnPaintParent)
             parent = parent.GetParent()
 
         self.reset = True
@@ -139,6 +139,10 @@ class LegendWindow(wx.Frame):
         trans_dc.DrawRectangle(0, 0, *self.GetSize().Get())
 
         self.RepaintLegend()
+        event.Skip()
+
+    def OnPaintParent(self, event):
+        self.Refresh()
         event.Skip()
 
     def OnLeftDown(self, event):
