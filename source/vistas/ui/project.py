@@ -12,7 +12,7 @@ class ProjectNode:
     next_id = 1
     node_type = ''
 
-    def __init__(self, label, parent=None, node_id=None):
+    def __init__(self, label=None, parent=None, node_id=None):
         self.dirty = True
         self.label = label
         self.parent = parent

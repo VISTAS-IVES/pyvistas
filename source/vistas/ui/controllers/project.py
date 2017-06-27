@@ -103,7 +103,7 @@ class ProjectController(wx.EvtHandler):
             self.SetMainWindowTitle()
 
             if default_scene:
-                default_scene_node = SceneNode(Scene('Default Scene'), 'Default Scene', self.project.visualization_root)
+                default_scene_node = SceneNode(Scene('Default Scene'), label='Default Scene', parent=self.project.visualization_root)
                 tree_parent = self.project_panel.visualization_tree.GetRootItem()
                 self.project_panel.visualization_tree.AppendSceneItem(
                     tree_parent, default_scene_node.label, default_scene_node
@@ -351,7 +351,7 @@ class ProjectController(wx.EvtHandler):
         ProjectController.flythrough_count += 1
 
         node = FlythroughNode(
-            label="Flythrough {}".format(ProjectController.flythrough_count), flythrough=Flythrough(parent.scene)
+            Flythrough(parent.scene), label="Flythrough {}".format(ProjectController.flythrough_count), parent=parent
         )
         tree_parent = self.RecursiveFindByNode(
             self.project_panel.visualization_tree, self.project_panel.visualization_tree.GetRootItem(), parent
@@ -417,9 +417,8 @@ class ProjectController(wx.EvtHandler):
     def OnTreeItemEndEdit(self, event):
         tree = event.GetEventObject()
         node = tree.GetItemData(event.GetItem())
-
         if node is not None:
-            if event.IsEditCancelled():
+            if not event.IsEditCancelled():
                 node.label = event.GetLabel()
 
             pce = ProjectChangedEvent(node=node, change=ProjectChangedEvent.RENAMED_ITEM)
