@@ -10,7 +10,7 @@ class CSVDataPlugin(ArrayDataPlugin):
 
     id = 'csv_reader'
     name = 'CSV Data Plugin'
-    description = 'Loads (time-optional) data from a CSV file.'
+    description = 'Loads (time-optional) numerical data from a CSV file.'
     author = 'Conservation Biology Institute'
     extensions = [('csv', 'CSV')]
 
@@ -33,7 +33,7 @@ class CSVDataPlugin(ArrayDataPlugin):
                     self._attributes[attr].append(float(row[attr]))
 
             # VELMA Table Plugin specifically has these fields. Otherwise, it's a normal csv.
-            if set(['Year', 'Day']) < set(fieldnames):
+            if {'Year', 'Day'} < set(fieldnames):
                 years = self._attributes.pop('Year')
                 days = self._attributes.pop('Day')
                 self._temporal_info.timestamps = [
@@ -68,7 +68,6 @@ class CSVDataPlugin(ArrayDataPlugin):
                     if i == 0:
                         length = len(row)
                         continue
-
                     if len(row) != length:
                         return False
             except csv.Error:
