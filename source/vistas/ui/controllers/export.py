@@ -218,7 +218,7 @@ class ExportController(wx.EvtHandler):
         if scenes:
             for scene_node in scenes:
                 id = self.MENU_ADD_PROJECT_ITEM + index
-                scenes_menu.Append(id, scene_node.scene.name)
+                scenes_menu.Append(id, scene_node.label)
                 self.popup_nodes[id] = scene_node
                 id = self.MENU_ADD_SCENE_LEGEND + index
                 legends_menu.Append(id, scene_node.label)
@@ -370,6 +370,7 @@ class ExportController(wx.EvtHandler):
         elif id == self.MENU_SET_NO_FLYTHROUGH:
             item = self.export_frame.canvas.selected_item.item
             item.flythrough = None
+            item.use_flythrough_camera = False
             return
 
         elif id >= self.MENU_ADD_SCENE_LEGEND:
@@ -377,11 +378,17 @@ class ExportController(wx.EvtHandler):
                 item.item_type = ExportItem.LEGEND
                 item.size = (200, 400)
                 visualizations = self.project.find_viz_with_parent_scene(project_node.scene)
+                legend_viz = None
                 for viz in visualizations:
                     if isinstance(viz, VisualizationPlugin3D):
-                        item.viz_plugin = viz
+                        legend_viz = viz
                         break
-                item.project_node_id = project_node.node_id
+
+                if legend_viz.has_legend():
+                    item.viz_plugin = legend_viz
+                    item.project_node_id = project_node.node_id
+                else:
+                    return
 
         elif id >= self.MENU_ADD_PROJECT_ITEM:
             if project_node.is_scene:
@@ -406,6 +413,7 @@ class ExportController(wx.EvtHandler):
             elif project_node.is_flythrough:
                 item = self.export_frame.canvas.selected_item.item
                 item.flythrough = project_node.flythrough
+                item.use_flythrough_camera = True
                 item.flythrough_node_id = project_node.node_id
                 return
 
@@ -466,9 +474,6 @@ class ExportController(wx.EvtHandler):
         config = ExportSceneDialog(self.export_frame.canvas, wx.ID_ANY, item)
         config.CenterOnParent()
         config.ShowModal()
-
-    def CleanTextInput(self, string):
-        pass    # Todo - is this needed anymore? Probably...
 
     def OnTextUpdate(self, event):
         text_ctrl = event.GetEventObject()

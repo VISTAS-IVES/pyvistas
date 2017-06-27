@@ -94,12 +94,11 @@ class ExportItem:
         elif self.item_type == self.TIMESTAMP:
             self.size = self._font.getsize(Timeline.app().current.strftime(self.time_format))
 
-    def snapshot(self, force=False):
-        if not force and self.cache is not None and self.cache.size == self.size:
+    def snapshot(self):
+        if self.cache is not None and self.cache.size == self.size:
             return self.cache
         else:
             self.refresh_cache()
-
         return self.cache
 
     def refresh_cache(self):
