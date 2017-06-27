@@ -6,7 +6,7 @@ from vistas.core.timeline import Timeline
 from vistas.core.encoders.interface import VideoEncoder
 from vistas.ui.utils import post_message
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 
 
 class ExportItem:
@@ -35,6 +35,7 @@ class ExportItem:
         self.flythrough_node_id = flythrough_node_id
 
         self._font_size = 12
+        self._font = ImageFont.truetype("arial.ttf", self._font_size)
         self._time_format = '%Y-%m-%d'
         self._label = ''
 
@@ -61,6 +62,7 @@ class ExportItem:
     @font_size.setter
     def font_size(self, font_size):
         self._font_size = font_size
+        self._font = ImageFont.truetype("arial.ttf", self._font_size)
         self.compute_bbox()
 
     @property
@@ -87,11 +89,10 @@ class ExportItem:
         self.compute_bbox()
 
     def compute_bbox(self):
-        font = ImageFont.load_default()
         if self.item_type == self.LABEL:
-            self.size = font.getsize(max(self.label.split('\n'), key=len))
+            self.size = self._font.getsize(max(self.label.split('\n'), key=len))
         elif self.item_type == self.TIMESTAMP:
-            self.size = font.getsize(Timeline.app().current.strftime(self.time_format))
+            self.size = self._font.getsize(Timeline.app().current.strftime(self.time_format))
 
     def snapshot(self, force=False):
         if not force and self.cache is not None and self.cache.size == self.size:
@@ -103,7 +104,7 @@ class ExportItem:
 
     def refresh_cache(self):
 
-        snapshot = Image.new("RGBA", self.size)
+        snapshot = Image.new("RGBA", self.size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(snapshot)
 
         if self.item_type == self.SCENE:
@@ -117,17 +118,23 @@ class ExportItem:
             pass    # Todo - implement 2D visualizations
             # snapshot = self.viz_plugin.render(*self.size).as_bitmap()
         elif self.item_type == self.LABEL:
-            draw.text((0, 0), self.label)
+            draw.text((0, 0), self.label, font=self._font)
         elif self.item_type == self.TIMESTAMP:
-            draw.text((0, 0), Timeline.app().current.strftime(self._time_format))
+            draw.text((0, 0), Timeline.app().current.strftime(self._time_format), font=self._font)
 
         self.cache = snapshot
 
-    def draw(self, image):
-        image.paste(self.cache, self.position)
+    def draw(self, image: Image):
+
+        mask = None
+        if self.item_type in [self.LABEL, self.TIMESTAMP, self.LEGEND]:
+            en = ImageEnhance.Brightness(self.cache)
+            mask = en.enhance(0)
+
+        image.paste(self.cache, self.position, mask)
 
 
-class Exporter(Thread):
+class Exporter:
 
     def __init__(self, size=(740, 480)):
         super().__init__()
@@ -198,54 +205,59 @@ class Exporter(Thread):
         return result
 
     def export_frames(self, encoder: VideoEncoder, path):
-
-        self.task = Task("Exporting Frames", "Exporting frames...")
-        self.encoder = encoder
-        self.path = path
-
-        self.start()
-
-        return self.task
+        export_frames_thread = ExportFramesTask(self, encoder, path)
+        export_frames_thread.start()
+        return export_frames_thread.task
 
     def refresh_item_caches(self):
         for item in self.items:
             item.refresh_cache()
 
+
+class ExportFramesTask(Thread):
+
+    def __init__(self, exporter, encoder, path):
+        super().__init__()
+        self.exporter = exporter
+        self.encoder = encoder
+        self.path = path
+        self.task = Task("Exporting Frames", "Exporting frames...")
+
     def run(self):
-        self.task.target = self.video_frames-1
-        self.encoder.fps = self.video_fps
+        self.task.target = self.exporter.video_frames-1
+        self.encoder.fps = self.exporter.video_fps
         self.task.progress = 0
         self.task.status = Task.RUNNING
         timeline = Timeline.app()
-        timeline.current = self.animation_start
-        self.encoder.open(self.path, *self.size)
+        timeline.current = self.exporter.animation_start
+        self.encoder.open(self.path, *self.exporter.size)
 
-        if self.is_temporal:
-            for frame in range(self.video_frames):
-                error = self.task.status == Task.SHOULD_STOP or not timeline.current <= self.animation_end or \
+        if self.exporter.is_temporal:
+            for frame in range(self.exporter.video_frames):
+                error = self.task.status == Task.SHOULD_STOP or not timeline.current <= self.exporter.animation_end or \
                         not self.encoder.is_ok()
                 if error:
                     post_message("There was an error exporting the animation. Export may be incomplete.", 1)
                     break
 
-                timeline.current = timeline.time_at_index(frame * self.animation_frames / self.video_frames)
+                timeline.current = timeline.time_at_index(int(frame * self.exporter.animation_frames / self.exporter.video_frames))
 
                 self.task.description = "Exporting frame {} of {}.".format(self.task.progress, self.task.target)
 
-                for item in self.items:
+                for item in self.exporter.items:
                     if item.item_type is ExportItem.SCENE and item.flythrough is not None:
-                        local_fly_fps = item.flythrough.fps / self.flythrough_fps
+                        local_fly_fps = item.flythrough.fps / self.exporter.flythrough_fps
                         item.flythrough.update_camera_to_keyframe(
-                            (local_fly_fps * frame * item.flythrough.num_keyframes) / self.video_frames
+                            (local_fly_fps * frame * item.flythrough.num_keyframes) / self.exporter.video_frames
                         )
 
-                self.sync_with_main(self.refresh_item_caches, block=True)
+                self.sync_with_main(self.exporter.refresh_item_caches, block=True)
 
-                frame_bitmap = Image.new("RGBA", self.size)
-                for item in self.items:
+                frame_bitmap = Image.new("RGBA", self.exporter.size, (0, 0, 0, 0))
+                for item in self.exporter.items:
                     item.draw(frame_bitmap)
 
-                self.encoder.write_frame(frame_bitmap, 1.0 / self.video_fps)
+                self.encoder.write_frame(frame_bitmap, 1.0 / self.exporter.video_fps)
 
                 if timeline.current > timeline.end:
                     break

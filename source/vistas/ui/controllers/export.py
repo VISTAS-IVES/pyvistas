@@ -3,9 +3,14 @@ from vistas.core.plugins.visualization import VisualizationPlugin2D, Visualizati
 from vistas.core.timeline import Timeline
 from vistas.core.graphics.camera import Camera
 from vistas.core.graphics.camera_interactor import SphereInteractor
+from vistas.core.encoders.wmv import WMVEncoder
+from vistas.core.encoders.png import PNGEncoder
 from vistas.ui.project import Project
 from vistas.ui.windows.export import ExportFrame, ExportItemBitmap
 from vistas.ui.windows.export_scene_dialog import ExportSceneDialog
+from vistas.ui.windows.export_options_dialog import ExportOptionsDialog
+from vistas.ui.windows.task_dialog import TaskDialog
+from vistas.ui.utils import post_message
 
 import wx
 
@@ -65,6 +70,12 @@ class ExportController(wx.EvtHandler):
         self.mouse_pos = wx.DefaultPosition
         self.popup_nodes = {}
 
+    def RefreshExporter(self):
+        self.project = Project.get()
+        if self.export_frame.IsShown():
+            self.export_frame.SetCanvasSize(*self.canvas_size)
+            self.SetExportWindow(Exporter())
+
     def __del__(self):
         self.export_frame.Destroy()
 
@@ -78,7 +89,7 @@ class ExportController(wx.EvtHandler):
 
     def SetExportWindow(self, exporter: Exporter):
         self.Reset()
-        if self.project.exporter.items:
+        if not self.project.exporter.items:
             for item in exporter.items:
                 self.project.exporter.add_item(item)
             size = exporter.size
@@ -125,7 +136,58 @@ class ExportController(wx.EvtHandler):
         self.export_frame.Refresh()
 
     def OnExportButton(self, event):
-        pass    # Todo - implement
+        timeline = Timeline.app()
+        flythrough_fps = 0.0
+        animation_frames = timeline.num_timestamps
+
+        for item in self.project.exporter.items:
+            if item.item_type is ExportItem.SCENE:
+                if item.flythrough is not None:
+                    if item.flythrough.fps > flythrough_fps:
+                        flythrough_fps = item.flythrough.fps
+
+        if animation_frames == 0 and flythrough_fps == 0:
+            post_message("There is no time series of flythrough applied to any object. No export could occur.", 1)
+            return
+
+        export_dialog = ExportOptionsDialog(self.export_frame, wx.ID_ANY, animation_frames > 0)
+        if export_dialog.ShowModal() == wx.ID_OK:
+
+            video_length = export_dialog.export_length
+            animation_fps = animation_frames / video_length
+            video_fps = max(animation_fps, flythrough_fps)
+            video_frames = video_fps * video_length
+
+            exporter = self.project.exporter
+            exporter.is_temporal = animation_frames != 0
+            exporter.animation_frames = animation_frames
+            exporter.animation_fps = animation_fps
+            exporter.flythrough_fps = flythrough_fps
+            exporter.video_fps = video_fps
+            exporter.video_frames = int(video_frames)
+            exporter.animation_start = timeline.start
+            exporter.animation_end = timeline.end
+
+            if export_dialog.EncoderSelection() is export_dialog.WMV:
+                file_dialog = wx.FileDialog(
+                    self.export_frame, "Export Movie...", wildcard="*.wmv", style=wx.FD_OVERWRITE_PROMPT | wx.FD_SAVE
+                )
+                if file_dialog.ShowModal() == wx.ID_OK:
+                    encoder = WMVEncoder()
+                    path = file_dialog.GetPath()
+                else:
+                    return
+            else:
+                dir_dialog = wx.DirDialog(
+                    self.export_frame, "Export Frames...", style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST
+                )
+                if dir_dialog.ShowModal() == wx.ID_OK:
+                    encoder = PNGEncoder()
+                    path = dir_dialog.GetPath()
+                else:
+                    return
+
+            TaskDialog(self.export_frame, exporter.export_frames(encoder, path), True, True).ShowModal()
 
     def OnLeftDown(self, event):
         focus_win = wx.Window.FindFocus()
@@ -158,7 +220,9 @@ class ExportController(wx.EvtHandler):
                 id = self.MENU_ADD_PROJECT_ITEM + index
                 scenes_menu.Append(id, scene_node.scene.name)
                 self.popup_nodes[id] = scene_node
-                legends_menu.Append(self.MENU_ADD_SCENE_LEGEND + index, scene_node.label)
+                id = self.MENU_ADD_SCENE_LEGEND + index
+                legends_menu.Append(id, scene_node.label)
+                self.popup_nodes[id] = scene_node
                 index += 1
         else:
             scenes_menu.Append(self.MENU_NO_SCENES, "No scenes available")
@@ -267,6 +331,8 @@ class ExportController(wx.EvtHandler):
         item.position = (self.mouse_pos.x + offset_x, self.mouse_pos.y + offset_y)
 
         id = event.GetId()
+        project_node = self.popup_nodes.get(id, None)
+        self.popup_nodes.clear()
 
         if id == self.MENU_ADD_LABEL:
             item.item_type = ExportItem.LABEL
@@ -307,7 +373,6 @@ class ExportController(wx.EvtHandler):
             return
 
         elif id >= self.MENU_ADD_SCENE_LEGEND:
-            project_node = self.popup_nodes[id - self.MENU_ADD_SCENE_LEGEND]
             if project_node.is_scene:
                 item.item_type = ExportItem.LEGEND
                 item.size = (200, 400)
@@ -319,7 +384,6 @@ class ExportController(wx.EvtHandler):
                 item.project_node_id = project_node.node_id
 
         elif id >= self.MENU_ADD_PROJECT_ITEM:
-            project_node = self.popup_nodes[id - self.MENU_ADD_PROJECT_ITEM]
             if project_node.is_scene:
                 item.item_type = ExportItem.SCENE
                 item.size = (400, 400)

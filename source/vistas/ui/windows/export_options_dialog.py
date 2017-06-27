@@ -1,8 +1,8 @@
 from vistas.core.utils import get_platform
 from vistas.core.timeline import Timeline
+from vistas.ui.validators import FloatValidator
 
 import wx
-import wx.lib.intctrl
 
 
 class ExportOptionsDialog(wx.Dialog):
@@ -26,13 +26,14 @@ class ExportOptionsDialog(wx.Dialog):
         initial_export_length = 30.0
 
         export_length_static = wx.StaticText(main_panel, wx.ID_ANY, "Length of export (in seconds):")
-        self.export_length_ctrl = wx.lib.intctrl.IntCtrl(main_panel, wx.ID_ANY, value=initial_export_length, min=1,
-                                                         size=wx.Size(50, -1))
+        self.export_length_ctrl = wx.TextCtrl(main_panel, wx.ID_ANY, value=str(initial_export_length),
+                                              validator=FloatValidator(), size=wx.Size(50, -1))
 
         initial_export_timestamps = Timeline.app().num_timestamps / initial_export_length
 
         export_frames_static = wx.StaticText(main_panel, wx.ID_ANY, "Timestamps per second:")
-        self.export_frames_ctrl = wx.lib.intctrl.IntCtrl(main_panel, wx.ID_ANY, value=initial_export_timestamps,
+        self.export_frames_ctrl = wx.TextCtrl(main_panel, wx.ID_ANY, value=str(initial_export_timestamps),
+                                                         validator=FloatValidator(),
                                                          size=wx.Size(50, -1))
 
         self.export_frames_ctrl.Enable(enable_frames_input)
@@ -78,12 +79,12 @@ class ExportOptionsDialog(wx.Dialog):
 
     @property
     def export_length(self):
-        return self.export_length_ctrl.GetValue()
+        return float(self.export_length_ctrl.GetValue())
 
     def OnExportLengthEndInput(self, event):
         if self.export_frames_ctrl.Enabled():
-            export_timestamps = Timeline.app().num_timestamps / self.export_length_ctrl.GetValue()
-            self.export_frames_ctrl.SetValue(export_timestamps)
+            export_timestamps = Timeline.app().num_timestamps / self.export_length
+            self.export_frames_ctrl.SetValue(str(export_timestamps))
 
     def OnExportFramesEndInput(self, event):
         input_frames = self.export_frames_ctrl.GetValue()
@@ -93,7 +94,7 @@ class ExportOptionsDialog(wx.Dialog):
             input_frames = max_frames
         elif input_frames <= 0.0:
             input_frames = 1.0
-        self.export_frames_ctrl.SetValue(input_frames)
+        self.export_frames_ctrl.SetValue(str(input_frames))
 
         new_length = round(max_frames / input_frames)
-        self.export_length_ctrl.SetValue(new_length)
+        self.export_length_ctrl.SetValue(str(new_length))

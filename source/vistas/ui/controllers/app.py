@@ -86,11 +86,11 @@ class AppController(wx.EvtHandler):
         elif event_id == MainWindow.MENU_FILE_NEW:
             self.main_window.project_controller.NewProject()
             self.main_window.options_panel.options = None
-            # Todo - set ExportController project
-            # Todo - reset ExportController items
+            self.export_controller.RefreshExporter()
+            self.export_controller.Reset()
         elif event_id == MainWindow.MENU_FILE_OPEN:
             self.main_window.project_controller.LoadProjectFromDialog()
-            # Todo - set ExportControllerProject
+            self.export_controller.RefreshExporter()
         elif event_id == MainWindow.MENU_FILE_SAVE:
             self.main_window.project_controller.SaveProject()
         elif event_id == MainWindow.MENU_FILE_SAVEAS:
@@ -180,13 +180,14 @@ class AppController(wx.EvtHandler):
                         label = ExportItem(ExportItem.LABEL)
                         label.size = (100, 100)
                         label.label = export_item.camera.scene.name
-                        label.position = (x_offset + export_item.size[0] / 5 - 50, y_offset + export_item.size[1] / 5)
+                        label.position = (int(x_offset + export_item.size[0] / 5 - 50),
+                                          int(y_offset + export_item.size[1] / 5))
                         exporter.add_item(label)
 
                         timestamp = ExportItem(ExportItem.TIMESTAMP)
                         timestamp.time_format = Timeline.app().time_format
-                        timestamp.position = (x_offset + export_item.size[0] / 2 - timestamp.size[0] / 2,
-                                              y_offset + export_item.size[1] / 5)
+                        timestamp.position = (int(x_offset + export_item.size[0] / 2 - timestamp.size[0] / 2),
+                                              int(y_offset + export_item.size[1] / 5))
                         exporter.add_item(timestamp)
 
                     x_offset += export_item.size[0] + PADDING
