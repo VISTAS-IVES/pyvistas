@@ -61,7 +61,7 @@ class ViewerPanel(wx.Panel):
         self.camera = Camera()
 
         attrib_list = [WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16]
-        if get_platform() == 'macos' or True:
+        if get_platform() == 'macos':
             attrib_list += [WX_GL_CORE_PROFILE]
 
         self.gl_canvas = GLCanvas(
