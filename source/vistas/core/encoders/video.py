@@ -57,4 +57,4 @@ class ImageIOVideoEncoder(VideoEncoder):
         self.writer.close()
 
     def is_ok(self):
-        return self.writer
+        return not self.writer.closed
