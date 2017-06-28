@@ -29,7 +29,7 @@ extensions = [
     Extension(
         'vistas.core.encoders.wmv._wmv',
         sources=['vistas/core/encoders/wmv/_wmv.pyx'],
-        libraries=['Mfuuid'],
+        libraries=['Mfuuid', 'Mfplat', 'Mfreadwrite'],
         language='c++'
     )
 ]

@@ -1,6 +1,5 @@
 import ctypes
 from _testbuffer import PyBUF_WRITE
-from ctypes.util import find_library
 
 import numpy
 
@@ -9,6 +8,9 @@ cdef extern from "<mfapi.h>":
     unsigned long FCC(unsigned int)
     int MFSetAttributeSize(void*, const GUID&, unsigned int, unsigned int)
     int MFSetAttributeRatio(void*, const GUID&, unsigned int, unsigned int)
+    int MFCreateMediaType(IMFMediaType**)
+    int MFCreateSample(IMFSample**)
+    int MFCreateMemoryBuffer(unsigned long, IMFMediaBuffer**)
 
 
 cdef extern from "<guiddef.h>":
@@ -49,9 +51,7 @@ cdef extern from "Mfreadwrite.h":
         unsigned long AddRef()
         unsigned long Release()
 
-
-plat_lib = ctypes.cdll.LoadLibrary(find_library('Mfplat'))
-readwrite_lib = ctypes.cdll.LoadLibrary(find_library('mfreadwrite'))
+    int MFCreateSinkWriterFromURL(const Py_UNICODE*, void*, void*, IMFSinkWriter**)
 
 
 def raise_on_error(hr):
@@ -69,9 +69,7 @@ cdef class Py_IMFMediaType:
     cdef IMFMediaType *c_obj
 
     def __cinit__(self):
-        obj = ctypes.c_void_p()
-        raise_on_error(plat_lib.MFCreateMediaType(ctypes.byref(obj)))
-        self.c_obj = <IMFMediaType*> <size_t> obj.value
+        raise_on_error(MFCreateMediaType(&self.c_obj))
 
     def release(self):
         return raise_on_error(self.c_obj.Release())
@@ -93,9 +91,7 @@ cdef class Py_IMFSinkWritier:
     cdef IMFSinkWriter *c_obj
 
     def __cinit__(self, object path):
-        obj = ctypes.c_void_p()
-        raise_on_error(readwrite_lib.MFCreateSinkWriterFromURL(path, None, None, ctypes.byref(obj)))
-        self.c_obj = <IMFSinkWriter*> <size_t> obj.value
+        raise_on_error(MFCreateSinkWriterFromURL(path, NULL, NULL, &self.c_obj))
 
     def add_stream(self, Py_IMFMediaType target_media_type):
         cdef unsigned long stream_index
@@ -125,9 +121,7 @@ cdef class Py_IMFSample:
     cdef IMFSample *c_obj
 
     def __cinit__(self):
-        obj = ctypes.c_void_p()
-        raise_on_error(plat_lib.MFCreateSample(ctypes.byref(obj)))
-        self.c_obj = <IMFSample*> <size_t> obj.value
+        raise_on_error(MFCreateSample(&self.c_obj))
 
     def add_buffer(self, Py_IMFMediaBuffer buffer):
         raise_on_error(self.c_obj.AddBuffer(buffer.c_obj))
@@ -146,9 +140,7 @@ cdef class Py_IMFMediaBuffer:
     cdef IMFMediaBuffer *c_obj
 
     def __cinit__(self, max_length):
-        obj = ctypes.c_void_p()
-        raise_on_error(plat_lib.MFCreateMemoryBuffer(max_length, ctypes.byref(obj)))
-        self.c_obj = <IMFMediaBuffer*> <size_t> obj.value
+        raise_on_error(MFCreateMemoryBuffer(max_length, &self.c_obj))
 
     def lock(self):
         cdef unsigned char *data
