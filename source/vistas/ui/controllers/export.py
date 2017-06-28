@@ -3,19 +3,16 @@ from vistas.core.plugins.visualization import VisualizationPlugin2D, Visualizati
 from vistas.core.timeline import Timeline
 from vistas.core.graphics.camera import Camera
 from vistas.core.graphics.camera_interactor import SphereInteractor
+from vistas.core.encoders.video import ImageIOVideoEncoder
 from vistas.core.encoders.png import PNGEncoder
-from vistas.core.utils import get_platform
 from vistas.ui.project import Project
 from vistas.ui.windows.export import ExportFrame, ExportItemBitmap
 from vistas.ui.windows.export_scene_dialog import ExportSceneDialog
 from vistas.ui.windows.export_options_dialog import ExportOptionsDialog
 from vistas.ui.windows.task_dialog import TaskDialog
-from vistas.ui.utils import post_message
+from vistas.ui.utils import post_message, get_platform
 
 import wx
-
-if get_platform() == 'windows':
-    from vistas.core.encoders.wmv import WMVEncoder
 
 
 class ExportTextCtrl(wx.TextCtrl):
@@ -171,12 +168,17 @@ class ExportController(wx.EvtHandler):
             exporter.animation_start = timeline.start
             exporter.animation_end = timeline.end
 
-            if export_dialog.EncoderSelection() is export_dialog.WMV:
+            if export_dialog.EncoderSelection() is export_dialog.VIDEO:
+                wildcard = 'MPEG-4 (*.mp4)|*.mp4'
+                if get_platform() == 'windows':
+                    wildcard += "|Windows Media Video (*.wmv)|*wmv"
+
                 file_dialog = wx.FileDialog(
-                    self.export_frame, "Export Movie...", wildcard="*.wmv", style=wx.FD_OVERWRITE_PROMPT | wx.FD_SAVE
+                    self.export_frame, "Export Movie...", wildcard=wildcard, style=wx.FD_OVERWRITE_PROMPT | wx.FD_SAVE
                 )
+
                 if file_dialog.ShowModal() == wx.ID_OK:
-                    encoder = WMVEncoder()
+                    encoder = ImageIOVideoEncoder()
                     path = file_dialog.GetPath()
                 else:
                     return
