@@ -26,3 +26,4 @@ six==1.10.0
 snuggs==1.4.1
 wxPython==4.0.0a1
 yarl==0.10.2
+imageio==2.2.0
