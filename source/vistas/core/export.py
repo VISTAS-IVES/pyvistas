@@ -1,3 +1,4 @@
+from vistas.core.fonts import get_font_path
 from vistas.core.threading import Thread
 from vistas.core.plugins.visualization import VisualizationPlugin
 from vistas.core.graphics.camera import Camera
@@ -35,7 +36,7 @@ class ExportItem:
         self.flythrough_node_id = flythrough_node_id
 
         self._font_size = 12
-        self._font = ImageFont.truetype("arial.ttf", self._font_size)
+        self._font = ImageFont.truetype(get_font_path('arial.ttf'), self._font_size)
         self._time_format = '%Y-%m-%d'
         self._label = ''
 
