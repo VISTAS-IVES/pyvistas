@@ -1,4 +1,3 @@
-from vistas.core.utils import get_platform
 from vistas.core.timeline import Timeline
 from vistas.ui.validators import FloatValidator
 
@@ -7,9 +6,8 @@ import wx
 
 class ExportOptionsDialog(wx.Dialog):
 
-    WMV = 0
+    VIDEO = 0
     IMAGE = 1
-    # Todo - add MPEG export option
 
     def __init__(self, parent, id, enable_frames_input=True):
         super().__init__(parent, id, "Export Options", style=wx.CAPTION | wx.STAY_ON_TOP)
@@ -18,8 +16,7 @@ class ExportOptionsDialog(wx.Dialog):
         encoder_static = wx.StaticText(main_panel, wx.ID_ANY, "Export As:")
         self.encoder_choice = wx.Choice(main_panel, wx.ID_ANY, size=wx.Size(220, -1))
 
-        if get_platform() == 'windows':
-            self.encoder_choice.Append("WMV Video File")
+        self.encoder_choice.Append("Video File")
         self.encoder_choice.Append("Individual Image Files")
         self.encoder_choice.SetSelection(0)
 
@@ -71,8 +68,8 @@ class ExportOptionsDialog(wx.Dialog):
 
     def EncoderSelection(self):
         choice = self.encoder_choice.GetSelection()
-        if choice == self.WMV:
-            return self.WMV
+        if choice == self.VIDEO:
+            return self.VIDEO
         elif choice == self.IMAGE:
             return self.IMAGE
         return None
@@ -82,12 +79,12 @@ class ExportOptionsDialog(wx.Dialog):
         return float(self.export_length_ctrl.GetValue())
 
     def OnExportLengthEndInput(self, event):
-        if self.export_frames_ctrl.Enabled():
+        if self.export_frames_ctrl.IsEnabled():
             export_timestamps = Timeline.app().num_timestamps / self.export_length
             self.export_frames_ctrl.SetValue(str(export_timestamps))
 
     def OnExportFramesEndInput(self, event):
-        input_frames = self.export_frames_ctrl.GetValue()
+        input_frames = float(self.export_frames_ctrl.GetValue())
         max_frames = Timeline.app().num_timestamps
 
         if input_frames > max_frames:

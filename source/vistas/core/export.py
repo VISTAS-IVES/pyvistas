@@ -252,7 +252,7 @@ class ExportFramesTask(Thread):
 
                 self.sync_with_main(self.exporter.refresh_item_caches, block=True)
 
-                frame_bitmap = Image.new("RGBA", self.exporter.size, (0, 0, 0, 0))
+                frame_bitmap = Image.new("RGB", self.exporter.size, (0, 0, 0))
                 for item in self.exporter.items:
                     item.draw(frame_bitmap)
 
