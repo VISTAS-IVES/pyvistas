@@ -64,6 +64,12 @@ class WMVEncoder(VideoEncoder):
 
         media_type_out = media_type_in = None
 
+        if os.path.exists(path):
+            os.remove(path)
+
+        if not os.path.isdir(os.path.dirname(path)):
+            raise Exception('Directory does not exist: {}'.format(os.path.dirname(path)))
+
         try:
             raise_on_error(self.ole_lib.CoInitializeEx(None, COINIT_APARTMENTTHREADED))
             raise_on_error(self.plat_lib.MFStartup(MF_VERSION))
