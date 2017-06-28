@@ -36,11 +36,14 @@ class AppController(wx.EvtHandler):
         self.time_filter_window = TimeFilterWindow(self.main_window, wx.ID_ANY)
         self.time_filter_window.Hide()
 
-        self.export_controller = ExportController()
-
         main_window_state = Preferences.app().get('main_window_state')
         if main_window_state:
             self.main_window.LoadState(main_window_state)
+
+        self.export_controller = ExportController()
+        export_state = Preferences.app().get('export_window_state')
+        if export_state:
+            self.export_controller.LoadState(export_state)
 
         self.main_window.Bind(wx.EVT_MENU, self.OnWindowMenu)
         self.main_window.Bind(wx.EVT_CLOSE, self.OnWindowClose)
@@ -151,8 +154,20 @@ class AppController(wx.EvtHandler):
 
         wx.adv.AboutBox(info)
 
-    def OnWindowClose(self, event):
-        # Todo: check project save status
+    def OnWindowClose(self, event: wx.CloseEvent):
+        if self.main_window.project_controller.project.is_dirty and event.CanVeto():
+            if wx.MessageBox(
+                    "There is an unsaved project open. Do you still want to close VISTAS?", "Confirm Close?",
+                    style=wx.ICON_QUESTION | wx.STAY_ON_TOP | wx.YES_NO | wx.NO_DEFAULT
+               ) != wx.YES:
+                event.Veto()
+                return
+
+        # Save preferences, exit now.
+        prefs = Preferences.app()
+        prefs['main_window_state'] = self.main_window.SaveState()
+        prefs['export_window_state'] = self.export_controller.SaveState()
+        prefs.save()
         wx.Exit()
 
     def GetDefaultExporter(self, add_labels=False):

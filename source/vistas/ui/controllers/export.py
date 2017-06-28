@@ -112,11 +112,37 @@ class ExportController(wx.EvtHandler):
             canvas_item.Bind(wx.EVT_LEFT_DCLICK, self.OnItemDClick)
             canvas_item.Bind(wx.EVT_RIGHT_DOWN, self.OnRightDown)
 
-    def SaveState(self, state):
-        pass    # Todo - implement
+    def SaveState(self):
+        state = {}
+        pos = self.frame_position
+        size = self.canvas_size
+
+        state['display_index'] = wx.Display.GetFromWindow(self.export_frame)
+        state['is_maximized'] = self.export_frame.IsMaximized()
+        state['x'] = pos.x
+        state['y'] = pos.y
+        state['w'], state['h'] = size
+
+        return state
 
     def LoadState(self, state):
-        pass    # Todo - implement
+        display_index = state.get('display_index', None)
+        if display_index < wx.Display.GetCount():
+             display_area = wx.Display(display_index).GetClientArea()
+        else:
+            display_area = wx.Display(0).GetClientArea()
+
+        pos = wx.Rect(
+            state.get('x', -1),
+            state.get('y', -1),
+            state.get('w', -1),
+            state.get('h', -1)
+        )
+        if display_area.Contains(pos):
+            pos = display_area
+        self.frame_position = wx.Point(pos.x, pos.y)
+        if state.get('is_maximized', None):
+            self.export_frame.Maximize()
 
     def OnFrameClose(self, event):
         self.frame_position = self.export_frame.GetPosition()

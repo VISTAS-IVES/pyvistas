@@ -220,6 +220,24 @@ class MainWindow(wx.Frame):
         if state.get('left_splitter_pos') is not None:
             self.left_sash_position = state['left_splitter_pos']
 
+    def SaveState(self) -> dict:
+        state = {}
+        pos = self.GetPosition()
+        size = self.GetSize()
+
+        state['display_index'] = wx.Display.GetFromWindow(self)
+        state['is_maximized'] = self.IsMaximized()
+        state['x'] = pos.x
+        state['y'] = pos.y
+        state['w'] = size.x
+        state['h'] = size.y
+        state['main_splitter_pos'] = self.main_splitter.GetSashPosition() if self.main_splitter.IsSplit()\
+            else self.main_sash_position
+        state['left_splitter_pos'] = self.left_splitter.GetSashPosition() if self.main_splitter.IsSplit() \
+            else self.left_sash_position
+
+        return state
+
     def OnProjectChanged(self, event):
         self.viewer_container_panel.ProjectChanged(event)
 

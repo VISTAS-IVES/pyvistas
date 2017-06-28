@@ -28,12 +28,12 @@ class Preferences:
         self.preferences = {}
 
         if os.path.exists(self.path):
-            with open(self.path) as f:
+            with open(self.path, 'r') as f:
                 self.preferences = json.load(f)
 
     def save(self):
         with open(self.path, 'w') as f:
-            json.dump(f)
+            json.dump(self.preferences, f)
 
     def __getitem__(self, key):
         return self.preferences[key]
