@@ -37,7 +37,8 @@ class CSVDataPlugin(ArrayDataPlugin):
                 years = self._attributes.pop('Year')
                 days = self._attributes.pop('Day')
                 self._temporal_info.timestamps = [
-                    datetime.datetime(int(years[i]), 1, 1) + datetime.timedelta(int(days[i]) - 1) for i in range(len(years))
+                    datetime.datetime(int(years[i]), 1, 1) + datetime.timedelta(int(days[i]) - 1)
+                    for i in range(len(years))
                 ]
 
             for attr, data in self._attributes.items():

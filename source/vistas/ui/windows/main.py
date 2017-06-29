@@ -2,6 +2,7 @@ import wx
 
 from vistas.core.paths import get_resource_bitmap
 from vistas.core.utils import get_platform
+from vistas.ui.controls.graph_panel import GraphPanel
 from vistas.ui.events import *
 from vistas.ui.controllers.project import ProjectController
 from vistas.ui.controls.project_panel import ProjectPanel
@@ -46,6 +47,8 @@ class MainWindow(wx.Frame):
 
         self.SetSize(1200, 800)
         self.CenterOnScreen()
+
+        self.graph_panels = []
 
         menu_bar = wx.MenuBar()
 
@@ -163,10 +166,10 @@ class MainWindow(wx.Frame):
         self.left_panel.SetSizer(left_panel_sizer)
         left_panel_sizer.Add(self.left_splitter, 1, wx.EXPAND | wx.LEFT | wx.BOTTOM, 5)
 
-        right_panel_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.right_panel.SetSizer(right_panel_sizer)
-        right_panel_sizer.Add(self.viewer_container_panel, 1, wx.EXPAND)
-        right_panel_sizer.Add(self.timeline_panel, 0, wx.EXPAND)
+        self.right_panel_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.right_panel.SetSizer(self.right_panel_sizer)
+        self.right_panel_sizer.Add(self.viewer_container_panel, 1, wx.EXPAND)
+        self.right_panel_sizer.Add(self.timeline_panel, 0, wx.EXPAND)
 
         self.expand_button = ExpandButton(self.right_panel)
 
@@ -246,12 +249,14 @@ class MainWindow(wx.Frame):
         )
 
         if event.change in changes:
-            pass  # Todo: graph panels
+            for graph in self.graph_panels:
+                graph.PopulateVisualizations()
 
             self.project_controller.project.dirty = True
 
         elif event.change == ProjectChangedEvent.PROJECT_RESET:
-            pass  # Todo: graph panels
+            while self.graph_panels:
+                self.RemoveGraphPanel()
 
             self.project_controller.project.dirty = True
 
@@ -263,6 +268,11 @@ class MainWindow(wx.Frame):
                     if self.options_panel.plugin is event.plugin:
                         self.options_panel.Refresh()
                     break
+
+            for graph in self.graph_panels:
+                if graph.visualization == event.plugin:
+                    graph.RefreshVisualization()
+
         elif event.change is PluginOptionEvent.NEW_OPTIONS_AVAILABLE:
             self.options_panel.NewOptionAvailable(event)
 
@@ -337,3 +347,18 @@ class MainWindow(wx.Frame):
             self.options_panel.options = None
             self.left_sash_position = self.left_splitter.GetSashPosition()
             self.left_splitter.Unsplit(self.options_panel)
+
+    def AddGraphPanel(self):
+        panel = GraphPanel(self.right_panel, wx.ID_ANY)
+        self.right_panel_sizer.Insert(len(self.right_panel_sizer.GetChildren()) - 1, panel, 0, wx.EXPAND)
+        self.right_panel_sizer.SetItemMinSize(panel, -1, 150)
+        self.graph_panels.append(panel)
+        self.right_panel_sizer.Layout()
+        panel.Layout()
+
+        panel.PopulateVisualizations()
+
+    def RemoveGraphPanel(self):
+        if self.graph_panels:
+            self.graph_panels.pop().Destroy()
+            self.right_panel_sizer.Layout()

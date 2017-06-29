@@ -105,9 +105,9 @@ class AppController(wx.EvtHandler):
         elif event_id == MainWindow.MENU_VIEW_REMOVE_VIEWER:
             self.main_window.viewer_container_panel.RemoveViewer()
         elif event_id == MainWindow.MENU_VIEW_ADD_GRAPH:
-            pass
+            self.main_window.AddGraphPanel()
         elif event_id == MainWindow.MENU_VIEW_REMOVE_GRAPH:
-            pass
+            self.main_window.RemoveGraphPanel()
         elif event_id == MainWindow.MENU_VIEW_COLLAPSE:
             self.main_window.ToggleProjectPanel()
         elif event_id == MainWindow.MENU_EXPORT_EXPORT:

@@ -1,7 +1,13 @@
 import os
 
+import wx
+from PIL import Image
+
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.interface import Plugin
+from vistas.core.threading import Thread
+
+RenderEvent, EVT_VISUALIZATION_RENDERED = wx.lib.newevent.NewEvent()
 
 
 class VisualizationPlugin(Plugin):
@@ -91,15 +97,35 @@ class VisualizationPlugin(Plugin):
 
 
 class VisualizationPlugin2D(VisualizationPlugin):
-    def visualize(self, width, height, back_thread=True):
+    class RenderThread(Thread):
+        def __init__(self, plugin, width, height, handler=None):
+            super().__init__()
+
+            self.plugin = plugin
+            self.width = width
+            self.height = height
+            self.handler = handler
+
+        def run(self):
+            from vistas.ui.app import App  # Prevent circular import error
+
+            event = RenderEvent(image=self.plugin.render(self.width, self.height))
+            handler = self.handler if self.handler is not None else App.get().app_controller.main_window
+
+            wx.PostEvent(handler, event)
+
+    def visualize(self, width, height, back_thread=True, handler=None):
         """
         Actualize the visualization. Returns the visualization if `back_thread` is False, otherwise generates an event
         when the visualization is ready.
         """
 
-        NotImplemented  # Todo
+        if not back_thread:
+            return self.render(width, height)
 
-    def render(self, width, height):
+        self.RenderThread(self, width, height, handler).start()
+
+    def render(self, width, height) -> Image:
         """ Implemented by plugins to render the visualization """
 
         raise NotImplemented
