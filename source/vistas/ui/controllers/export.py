@@ -121,7 +121,8 @@ class ExportController(wx.EvtHandler):
         state['is_maximized'] = self.export_frame.IsMaximized()
         state['x'] = pos.x
         state['y'] = pos.y
-        state['w'], state['h'] = size
+        if size is not None:
+            state['w'], state['h'] = size
 
         return state
 
