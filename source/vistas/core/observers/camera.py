@@ -28,3 +28,4 @@ class CameraObservable(Observable):
         self.need_state_saved = False
         self.global_interactor = None
         self.notify_observers()
+        post_redisplay()

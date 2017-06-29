@@ -267,10 +267,8 @@ class MainWindow(wx.Frame):
             self.options_panel.NewOptionAvailable(event)
 
     def OnRedisplay(self, event):
-        for row in self.viewer_container_panel.rows:
-            for viewer in row.viewers:
-                if viewer is not None:
-                    viewer.gl_canvas.Refresh()
+        for viewer in self.viewer_container_panel.GetAllViewerPanels():
+            viewer.gl_canvas.Refresh()
 
         for win in FlythroughDialog.active_dialogs:
             win.gl_canvas.Refresh()

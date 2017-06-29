@@ -184,7 +184,7 @@ class ViewerContainerPanel(wx.Panel):
     def SyncAllCameras(self, do_sync, save_state):
         observable = CameraObservable.get()
         if do_sync:
-            interactor = self.GetMainViewerPanel().camera_interactor
+            interactor = self.GetMainViewerPanel().gl_canvas.camera_interactor
             observable.sync_camera(interactor, save_state)
             for panel in self.GetAllViewerPanels():
                 if panel is not self.GetMainViewerPanel():
@@ -193,4 +193,7 @@ class ViewerContainerPanel(wx.Panel):
             main_panel_interactor = observable.global_interactor
             observable.unsync_camera()
             if main_panel_interactor is not None:
-                self.GetMainViewerPanel()
+                self.GetMainViewerPanel().gl_canvas.camera_interactor = main_panel_interactor
+            for panel in self.GetAllViewerPanels():
+                if panel is not self.GetMainViewerPanel():
+                    pass    # Todo - hide gl_camera_controls

@@ -198,11 +198,12 @@ class ViewerPanel(wx.Panel, Observer):
                 observable = CameraObservable.get()
                 if observable.is_sync:
                     interactor = self.saved_interactor_state
-
-                self.gl_canvas.camera.scene = scene  # Temporary until interactor code is added
-                self.gl_canvas.camera_interactor.reset_position()
+                else:
+                    interactor = self.gl_canvas.camera_interactor
+                interactor.camera.scene = scene
+                if not observable.is_sync:
+                    interactor.reset_position()
                 self.selected_scene = scene
-
         self.gl_canvas.Refresh()
 
     def OnResizeLeftDown(self, event):
@@ -417,15 +418,17 @@ class ViewerPanel(wx.Panel, Observer):
             if observable.need_state_saved:
                 self.saved_interactor_state = self.gl_canvas.camera_interactor
             self.gl_canvas.camera_interactor = interactor
-            # Todo - reset camera controls
+            self.gl_canvas.camera = interactor.camera
+            self.gl_canvas.camera_interactor.reset_position(False)  # Todo - replace line with reset camera controls
         else:
             if self.saved_interactor_state is not None:
                 self.gl_canvas.camera_interactor = self.saved_interactor_state
+                self.gl_canvas.camera = self.saved_interactor_state.camera
             self.saved_interactor_state = None
             if self.reset_interactor:
                 self.gl_canvas.camera_interactor.reset_position()
                 self.reset_interactor = False
-            # Todo - reset camera controls
+            self.gl_canvas.camera_interactor.reset_position(False)  # Todo - replace line with reset camera controls
 
     def UpdateGeocoderInfo(self):
         pass  # Todo
