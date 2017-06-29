@@ -180,33 +180,8 @@ class ShaderProgram(wx.PyEvtHandler):
     def uniform4uiv(self, name, count, value):
         glUniform4uiv(self.get_uniform_location(name), count, value)
 
-   # def uniform_matrix2fv(self, name, count, transpose: bool, value: Matrix44):
-   #     glUniformMatrix2fv(self.get_uniform_location(name), count, transpose, value)
-
     def uniform_matrix3fv(self, name, count, transpose: bool, value: Matrix33):
         glUniformMatrix3fv(self.get_uniform_location(name), count, transpose, numpy.array(value, dtype=numpy.float32))
 
     def uniform_matrix4fv(self, name, count, transpose: bool, value: Matrix44):
         glUniformMatrix4fv(self.get_uniform_location(name), count, transpose, numpy.array(value, dtype=numpy.float32))
-
-    # Todo - reimplement uniform_matrix<col>x<row>fv using Matrix44 accessors
-    """
-    def uniform_matrix2x3fv(self, name, count, transpose: bool, value: Matrix44):
-        glUniformMatrix2x3fv(self.get_uniform_location(name), count, transpose, value)
-
-    def uniform_matrix3x2fv(self, name, count, transpose: bool, value: Matrix44):
-        glUniformMatrix3x2fv(self.get_uniform_location(name), count, transpose, value)
-
-    def uniform_matrix2x4fv(self, name, count, transpose: bool, value: Matrix44):
-        glUniformMatrix2x4fv(self.get_uniform_location(name), count, transpose, value)
-
-    def uniform_matrix4x2fv(self, name, count, transpose: bool, value: Matrix44):
-        glUniformMatrix4x2fv(self.get_uniform_location(name), count, transpose, value)
-
-    def uniform_matrix3x4fv(self, name, count, transpose: bool, value: Matrix44):
-        glUniformMatrix3x4fv(self.get_uniform_location(name), count, transpose, value)
-
-    def uniform_matrix4x3fv(self, name, count, transpose: bool, value: Matrix44):
-        glUniformMatrix4x3fv(self.get_uniform_location(name), count, transpose, value)
-
-    """
