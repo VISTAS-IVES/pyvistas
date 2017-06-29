@@ -3,6 +3,8 @@ import os
 
 import wx
 
+from vistas.core.utils import get_platform
+
 
 class Preferences:
     _app_preferences = None
@@ -12,9 +14,16 @@ class Preferences:
         """ Application preferences """
 
         if cls._app_preferences is None:
-            cls._app_preferences = Preferences(
-                os.path.join(wx.StandardPaths.Get().UserConfigDir, 'VISTAS', 'preferences.json')
-            )
+            if get_platform() == 'macos':
+                path = os.path.join(wx.StandardPaths.Get().UserLocalDataDir, 'VISTAS', 'preferences.json')
+            else:
+                path = os.path.join(wx.StandardPaths.Get().UserConfigDir, 'VISTAS', 'preferences.json')
+
+            dir = os.path.dirname(path)
+            if not os.path.exists(dir):
+                os.makedirs(os.path.dirname(path))
+
+            cls._app_preferences = Preferences(path)
 
         return cls._app_preferences
 
