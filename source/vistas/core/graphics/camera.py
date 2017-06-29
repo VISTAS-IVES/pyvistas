@@ -5,9 +5,11 @@ from pyrr import Matrix44, Vector3
 
 from vistas.core.color import RGBColor
 from vistas.core.graphics.scene import Scene
+from vistas.core.observers.interface import Observer
+from vistas.core.observers.camera import CameraObservable
 
 
-class Camera:
+class Camera(Observer):
     offscreen_buffers_initialized = False
     offscreen_frame_buffer = None
     offscreen_color_buffer = None
@@ -30,10 +32,10 @@ class Camera:
         self.set_position(Vector3())
         self.set_point_of_interest(Vector3([0, 0, -10]))
 
-        # Todo: VI_CameraSyncObservable::GetInstance()->AddObserver(this);
+        CameraObservable.get().add_observer(self)
 
     def __del__(self):
-        pass  # Todo
+        CameraObservable.get().remove_observer(self)
 
     def push_matrix(self):
         self._matrix_stack.append(self.matrix.copy())
@@ -154,8 +156,14 @@ class Camera:
     def select_object(self, width, height, x, y):
         pass  # Todo
 
-    def update(self, observable):
-        pass  # Todo
+    def update(self, observable: CameraObservable):
+        if observable.is_sync:
+            interactor = observable.global_interactor
+            if observable.need_state_saved:
+                self.saved_matrix_state = self.matrix.copy()
+            self.matrix = interactor.camera.matrix
+        elif self.saved_matrix_state is not None:
+            self.matrix = self.saved_matrix_state.copy()
 
     def reset(self, width, height, color):
         # scene_box = self.scene.bounding_box

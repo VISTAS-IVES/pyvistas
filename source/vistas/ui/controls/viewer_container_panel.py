@@ -3,6 +3,7 @@ from functools import reduce
 import wx
 
 from vistas.core.preferences import Preferences
+from vistas.core.observers.camera import CameraObservable
 from vistas.ui.controllers.project import ProjectChangedEvent
 from vistas.ui.controls.viewer_panel import ViewerPanel
 
@@ -29,7 +30,7 @@ class ViewerContainerPanel(wx.Panel):
         # Todo: VI_EVENT_CAMERA_MODE_CHANGED
 
     def __del__(self):
-        pass  # Todo
+        self.SyncAllCameras(False, False)
 
     def AddViewer(self, new_viewer=None):
         # Add new row if necessary
@@ -68,8 +69,11 @@ class ViewerContainerPanel(wx.Panel):
 
         self.UpdateViewerSizes()
 
-        # Todo: observable (?)
-        # new_viewer.ResetCameraInteractor()
+        observable = CameraObservable.get()
+        if observable.is_sync:
+            self.SyncAllCameras(False, False)
+            self.SyncAllCameras(True, True)
+            new_viewer.ResetCameraInteractor()
 
     def RemoveViewer(self, viewer=None):
         # Can't remove the last viewer
@@ -178,4 +182,15 @@ class ViewerContainerPanel(wx.Panel):
             viewer.Refresh()
 
     def SyncAllCameras(self, do_sync, save_state):
-        pass  # Todo
+        observable = CameraObservable.get()
+        if do_sync:
+            interactor = self.GetMainViewerPanel().camera_interactor
+            observable.sync_camera(interactor, save_state)
+            for panel in self.GetAllViewerPanels():
+                if panel is not self.GetMainViewerPanel():
+                    pass    # Todo - hide gl_camera_controls
+        else:
+            main_panel_interactor = observable.global_interactor
+            observable.unsync_camera()
+            if main_panel_interactor is not None:
+                self.GetMainViewerPanel()

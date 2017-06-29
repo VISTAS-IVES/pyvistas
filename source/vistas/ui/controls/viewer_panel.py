@@ -4,6 +4,8 @@ from wx.glcanvas import WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, WX_GL_
 from vistas.core.graphics.camera import Camera
 from vistas.core.paths import get_resource_bitmap
 from vistas.core.plugins.visualization import VisualizationPlugin3D
+from vistas.core.observers.interface import Observer
+from vistas.core.observers.camera import CameraObservable
 from vistas.ui.windows.legend import LegendWindow
 from vistas.ui.controllers.project import ProjectChangedEvent
 from vistas.ui.controls.gl_canvas import GLCanvas
@@ -11,7 +13,7 @@ from vistas.ui.project import Project
 from vistas.core.utils import get_platform
 
 
-class ViewerPanel(wx.Panel):
+class ViewerPanel(wx.Panel, Observer):
     NORTH = 'north'
     EAST = 'east'
     SOUTH = 'south'
@@ -37,6 +39,8 @@ class ViewerPanel(wx.Panel):
 
         self.scenes = []
         self.selected_scene = None
+        self.saved_interactor_state = None
+        self.reset_interactor = False
 
         self.parent = parent
         self.north_resize_area = wx.Window(self, wx.ID_ANY, wx.DefaultPosition, wx.Size(-1, 2))
@@ -124,7 +128,9 @@ class ViewerPanel(wx.Panel):
 
         self.RefreshScenes()
 
-        # Todo: observable
+        observable = CameraObservable.get()
+        observable.add_observer(self)
+        self.reset_interactor = observable.is_sync
 
     def SetNeighbor(self, neighbor, direction):
         if direction == self.NORTH:
@@ -189,7 +195,9 @@ class ViewerPanel(wx.Panel):
     def UpdateScene(self):
         for i, scene in enumerate(self.scenes):
             if i == self.scene_choice.GetSelection():
-                # Todo: global interactor
+                observable = CameraObservable.get()
+                if observable.is_sync:
+                    interactor = self.saved_interactor_state
 
                 self.gl_canvas.camera.scene = scene  # Temporary until interactor code is added
                 self.gl_canvas.camera_interactor.reset_position()
@@ -397,11 +405,27 @@ class ViewerPanel(wx.Panel):
         self.legend_window.RefreshLegend()
 
     def ResetCameraInteractor(self):
-        # Todo: observable
-        self.gl_canvas.camera_interactor.reset_position()
+        observable = CameraObservable.get()
+        if observable.is_sync:
+            self.reset_interactor = True
+        else:
+            self.gl_canvas.camera_interactor.reset_position()
 
-    def Update(self):
-        pass  # Todo
+    def update(self, observable: CameraObservable):
+        if observable.is_sync:
+            interactor = observable.global_interactor
+            if observable.need_state_saved:
+                self.saved_interactor_state = self.gl_canvas.camera_interactor
+            self.gl_canvas.camera_interactor = interactor
+            # Todo - reset camera controls
+        else:
+            if self.saved_interactor_state is not None:
+                self.gl_canvas.camera_interactor = self.saved_interactor_state
+            self.saved_interactor_state = None
+            if self.reset_interactor:
+                self.gl_canvas.camera_interactor.reset_position()
+                self.reset_interactor = False
+            # Todo - reset camera controls
 
     def UpdateGeocoderInfo(self):
         pass  # Todo

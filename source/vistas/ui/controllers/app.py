@@ -127,7 +127,8 @@ class AppController(wx.EvtHandler):
                         self.main_window.project_controller.AddFlythrough(all_scenes[i])
 
         elif event_id == MainWindow.MENU_SYNC_CAMERAS:
-            pass    # Todo - implement synced camera
+            sync = self.main_window.GetToolBar().FindById(MainWindow.MENU_SYNC_CAMERAS).IsToggled()
+            self.main_window.viewer_container_panel.SyncAllCameras(sync, True)
         elif event_id == MainWindow.MENU_OPEN_TIMELINE_FILTER:
             if self.time_filter_window.timeline.enabled:
                 self.time_filter_window.Show()
