@@ -274,7 +274,8 @@ class MainWindow(wx.Frame):
             win.gl_canvas.Refresh()
 
     def OnNewLegend(self, event):
-        pass    # Todo - legend_window
+        for viewer in self.viewer_container_panel.GetAllViewerPanels():
+            viewer.VizHasNewLegend()
 
     def OnTimeline(self, event: TimelineEvent):
         # Update any existing visualization dialogs

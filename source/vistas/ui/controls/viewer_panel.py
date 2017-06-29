@@ -389,8 +389,9 @@ class ViewerPanel(wx.Panel, Observer):
     def OnGeographicLabel(self, event):
         pass  # Todo
 
-    def OnVizHasNewLegend(self, event):
-        pass  # Todo
+    def VizHasNewLegend(self):
+        self.UpdateLegend()
+        self.parent.RefreshAllViewers()
 
     def UpdateLegend(self):
         plugins = Project.get().find_viz_with_parent_scene(self.selected_scene)
