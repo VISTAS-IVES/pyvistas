@@ -56,14 +56,12 @@ class Camera:
     def get_direction(self) -> Vector3:
         return Vector3([self.matrix[0, 2] * -1, self.matrix[1, 2] * -1, self.matrix[2, 2] * -1])
 
-    # Todo - deprecate?
     def set_point_of_interest(self, poi: Vector3):
         self.matrix = Matrix44.look_at(self.get_position(), poi, self.get_up_vector())
 
     def look_at(self, eye, target, up):
         self.matrix = Matrix44.look_at(eye, target, up)
 
-    # Todo - deprecate?
     def set_position(self, position: Vector3):
         relative_pos = self.matrix * position * -1
         self.matrix[3, 0] = relative_pos.x
@@ -73,7 +71,6 @@ class Camera:
     def get_up_vector(self) -> Vector3:
         return Vector3([self.matrix[0, 1], self.matrix[1, 1], self.matrix[2, 1]])
 
-    # Todo - deprecate?
     def set_up_vector(self, up: Vector3):
         unit_up = up.copy()
         unit_up.normalise()
