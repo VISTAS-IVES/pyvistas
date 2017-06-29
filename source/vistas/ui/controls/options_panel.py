@@ -82,7 +82,7 @@ class OptionsPanel(wx.ScrolledWindow):
                     radio = wx.RadioButton(self, wx.ID_ANY, labels[i], wx.DefaultPosition, wx.DefaultSize, 0,
                                            wx.DefaultValidator, str(i))
 
-                radio.SetValue(option.value == i)   # Todo: is this correct?
+                radio.SetValue(option.value == i)
 
                 self._options[radio] = option
                 radio.Bind(wx.EVT_RADIOBUTTON, self.OnRadio)

@@ -25,5 +25,3 @@ class Texture:
         else:
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, data)
         glBindTexture(GL_TEXTURE_2D, 0)
-
-    # Todo - add support for float textures and other formats
