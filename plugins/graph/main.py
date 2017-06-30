@@ -1,5 +1,6 @@
 from io import BytesIO
 
+import wx
 from PIL import Image
 from datetime import datetime
 from matplotlib import pyplot, dates
@@ -7,7 +8,9 @@ from matplotlib import pyplot, dates
 from vistas.core.color import RGBColor
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.option import Option, OptionGroup
-from vistas.core.plugins.visualization import VisualizationPlugin2D
+from vistas.core.plugins.visualization import VisualizationPlugin2D, VisualizationUpdateEvent
+from vistas.core.timeline import Timeline
+from vistas.ui.app import App
 
 
 class GraphVisualization(VisualizationPlugin2D):
@@ -55,7 +58,8 @@ class GraphVisualization(VisualizationPlugin2D):
 
     def set_data(self, data: DataPlugin, role):
         self.data = data
-        # Todo: viz updated event
+
+        wx.PostEvent(App.get().app_controller.main_window, VisualizationUpdateEvent(plugin=self))
 
     def get_data(self, role):
         return self.data
@@ -100,6 +104,11 @@ class GraphVisualization(VisualizationPlugin2D):
             for text in legend.get_texts():
                 text.set_color(label_color)
 
+        if show_cursor and self.data.time_info.is_temporal:
+            current_time = Timeline.app().current
+            color = (1, 1, 1) if self.bg_color_option.value.hsv.v < .5 else (0, 0, 0)
+            ax.axvline(x=(current_time - datetime(1, 1, 1)).days, color=color)
+
         ax.tick_params(axis='both', color=label_color)
 
         for spine in ('left', 'bottom'):
@@ -109,3 +118,6 @@ class GraphVisualization(VisualizationPlugin2D):
             label.set_color(label_color)
 
         return self.fig_to_pil(fig).resize((width, height))
+
+    def timeline_changed(self):
+        wx.PostEvent(App.get().app_controller.main_window, VisualizationUpdateEvent(plugin=self))

@@ -1,6 +1,7 @@
 import wx
 
-from vistas.core.plugins.visualization import EVT_VISUALIZATION_RENDERED, VisualizationPlugin2D
+from vistas.core.plugins.visualization import EVT_VISUALIZATION_RENDERED, VisualizationPlugin2D, \
+    EVT_VISUALIZATION_UPDATED
 from vistas.ui.project import Project
 
 
@@ -28,6 +29,7 @@ class GraphPanel(wx.Panel):
         self.Bind(EVT_VISUALIZATION_RENDERED, self.OnVisualizationRendered)
         self.static_image.Bind(wx.EVT_RIGHT_DOWN, self.OnRightClick)
         self.visualization_choice.Bind(wx.EVT_CHOICE, self.OnChoice)
+        parent.Bind(EVT_VISUALIZATION_UPDATED, self.OnVisualizationUpdated)
 
         self.Fit()
 
@@ -95,3 +97,6 @@ class GraphPanel(wx.Panel):
     def OnSize(self, event):
         self.RefreshVisualization()
         event.Skip(True)
+
+    def OnVisualizationUpdated(self, event):
+        self.RefreshVisualization()

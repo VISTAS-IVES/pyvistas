@@ -8,6 +8,7 @@ from vistas.core.plugins.interface import Plugin
 from vistas.core.threading import Thread
 
 RenderEvent, EVT_VISUALIZATION_RENDERED = wx.lib.newevent.NewEvent()
+VisualizationUpdateEvent, EVT_VISUALIZATION_UPDATED = wx.lib.newevent.NewEvent()
 
 
 class VisualizationPlugin(Plugin):

@@ -1,6 +1,7 @@
 import wx
 
 from vistas.core.paths import get_resource_bitmap
+from vistas.core.plugins.visualization import EVT_VISUALIZATION_UPDATED
 from vistas.core.utils import get_platform
 from vistas.ui.controls.graph_panel import GraphPanel
 from vistas.ui.events import *
@@ -184,6 +185,7 @@ class MainWindow(wx.Frame):
         self.Bind(EVT_NEW_LEGEND, self.OnNewLegend)
         self.Bind(EVT_TIMELINE_CHANGED, self.OnTimeline)
         self.Bind(EVT_MESSAGE, self.OnMessage)
+        self.Bind(EVT_VISUALIZATION_UPDATED, self.OnVisualizationUpdated)
 
     def SerializeState(self):
         pos = self.GetPosition()
@@ -298,6 +300,10 @@ class MainWindow(wx.Frame):
         # Update viz plugins
         for node in self.project_controller.project.all_visualizations:
             node.visualization.timeline_changed()
+
+    def OnVisualizationUpdated(self, event):
+        wx.PostEvent(self.viewer_container_panel, event)
+        wx.PostEvent(self.right_panel, event)
 
     def OnMessage(self, event: MessageEvent):
         if event.level is MessageEvent.NORMAL:
