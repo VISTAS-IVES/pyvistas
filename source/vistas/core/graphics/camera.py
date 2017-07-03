@@ -150,8 +150,8 @@ class Camera(Observer):
         glPixelStorei(GL_PACK_ALIGNMENT, 1)
         image_data = glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE)
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
-
-        return Image.frombuffer('RGBA', (width, height), image_data, 'raw', 'RGBA', 0, 1)
+        im = Image.frombuffer('RGBA', (width, height), image_data, 'raw', 'RGBA', 0, 1).transpose(Image.FLIP_TOP_BOTTOM)
+        return im
 
     def select_object(self, width, height, x, y):
         pass  # Todo
