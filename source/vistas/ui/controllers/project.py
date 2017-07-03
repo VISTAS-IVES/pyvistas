@@ -705,6 +705,10 @@ class ProjectController(wx.EvtHandler):
             elif child.is_visualization:
                 tree.AppendVisualizationItem(parent, child.label, child)
 
+            elif child.is_flythrough:
+                ProjectController.flythrough_count += 1
+                tree.AppendFlythroughItem(parent, child.label, child)
+
             elif child.is_scene:
                 tree_item = tree.AppendSceneItem(parent, child.label, child)
                 self.AddTreeChildrenFromNode(self.project, child, tree, tree_item)
