@@ -54,6 +54,17 @@ class Option:
         get_main_window().AddPendingEvent(PluginOptionEvent(plugin=self.plugin, option=self,
                                                             change=PluginOptionEvent.OPTION_CHANGED))
 
+    def serialize(self):
+        result = self.__dict__.copy()
+        result.pop('plugin')                    # Discard plugin info
+        result['value'] = result.pop('_value')
+
+        if self.option_type is self.COLOR:
+            result['value'] = result['value'].rgb.rgba_list
+            result['default'] = result['default'].rgb.rgba_list
+
+        return result
+
 
 class OptionGroup:
 
@@ -76,3 +87,6 @@ class OptionGroup:
                 for child in child_options:
                     options.append(child)
         return options
+
+    def serialize(self):
+        return [item.serialize() for item in self.flat_list]
