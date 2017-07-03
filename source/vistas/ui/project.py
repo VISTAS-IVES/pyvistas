@@ -3,6 +3,7 @@ import os
 
 from vistas.core.graphics.scene import Scene
 from vistas.core.plugins.interface import Plugin
+from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.core.export import Exporter
 
 SAVE_FILE_VERSION = 1
@@ -224,16 +225,56 @@ class VisualizationNode(ProjectNode):
 
     def serialize(self):
         data = super().serialize()
+
+        def visualization_data_map():
+            info = []
+            for i, pair in enumerate(self.visualization.data_roles):
+                data_type, name = pair
+                data_node = Project.get().find_data_node(self.visualization.get_data(i))
+                if data_node is None:
+                    node_id = None
+                else:
+                    node_id = data_node.node_id
+                info.append({
+                    'type': data_type,
+                    'role': name,
+                    'data_id': node_id
+                })
+
+            # Todo - save options
+
+            return info
+
         data.update({
             'plugin': self.visualization.id,
-            'data': self.visualization.data_roles
+            'data': visualization_data_map()
         })
 
         return data
 
     @classmethod
     def load(cls, data):
-        pass  # Todo
+        plugin = Plugin.by_name(data['plugin'])()
+
+        for i, pair in enumerate(plugin.data_roles):
+            dtype, role = pair
+            data_info = data['data'][i]
+            data_id = data_info['data_id']
+            if data_info['role'] == role and data_info['type'] == dtype:
+
+                data_node = Project.get().get_node_by_id(data_id)
+                if data_node is not None:
+                    plugin.set_data(data_node.data, i)
+
+        if isinstance(plugin, VisualizationPlugin3D):
+            plugin.scene = data.get('parent').scene
+
+        # Todo - load options
+
+        if isinstance(plugin, VisualizationPlugin3D):
+            plugin.refresh()
+
+        return cls(plugin, data.get('label'), data.get('parent'), data.get('id'))
 
 
 class SceneNode(FolderNode):
@@ -281,6 +322,27 @@ class FlythroughNode(ProjectNode):
         self._flythrough = value
         self.dirty = True
 
+    def serialize(self):
+        data = super().serialize()
+
+        def flythrough_map():
+            keyframes = []
+            for frame in self.flythrough.keyframe_indices:
+                self.flythrough.update_camera_to_keyframe(frame)
+                keyframes.append({
+                    'index': frame,
+                    'matrix': self.flythrough.camera.matrix.tolist()
+                })
+
+            return {
+                'fps': self.flythrough.fps,
+                'length': self.flythrough.length,
+                'keyframes': keyframes,
+            }
+
+        data.update(flythrough_map())
+        return data
+
     @classmethod
     def load(cls, data):
         return cls()  # Todo
@@ -303,7 +365,7 @@ class Project:
         self.data_root = FolderNode('Project Data')
         self.visualization_root = FolderNode('Project Visualizations')
         self.exporter = Exporter()
-        self.dirty = False  # Todo: make into property?
+        self.dirty = False
 
     @property
     def is_dirty(self):
@@ -410,4 +472,16 @@ class Project:
                     return scene_node
             if child.is_scene and child.scene is scene:
                 return child
+        return None
+
+    def find_data_node(self, data_plugin):
+        for node in self.data_root.data_nodes:
+            if node.data is data_plugin:
+                return node
+        return None
+
+    def find_flythrough_node(self, flythrough):
+        for node in self.visualization_root.flythrough_nodes:
+            if node.flythrough is flythrough:
+                return node
         return None
