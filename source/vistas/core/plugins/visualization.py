@@ -6,6 +6,7 @@ from PIL import Image
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.interface import Plugin
 from vistas.core.threading import Thread
+from vistas.ui.utils import get_main_window
 
 RenderEvent, EVT_VISUALIZATION_RENDERED = wx.lib.newevent.NewEvent()
 VisualizationUpdateEvent, EVT_VISUALIZATION_UPDATED = wx.lib.newevent.NewEvent()
@@ -108,10 +109,8 @@ class VisualizationPlugin2D(VisualizationPlugin):
             self.handler = handler
 
         def run(self):
-            from vistas.ui.app import App  # Prevent circular import error
-
             event = RenderEvent(image=self.plugin.render(self.width, self.height))
-            handler = self.handler if self.handler is not None else App.get().app_controller.main_window
+            handler = self.handler if self.handler is not None else get_main_window()
 
             wx.PostEvent(handler, event)
 
