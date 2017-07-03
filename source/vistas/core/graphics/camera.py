@@ -166,7 +166,6 @@ class Camera(Observer):
             self.matrix = self.saved_matrix_state.copy()
 
     def reset(self, width, height, color):
-        # scene_box = self.scene.bounding_box
 
         glEnable(GL_DEPTH_TEST)
         glDepthFunc(GL_LESS)
@@ -176,10 +175,5 @@ class Camera(Observer):
         glClear(GL_COLOR_BUFFER_BIT)
 
         glViewport(0, 0, width, height)
-
-        # c = (self.matrix * Vector(*scene_box.center.v[:3], 1))     # Todo - fix z_near/z_far calculations or remove?
-        # z_near = max(1, c.z - scene_box.diameter / 2)
-        # z_far = (c.z + scene_box.diameter) * 2
-        # self.proj_matrix = ViewMatrix.perspective(80.0, width / height, z_near, z_far)
 
         self.proj_matrix = Matrix44.perspective_projection(80.0, width / height, 1, 100000)
