@@ -115,8 +115,7 @@ class ExportItem:
         elif self.item_type == self.LEGEND and self.viz_plugin is not None:
             snapshot = self.viz_plugin.get_legend(*self.size)
         elif self.item_type == self.VISUALIZATION and self.viz_plugin is not None:
-            pass    # Todo - implement 2D visualizations
-            # snapshot = self.viz_plugin.render(*self.size).as_bitmap()
+            snapshot = self.viz_plugin.render(*self.size)
         elif self.item_type == self.LABEL:
             draw.text((0, 0), self.label, font=self._font)
         elif self.item_type == self.TIMESTAMP:
