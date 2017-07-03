@@ -602,9 +602,9 @@ class ProjectController(wx.EvtHandler):
             for visualization in (x.visualization for x in self.project.all_visualizations):
                 refresh_visualization = False
 
-                for i in len(visualization.data_roles):
+                for i in range(len(visualization.data_roles)):
                     if visualization.get_data(i) == data:
-                        visualization.set_data(i, None)
+                        visualization.set_data(None, i)
                         refresh_visualization = True
 
                 if refresh_visualization and isinstance(visualization, VisualizationPlugin3D):
@@ -703,10 +703,10 @@ class ProjectController(wx.EvtHandler):
                 wx.PostEvent(wx.GetTopLevelParent(self.project_panel), pce)
 
             elif child.is_visualization:
-                tree.AppendVisualizationItem()
+                tree.AppendVisualizationItem(parent, child.label, child)
 
             elif child.is_scene:
-                tree_item = tree.AppendSceneItem(parent, child.scene.name, child)
+                tree_item = tree.AppendSceneItem(parent, child.label, child)
                 self.AddTreeChildrenFromNode(self.project, child, tree, tree_item)
 
                 ProjectController.scene_count += 1
