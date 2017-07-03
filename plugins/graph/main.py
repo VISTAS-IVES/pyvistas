@@ -90,7 +90,7 @@ class GraphVisualization(VisualizationPlugin2D):
         data = (self.data.get_data(self.data.variables[0]),)
         if self.data.time_info.is_temporal:
             data = ([(x - datetime(1, 1, 1)).days for x in self.data.time_info.timestamps],) + data
-            ax.xaxis.set_major_formatter(dates.DateFormatter('%b %-d, %Y'))
+            ax.xaxis.set_major_formatter(dates.DateFormatter('%b %d, %Y'))
 
         ax.plot(*data, color=line_color, label=self.data.variables[0], linewidth=1)
 
