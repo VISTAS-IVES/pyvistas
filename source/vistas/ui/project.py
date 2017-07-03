@@ -1,7 +1,10 @@
 import json
 import os
 
+from pyrr import Matrix44
 from vistas.core.graphics.scene import Scene
+from vistas.core.graphics.flythrough import Flythrough, FlythroughPoint
+from vistas.core.color import RGBColor
 from vistas.core.plugins.interface import Plugin
 from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.core.export import Exporter
@@ -226,28 +229,24 @@ class VisualizationNode(ProjectNode):
     def serialize(self):
         data = super().serialize()
 
-        def visualization_data_map():
-            info = []
-            for i, pair in enumerate(self.visualization.data_roles):
-                data_type, name = pair
-                data_node = Project.get().find_data_node(self.visualization.get_data(i))
-                if data_node is None:
-                    node_id = None
-                else:
-                    node_id = data_node.node_id
-                info.append({
-                    'type': data_type,
-                    'role': name,
-                    'data_id': node_id
-                })
-
-            # Todo - save options
-
-            return info
+        data_info = []
+        for i, pair in enumerate(self.visualization.data_roles):
+            data_type, name = pair
+            data_node = Project.get().find_data_node(self.visualization.get_data(i))
+            if data_node is None:
+                node_id = None
+            else:
+                node_id = data_node.node_id
+            data_info.append({
+                'type': data_type,
+                'role': name,
+                'data_id': node_id
+            })
 
         data.update({
             'plugin': self.visualization.id,
-            'data': visualization_data_map()
+            'data': data_info,
+            'options': self.visualization.get_options().serialize()
         })
 
         return data
@@ -256,6 +255,10 @@ class VisualizationNode(ProjectNode):
     def load(cls, data):
         plugin = Plugin.by_name(data['plugin'])()
 
+        if isinstance(plugin, VisualizationPlugin3D):
+            plugin.scene = data.get('parent').scene
+
+        # Load data sources
         for i, pair in enumerate(plugin.data_roles):
             dtype, role = pair
             data_info = data['data'][i]
@@ -266,11 +269,19 @@ class VisualizationNode(ProjectNode):
                 if data_node is not None:
                     plugin.set_data(data_node.data, i)
 
-        if isinstance(plugin, VisualizationPlugin3D):
-            plugin.scene = data.get('parent').scene
+        # Load option values
+        options = data['options']
+        for option in plugin.get_options().flat_list:
+            for option_data in options:
+                if option_data['name'] == option.name and option_data['option_type'] == option.option_type:
+                    value = option_data['value']
+                    if option.option_type is option.COLOR:
+                        option.value = RGBColor(*value)
+                    else:
+                        option.value = value
+                    break
 
-        # Todo - load options
-
+        # Let plugin data and options take effect
         if isinstance(plugin, VisualizationPlugin3D):
             plugin.refresh()
 
@@ -325,27 +336,43 @@ class FlythroughNode(ProjectNode):
     def serialize(self):
         data = super().serialize()
 
-        def flythrough_map():
-            keyframes = []
-            for frame in self.flythrough.keyframe_indices:
-                self.flythrough.update_camera_to_keyframe(frame)
-                keyframes.append({
-                    'index': frame,
-                    'matrix': self.flythrough.camera.matrix.tolist()
-                })
+        keyframes = []
+        for frame in self.flythrough.keyframe_indices:
+            self.flythrough.update_camera_to_keyframe(frame)
+            keyframes.append({
+                'index': frame,
+                'matrix': self.flythrough.camera.matrix.tolist()
+            })
 
-            return {
-                'fps': self.flythrough.fps,
-                'length': self.flythrough.length,
-                'keyframes': keyframes,
-            }
+        data.update({
+            'fps': self.flythrough.fps,
+            'length': self.flythrough.length,
+            'keyframes': keyframes,
+        })
 
-        data.update(flythrough_map())
         return data
 
     @classmethod
     def load(cls, data):
-        return cls()  # Todo
+        node = cls(
+            Flythrough(data.get('parent').scene, data.get('fps', 30), data.get('length', 60)),
+            data.get('label'), data.get('parent'), data.get('id')
+        )
+
+        flythrough = node.flythrough
+        keyframes = data.get('keyframes', [])
+        for frame in keyframes:
+            matrix = Matrix44(frame['matrix'])
+            flythrough.camera.matrix = matrix
+            point = FlythroughPoint(
+                flythrough.camera.get_position(),
+                flythrough.camera.get_direction(),
+                flythrough.camera.get_up_vector()
+            )
+            flythrough.add_keyframe(frame['index'], point)
+        flythrough.update_camera_to_keyframe(0)
+
+        return node
 
 
 NODE_TYPES = {
