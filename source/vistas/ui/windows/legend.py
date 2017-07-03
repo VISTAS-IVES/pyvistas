@@ -44,6 +44,7 @@ class LegendWindow(wx.Frame):
         self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy)
 
         self.translucent_background.Bind(wx.EVT_LEFT_DOWN, self.OnBackgroundFocus)
+        self.translucent_background.Bind(wx.EVT_RIGHT_DOWN, self.OnBackgroundFocus)
 
         parent = self.GetParent()
         while parent is not None:
