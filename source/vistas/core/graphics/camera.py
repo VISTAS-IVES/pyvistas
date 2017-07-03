@@ -151,7 +151,7 @@ class Camera(Observer):
         image_data = glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE)
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
-        return Image.frombuffer('RGBA', (width, height), image_data, 'RGBA', 0, 1)
+        return Image.frombuffer('RGBA', (width, height), image_data, 'raw', 'RGBA', 0, 1)
 
     def select_object(self, width, height, x, y):
         pass  # Todo
