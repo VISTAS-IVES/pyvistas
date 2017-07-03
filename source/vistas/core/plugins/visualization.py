@@ -112,7 +112,12 @@ class VisualizationPlugin2D(VisualizationPlugin):
             event = RenderEvent(image=self.plugin.render(self.width, self.height))
             handler = self.handler if self.handler is not None else get_main_window()
 
+            self.sync_with_main(self.post_render)
+
             wx.PostEvent(handler, event)
+
+        def post_render(self):
+            self.plugin.post_render()
 
     def visualize(self, width, height, back_thread=True, handler=None):
         """
@@ -121,7 +126,15 @@ class VisualizationPlugin2D(VisualizationPlugin):
         """
 
         if not back_thread:
-            return self.render(width, height)
+            try:
+                im = self.render(width, height)
+                self.post_render()
+                return im
+            except:
+                raise
+            else:
+                self.post_render()
+
 
         self.RenderThread(self, width, height, handler).start()
 
@@ -129,6 +142,13 @@ class VisualizationPlugin2D(VisualizationPlugin):
         """ Implemented by plugins to render the visualization """
 
         raise NotImplemented
+
+    def post_render(self):
+        """
+        Called after `render` completes to perform cleanup operations. This is guaranteed to run in the main thread.
+        """
+
+        pass
 
 
 class VisualizationPlugin3D(VisualizationPlugin):
