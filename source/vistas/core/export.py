@@ -135,7 +135,7 @@ class ExportItem:
         elif self.item_type == self.LEGEND and self.viz_plugin is not None:
             snapshot = self.viz_plugin.get_legend(*self.size)
         elif self.item_type == self.VISUALIZATION and self.viz_plugin is not None:
-            snapshot = self.viz_plugin.render(*self.size)
+            snapshot = self.viz_plugin.visualize(*self.size, back_thread=False)
         elif self.item_type == self.LABEL:
             draw.text((0, 0), self.label, font=self._font)
         elif self.item_type == self.TIMESTAMP:
