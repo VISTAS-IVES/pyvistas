@@ -8,6 +8,7 @@ from vistas.core.color import RGBColor
 from vistas.core.plugins.interface import Plugin
 from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.core.export import Exporter
+from vistas.core.timeline import Timeline
 
 SAVE_FILE_VERSION = 1
 
@@ -422,7 +423,9 @@ class Project:
             'version': SAVE_FILE_VERSION,
             'name': self.name,
             'data_root': self.data_root.serialize(),
-            'visualization_root': self.visualization_root.serialize()
+            'visualization_root': self.visualization_root.serialize(),
+            'exporter': self.exporter.serialize(),
+            'timeline_filter': Timeline.app().serialize_filter()
         }
 
         with open(path, 'w') as f:
@@ -434,13 +437,18 @@ class Project:
         with open(path) as f:
             data = json.load(f)
 
-        # Todo: save file migration
+        # Migrate imported data to latest version
+        if data['version'] < SAVE_FILE_VERSION:
+            self.migrate(data)
 
         self.name = data['name']
         self.data_root = FolderNode.load(data['data_root'])
         self.visualization_root = FolderNode.load(data['visualization_root'])
+        self.exporter = Exporter.load(data.get('exporter', None))
+        Timeline.app().load_filter(data.get('timeline_filter', None))
 
-        # Todo: export configuration, timeline filter
+    def migrate(self, data):
+        pass    # No migrations yet
 
     @property
     def all_visualizations(self):

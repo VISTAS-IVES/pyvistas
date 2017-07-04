@@ -194,3 +194,9 @@ class Timeline:
 
     def back(self, steps=1):
         self.forward(steps * -1)
+
+    def serialize_filter(self):
+        return {}
+
+    def load_filter(self, data):
+        pass

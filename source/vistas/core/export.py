@@ -40,6 +40,27 @@ class ExportItem:
         self._time_format = '%Y-%m-%d'
         self._label = ''
 
+    @classmethod
+    def load(cls, data):
+        item = cls(
+            data['item_type'], tuple(data['position']), tuple(data['size']), data['project_node_id'],
+            data['flythrough_node_id']
+        )
+
+        # Todo - link item to Project items (cameras, flythroughs, etc)
+
+        return item
+
+    def serialize(self):
+        result = self.__dict__.copy()
+        result.pop('_camera')
+        result.pop('_font')
+        result.pop('_viz_plugin')
+        result['font_size'] = result.pop('_font_size')
+        result['time_format'] = result.pop('_time_format')
+        result['label'] = result.pop('_label')
+        return result
+
     @property
     def viz_plugin(self) -> VisualizationPlugin:
         return self._viz_plugin
@@ -78,7 +99,6 @@ class ExportItem:
             self.compute_bbox()
         except ValueError:
             post_message("Invalid time specifier", 1)
-
 
     @property
     def label(self):
@@ -124,7 +144,6 @@ class ExportItem:
         self.cache = snapshot
 
     def draw(self, image: Image):
-
         mask = None
         if self.item_type in [self.LABEL, self.TIMESTAMP, self.LEGEND]:
             en = ImageEnhance.Brightness(self.cache)
@@ -156,6 +175,28 @@ class Exporter:
         self.encoder = None
         self.path = None
         self.task = None
+
+    @classmethod
+    def load(cls, data):
+        if data is None:
+            return cls()
+
+        size = data.get('size')
+        if size:
+            size = tuple(size)
+
+        exporter = cls(size)
+
+        for item_data in data.get('items', []):
+            exporter.add_item(ExportItem.load(item_data))
+
+        return exporter
+
+    def serialize(self):
+        return {
+            'items': [item.serialize() for item in self.items],
+            'size': self.size
+        }
 
     def recalculate_z_order(self):
         for i, item in enumerate(self.items):
