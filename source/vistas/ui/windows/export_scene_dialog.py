@@ -11,7 +11,7 @@ class ExportSceneDialog(wx.Dialog):
     def __init__(self, parent, id, item: ExportItem):
         super().__init__(parent, id, "", style=wx.SYSTEM_MENU | wx.CLOSE_BOX | wx.CLIP_CHILDREN | wx.CAPTION)
 
-        if item.item_type is not ExportItem.SCENE:
+        if item.item_type != ExportItem.SCENE:
             raise ValueError("item_type is not ExportItem.SCENE")
 
         self.scene_item = item

@@ -254,13 +254,13 @@ class MainWindow(wx.Frame):
             for graph in self.graph_panels:
                 graph.PopulateVisualizations()
 
-            self.project_controller.project.dirty = True
+            self.project_controller.project.is_dirty = True
 
         elif event.change == ProjectChangedEvent.PROJECT_RESET:
             while self.graph_panels:
                 self.RemoveGraphPanel()
 
-            self.project_controller.project.dirty = True
+            self.project_controller.project.is_dirty = False
 
     def OnPluginOption(self, event: PluginOptionEvent):
         if event.option and event.change is PluginOptionEvent.OPTION_CHANGED:

@@ -1,12 +1,13 @@
 from vistas.core.fonts import get_font_path
 from vistas.core.threading import Thread
-from vistas.core.plugins.visualization import VisualizationPlugin
+from vistas.core.plugins.visualization import VisualizationPlugin, VisualizationPlugin3D
 from vistas.core.graphics.camera import Camera
 from vistas.core.task import Task
 from vistas.core.timeline import Timeline
 from vistas.core.encoders.interface import VideoEncoder
 from vistas.ui.utils import post_message
 
+from pyrr import Matrix44
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 
 
@@ -41,24 +42,65 @@ class ExportItem:
         self._label = ''
 
     @classmethod
-    def load(cls, data):
+    def load(cls, data, project):
         item = cls(
             data['item_type'], tuple(data['position']), tuple(data['size']), data['project_node_id'],
             data['flythrough_node_id']
         )
 
-        # Todo - link item to Project items (cameras, flythroughs, etc)
+        item.z_index = data['z_index']
+
+        if item.item_type == ExportItem.SCENE:
+            scene_node = project.get_node_by_id(item.project_node_id)
+            item.camera = Camera(scene_node.scene)
+            item.camera.matrix = Matrix44(data['scene_matrix'])
+
+            if item.flythrough_node_id is not None:
+                flynode = project.get_node_by_id(item.flythrough_node_id)
+                item.flythrough = flynode.flythrough
+                if data['use_flythrough_camera']:
+                    item.use_flythrough_camera = True
+
+        elif item.item_type == ExportItem.LABEL:
+            item.label = data['label']
+
+        elif item.item_type == ExportItem.VISUALIZATION:
+            viz_node = project.get_node_by_id(item.project_node_id)
+            item.viz_plugin = viz_node.visualization
+
+        elif item.item_type == ExportItem.TIMESTAMP:
+            item.time_format = data['time_format']
+
+        elif item.item_type == ExportItem.LEGEND:
+            scene_node = project.get_node_by_id(item.project_node_id)
+            for viz in project.find_viz_with_parent_scene(scene_node.scene):
+                if isinstance(viz, VisualizationPlugin3D):
+                    legend_viz = viz
+                    if legend_viz.has_legend():
+                        item.viz_plugin = legend_viz
+                        break
 
         return item
 
     def serialize(self):
         result = self.__dict__.copy()
-        result.pop('_camera')
+
+        result.pop('_camera')       # Pop all non-serialized objects
         result.pop('_font')
         result.pop('_viz_plugin')
+        result.pop('cache')
+        result.pop('flythrough')
+
         result['font_size'] = result.pop('_font_size')
         result['time_format'] = result.pop('_time_format')
         result['label'] = result.pop('_label')
+
+        if self.item_type == self.SCENE:
+            matrix = self.camera.matrix.tolist()
+        else:
+            matrix = None
+        result['scene_matrix'] = matrix
+
         return result
 
     @property
@@ -124,6 +166,9 @@ class ExportItem:
 
     def refresh_cache(self):
 
+        if self.item_type is self.TIMESTAMP:
+            self.compute_bbox()                 # Timestamp label changes based on current time
+
         snapshot = Image.new("RGBA", self.size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(snapshot)
 
@@ -177,7 +222,7 @@ class Exporter:
         self.task = None
 
     @classmethod
-    def load(cls, data):
+    def load(cls, data, project):
         if data is None:
             return cls()
 
@@ -188,7 +233,7 @@ class Exporter:
         exporter = cls(size)
 
         for item_data in data.get('items', []):
-            exporter.add_item(ExportItem.load(item_data))
+            exporter.add_item(ExportItem.load(item_data, project))
 
         return exporter
 

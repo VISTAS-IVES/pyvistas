@@ -168,7 +168,7 @@ class ExportController(wx.EvtHandler):
         animation_frames = timeline.num_timestamps
 
         for item in self.project.exporter.items:
-            if item.item_type is ExportItem.SCENE:
+            if item.item_type == ExportItem.SCENE:
                 if item.flythrough is not None:
                     if item.flythrough.fps > flythrough_fps:
                         flythrough_fps = item.flythrough.fps
@@ -309,7 +309,7 @@ class ExportController(wx.EvtHandler):
                 popup_menu.Enable(self.MENU_SEND_TO_BACK, False)
 
             # If the item is not a scene, disable flythrough controls
-            if item_type is not ExportItem.SCENE:
+            if item_type != ExportItem.SCENE:
                 popup_menu.Enable(self.MENU_EDIT_CAMERA_POS, False)
                 popup_menu.Enable(fly_menu_item.GetId(), False)
 
@@ -433,7 +433,8 @@ class ExportController(wx.EvtHandler):
 
                 fly_nodes = project_node.flythrough_nodes
                 if fly_nodes:
-                    item.flythrough = fly_nodes[0]  # If available, set first flythrough by default
+                    item.flythrough = fly_nodes[0].flythrough   # If available, set first flythrough by default
+                    item.use_flythrough_camera = True
                     item.flythrough_node_id = fly_nodes[0].node_id
 
             elif project_node.is_visualization:
@@ -528,7 +529,7 @@ class ExportController(wx.EvtHandler):
 
             input_text = text_ctrl.GetValue()
 
-            if canvas_item.item.item_type is ExportItem.LABEL:
+            if canvas_item.item.item_type == ExportItem.LABEL:
                 canvas_item.item.label = input_text
             else:
                 canvas_item.item.time_format = input_text

@@ -61,6 +61,10 @@ class ProjectNode:
     def is_dirty(self):
         return self.dirty
 
+    @is_dirty.setter
+    def is_dirty(self, dirty):
+        self.dirty = dirty
+
     def reparent(self, parent):
         if self.parent is not None:
             self.parent.remove_child(self)
@@ -94,7 +98,13 @@ class FolderNode(ProjectNode):
         if self.dirty:
             return True
 
-        return any(x.is_dirty() for x in self.children)
+        return any(x.is_dirty for x in self.children)
+
+    @is_dirty.setter
+    def is_dirty(self, dirty):
+        self.dirty = dirty
+        for x in self.children:
+            x.is_dirty = dirty
 
     def add_child(self, child):
         self.children.append(child)
@@ -399,6 +409,12 @@ class Project:
     def is_dirty(self):
         return self.dirty or self.data_root.is_dirty or self.visualization_root.is_dirty
 
+    @is_dirty.setter
+    def is_dirty(self, dirty):
+        self.dirty = dirty
+        self.data_root.is_dirty = dirty
+        self.visualization_root.is_dirty = dirty
+
     @classmethod
     def get(cls):
         """ Get global current project """
@@ -431,6 +447,8 @@ class Project:
         with open(path, 'w') as f:
             json.dump(data, f)
 
+        self.dirty = False
+
     def load(self, path):
         # Todo: check for old, sqlite save
 
@@ -444,8 +462,10 @@ class Project:
         self.name = data['name']
         self.data_root = FolderNode.load(data['data_root'])
         self.visualization_root = FolderNode.load(data['visualization_root'])
-        self.exporter = Exporter.load(data.get('exporter', None))
+        self.exporter = Exporter.load(data.get('exporter', None), self)
         Timeline.app().load_filter(data.get('timeline_filter', None))
+
+        self.dirty = False
 
     def migrate(self, data):
         pass    # No migrations yet
@@ -477,7 +497,7 @@ class Project:
                 if child.node_id == id:
                     return child
                 else:
-                    if child.node_type == 'folder':
+                    if child.node_type == 'folder' or child.node_type == 'scene':
                         result = Project._get_node_by_id(child, id)
                         if result is not None:
                             return result
