@@ -1,7 +1,7 @@
 import platform
 import matplotlib
 if platform.uname().system == 'Windows':
-    matplotlib.use('WXAgg')
+    matplotlib.use('AGG')
 
 import os
 from logging.config import dictConfig
