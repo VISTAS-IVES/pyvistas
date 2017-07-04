@@ -40,6 +40,7 @@ class ProjectController(wx.EvtHandler):
     flythrough_count = 0
 
     def __init__(self, project_panel):
+        super().__init__()
         self.has_save_path = False
         self.project_panel = project_panel
         self.project = Project()
