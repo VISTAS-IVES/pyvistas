@@ -126,14 +126,9 @@ class VisualizationPlugin2D(VisualizationPlugin):
         """
 
         if not back_thread:
-            try:
-                im = self.render(width, height)
-                self.post_render()
-                return im
-            except:
-                raise
-            else:
-                self.post_render()
+            im = self.render(width, height)
+            self.post_render()
+            return im
 
 
         self.RenderThread(self, width, height, handler).start()
