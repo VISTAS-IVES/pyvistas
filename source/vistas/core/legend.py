@@ -1,6 +1,8 @@
 from vistas.core.color import Color, interpolate_color
 from PIL import Image, ImageDraw, ImageFont
 
+from vistas.core.fonts import get_font_path
+
 
 class Legend:
 
@@ -10,11 +12,11 @@ class Legend:
     def _compute_font(labels, width):
 
         fontsize = 1
-        font = ImageFont.truetype("arial.ttf", fontsize)
+        font = ImageFont.truetype(get_font_path("arial.ttf"), fontsize)
         max_label = max(labels, key=len)
         while font.getsize(max_label)[0] < width:
             fontsize += 1
-            font = ImageFont.truetype("arial.ttf", fontsize)
+            font = ImageFont.truetype(get_font_path("arial.ttf"), fontsize)
 
         y_offset = font.getsize(max_label)[1]
 

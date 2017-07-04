@@ -29,22 +29,22 @@ class ExportDeleteTimer(wx.Timer):
 
 class ExportController(wx.EvtHandler):
 
-    MENU_ADD_LABEL = 0
-    MENU_ADD_TIMESTAMP = 1
-    MENU_ADD_SCENE = 2
-    MENU_CHANGE_FONT_SIZE = 3
-    MENU_SET_FLYTHROUGH = 4
-    MENU_ADD_VIZ = 5
-    MENU_ADD_LEGEND = 6
-    MENU_NO_SCENES = 7
-    MENU_NO_LEGENDS = 8
-    MENU_NO_FLYTHROUGHS = 9
-    MENU_SET_NO_FLYTHROUGH = 10
-    MENU_NO_VIZ = 11
-    MENU_DELETE_ITEM = 12
-    MENU_SEND_TO_BACK = 13
-    MENU_BRING_TO_FRONT = 14
-    MENU_EDIT_CAMERA_POS = 15
+    MENU_ADD_LABEL = 1
+    MENU_ADD_TIMESTAMP = 2
+    MENU_ADD_SCENE = 3
+    MENU_CHANGE_FONT_SIZE = 4
+    MENU_SET_FLYTHROUGH = 5
+    MENU_ADD_VIZ = 6
+    MENU_ADD_LEGEND = 7
+    MENU_NO_SCENES = 8
+    MENU_NO_LEGENDS = 9
+    MENU_NO_FLYTHROUGHS = 10
+    MENU_SET_NO_FLYTHROUGH = 11
+    MENU_NO_VIZ = 12
+    MENU_DELETE_ITEM = 13
+    MENU_SEND_TO_BACK = 14
+    MENU_BRING_TO_FRONT = 15
+    MENU_EDIT_CAMERA_POS = 16
     MENU_FONT_SIZE = 50
     MENU_ADD_PROJECT_ITEM = 100
     MENU_ADD_SCENE_LEGEND = 200
@@ -351,7 +351,7 @@ class ExportController(wx.EvtHandler):
             popup_menu.Enable(font_menu_item.GetId(), False)
             popup_menu.Enable(fly_menu_item.GetId(), False)
 
-        popup_menu.Bind(wx.EVT_MENU, self.OnPopupMenu)
+        self.export_frame.Bind(wx.EVT_MENU, self.OnPopupMenu)  # Sub-menus in macOS need to be handled by the frame
         self.mouse_pos = event.GetPosition()
         self.export_frame.canvas.PopupMenu(popup_menu)
 
