@@ -180,11 +180,12 @@ class FolderNode(ProjectNode):
         return folder
 
     def type_in_ancestry(self, node_type):
-        return (
-            self.node_type == node_type or
-            any(x.node_type for x in self.children) or
-            any(x.type_in_ancestry for x in self.children if isinstance(x, FolderNode))
-        )
+        if self.node_type == node_type:
+            return True
+        elif self.parent is None:
+            return False
+        else:
+            return self.parent.type_in_ancestry(node_type)
 
 
 class DataNode(ProjectNode):
