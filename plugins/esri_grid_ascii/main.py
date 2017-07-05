@@ -74,7 +74,7 @@ class ESRIGridAscii(RasterDataPlugin):
 
         prj_file = self.path.replace('.asc', '.prj')
         if os.path.exists(prj_file):
-            projection = Proj(self.UTM_10N)     # Todo: check for PRJ file properly, and then get the pyproj definition
+            projection = None       # Todo: check for PRJ file properly, and then get the pyproj definition
         else:
             projection = Proj(self.UTM_10N)
 
