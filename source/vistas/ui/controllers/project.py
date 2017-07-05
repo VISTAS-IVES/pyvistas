@@ -15,6 +15,7 @@ from vistas.ui.windows.viz_dialog import VisualizationDialog
 from vistas.ui.windows.flythrough_dialog import FlythroughDialog
 from vistas.ui.windows.data_dialog import DataDialog, CalculateStatsThread
 from vistas.ui.windows.task_dialog import TaskDialog
+from vistas.ui.windows.create_dem_dialog import GenerateDEMThread
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ class ProjectController(wx.EvtHandler):
     POPUP_ADD_VISUALIZATION = 5
     POPUP_ADD_FLYTHROUGH = 6
     POPUP_DELETE = 7
+    POPUP_FETCH_DEM = 8
 
     scene_count = 0
     flythrough_count = 0
@@ -374,6 +376,15 @@ class ProjectController(wx.EvtHandler):
         pce = ProjectChangedEvent(node=node, change=ProjectChangedEvent.ADDED_FLYTHROUGH)
         wx.PostEvent(wx.GetTopLevelParent(self.project_panel), pce)
 
+    def FetchDEM(self, node):
+        fd = wx.FileDialog(
+            wx.GetTopLevelParent(self.project_panel), "Choose a file", wildcard="*.asc", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT
+        )
+        if fd.ShowModal() == wx.ID_OK:
+            thread = GenerateDEMThread(node, self, fd.GetPath())
+            thread.start()
+            TaskDialog(wx.GetTopLevelParent(self.project_panel), thread.task).ShowModal()
+
     def DeleteSelectedItem(self, node, tree, tree_item):
         if node.is_folder:
             message = 'Are you sure you wish to delete this folder? This will also delete any items it contains.'
@@ -440,6 +451,11 @@ class ProjectController(wx.EvtHandler):
             if tree == self.project_panel.visualization_tree and node.is_folder and not isinstance(node, SceneNode):
                 popup_menu.Append(self.POPUP_ADD_SCENE, 'Add scene')
 
+            if tree == self.project_panel.data_tree and node.is_data:
+                extent = node.data.extent
+                if extent.projection is not None:
+                    popup_menu.Append(self.POPUP_FETCH_DEM, 'Fetch DEM')
+
             if tree == self.project_panel.visualization_tree and not node.is_visualization and not node.is_flythrough:
                 popup_menu.Append(self.POPUP_ADD_VISUALIZATION, 'Add new visualization')
 
@@ -487,6 +503,9 @@ class ProjectController(wx.EvtHandler):
 
         elif event_id == self.POPUP_ADD_FLYTHROUGH:
             self.AddFlythrough(node)
+
+        elif event_id == self.POPUP_FETCH_DEM:
+            self.FetchDEM(node)
 
     def OnTreeBeginDrag(self, event):
         item = event.GetItem()

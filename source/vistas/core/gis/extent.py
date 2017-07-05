@@ -88,9 +88,9 @@ class Extent:
         for i, j in product(samples, samples):
             x_values.append(self.xmin + xstep * i)
             y_values.append(self.ymin + ystep * j)
-        # TODO: check for bidrectional consistency, as is done in ncserve BoundingBox.project() method
+
         x_values, y_values = transform(self.projection, target_projection, x_values, y_values)
-        return Extent((min(x_values), min(y_values), max(x_values), max(y_values)), target_projection)
+        return Extent(min(x_values), min(y_values), max(x_values), max(y_values), target_projection)
 
     def get_local_albers_projection(self):
         """

@@ -65,7 +65,7 @@ class DataPlugin(Plugin):
     def size(self):
         """ Get the size of the data on disk """
 
-        raise NotImplemented  # Todo
+        raise NotImplemented
 
     @property
     def extent(self) -> Extent or None:
