@@ -157,7 +157,7 @@ class ProjectController(wx.EvtHandler):
                 self.NewProject(False, False)
                 self.save_path = path
                 self.has_save_path = True
-                self.project.load(path)
+                self.project.load(path, self)
                 self.PopulateTreesFromProject(self.project)
                 self.SetProjectName()
             except:

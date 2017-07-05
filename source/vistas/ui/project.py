@@ -451,7 +451,7 @@ class Project:
 
         self.dirty = False
 
-    def load(self, path):
+    def load(self, path, controller):
 
         def is_sqlite3(filename):
             """ See http://www.sqlite.org/fileformat.html """
@@ -481,6 +481,7 @@ class Project:
         self.data_root = FolderNode.load(data['data_root'])
         self.visualization_root = FolderNode.load(data['visualization_root'])
         self.exporter = Exporter.load(data.get('exporter', None), self)
+        controller.UpdateTimeline(self.data_root)
         Timeline.app().load_filter(data.get('timeline_filter', None))
 
         self.dirty = False

@@ -1,6 +1,7 @@
 import datetime
 from bisect import insort
 
+from vistas.core.utils import DatetimeEncoder, DatetimeDecoder
 from vistas.ui.events import TimelineEvent
 from vistas.ui.utils import post_timeline_change
 
@@ -196,7 +197,20 @@ class Timeline:
         self.forward(steps * -1)
 
     def serialize_filter(self):
-        return {}
+        if not self.use_filter:
+            return None
+
+        e = DatetimeEncoder()
+        return {
+            'filter_start': e.default(self.filter_start),
+            'filter_end': e.default(self.filter_end),
+            'filter_interval': e.default(self.filter_interval)
+        }
 
     def load_filter(self, data):
-        pass
+        if data is not None:
+            d = DatetimeDecoder()
+            self.use_filter = True
+            self.filter_start = d.dict_to_object(data['filter_start'])
+            self.filter_end = d.dict_to_object(data['filter_end'])
+            self.filter_interval = d.dict_to_object(data['filter_interval'])
