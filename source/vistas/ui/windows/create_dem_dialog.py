@@ -28,7 +28,7 @@ class GenerateDEMThread(Thread):
         else:
             asyncio.set_event_loop(asyncio.SelectorEventLoop())
 
-        plugin = self.service.create_dem(self.data_plugin, self.path)
+        plugin = self.service.create_dem(self.data_plugin, self.path, self.task)
         DataNode(plugin, plugin.data_name, self.controller.project.data_root)
         self.controller.PopulateTreesFromProject(self.controller.project)
         self.task.status = Task.COMPLETE

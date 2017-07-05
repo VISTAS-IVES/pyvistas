@@ -118,7 +118,7 @@ class ElevationService:
 
             asyncio.get_event_loop().run_until_complete(asyncio.gather(*requests))
 
-    def create_dem(self, plugin, save_path):
+    def create_dem(self, plugin, save_path, task):
         if not isinstance(plugin, RasterDataPlugin):
             raise ValueError("DEM generation only supported for raster-based plugins.")
 
@@ -127,11 +127,14 @@ class ElevationService:
 
         native_extent = plugin.extent
         projected_extent = native_extent.project(Proj(init="EPSG:4326"))
-        w, s, e, n = projected_extent.xmin, projected_extent.ymin, projected_extent.xmax, projected_extent.ymax
-        # ensure tiles for extent are on disk
+
+        # Ensure tiles for extent are on disk
+        task.status = task.RUNNING
+        task.description = 'Building DEM file, saving to {}'.format(save_path)
         self.get_tiles(projected_extent)
 
         height, width = plugin.shape
+        task.target = width * height
         res = plugin.resolution
         height_grid = numpy.zeros(plugin.shape, dtype=numpy.float32)
         for j in range(height):
@@ -144,23 +147,24 @@ class ElevationService:
 
                 # determine tile and get the right grid
                 tile = mercantile.tile(lon, lat, self.zoom)
-                x = tile.x
-                y = tile.y
+                bounds = mercantile.bounds(tile)
 
                 # determine position within grid
-                p_x = (lon - w) / (e - w)
-                p_y = (1 - ((lat - s) / (n - s)))
+                p_x = (lon - bounds.west) / (bounds.east - bounds.west)
+                p_y = (1 - ((lat - bounds.south) / (bounds.north - bounds.south)))
+
+                if p_y < 0.0:
+                    p_y += 1.0
+                    y -= 1
+                elif p_y >= 1.0:
+                    p_y -= 1.0
+                    y += 1
 
                 u = int(numpy.floor(p_x * self.TILE_SIZE))
                 v = int(numpy.floor(p_y * self.TILE_SIZE))
 
-                if v >= 256:
-                    v -= 256
-                    y += 1
-
-                grid = self.get_grid(x, y)
-
-                height_grid[j][i] = grid[u, v]
+                height_grid[j][i] = self.get_grid(tile.x, tile.y)[v, u]
+                task.inc_progress()
 
         self._write_esri_grid_ascii_file(save_path, height_grid, native_extent, res)
 
