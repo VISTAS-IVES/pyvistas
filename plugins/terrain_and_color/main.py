@@ -6,7 +6,7 @@ import shapely.geometry as geometry
 from rasterio import features
 
 from OpenGL.GL import *
-from pyrr import Vector3
+from pyrr import Vector3, Vector4
 
 from vistas.core.color import RGBColor
 from vistas.core.histogram import Histogram
@@ -454,7 +454,8 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             mesh.bounding_box = BoundingBox(0, min_value * factor, 0,
                                             height * cellsize, max_value * factor, width * cellsize)
 
-            self.mesh_renderable = MeshRenderable(mesh)
+            self.mesh_renderable = TerrainRenderable(mesh)
+            self.mesh_renderable.plugin = self
             self._scene.add_object(self.mesh_renderable)
 
             self._update_terrain_color()
@@ -605,6 +606,59 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         return Legend.stretched(
             width, height, self._min_value.value, self._max_value.value, self._min_color.value, self._max_color.value
         )
+
+
+class TerrainRenderable(MeshRenderable):
+    def __init__(self, mesh=None):
+        super().__init__(mesh)
+        self.plugin = None
+
+    @property
+    def selection_shader(self):
+        shader = TerrainAndColorShaderProgram(self.mesh)
+        shader.attach_shader(self.plugin.get_shader_path('selection_vert.glsl'), GL_VERTEX_SHADER)
+        shader.height_factor = self.plugin._elevation_factor.value if self.plugin._elevation_factor.value > 0 else 0.01
+        return shader
+
+    def get_selection_detail(self, width, height, x, y, camera):
+
+        device_x = x * 2.0 / width - 1
+        device_y = 1 * 2.0 / y / height
+
+        ray_clip = Vector4([device_x, device_y, -1, 1])
+        ray_eye = camera.proj_matrix.T * ray_clip
+        ray_eye = Vector4([ray_eye.x, ray_eye.y, -1.0, 1.0])
+
+        ray_world = (camera.matrix.T * ray_eye).vector3[0]
+        ray_world.normalise()
+
+        bbox = self.mesh.bounding_box
+        v1 = Vector3([bbox.min_x, bbox.min_y, bbox.min_z])
+        v2 = Vector3([bbox.max_x, bbox.min_y, bbox.min_z])
+        v3 = Vector3([bbox.min_x, bbox.min_y, bbox.max_z])
+        plane_normal = ((v1 - v1).cross(v3 - v1))
+        plane_normal.normalise()
+
+        camera_pos = camera.get_position()
+        denom = ray_world.dot(plane_normal)
+
+        if abs(denom) > 1e-6:
+
+            d = (v1 - Vector3()).length
+
+            t = -((camera_pos.dot(plane_normal) + d ) / denom)
+
+            terrain_ref = self.plugin.terrain.get_data("", Timeline.app().current)
+            terrain_stats = self.plugin.terrain_data.variable_stats("")
+            res = self.plugin.terrain.resolution
+            nodata_value = terrain_stats.nodata_value
+            shape = terrain_ref.shape
+            min_height_value = terrain_stats.min_value
+            max_height_value = terrain_stats.max_value
+            factor = 1.0
+            elevation_multiplier = self.plugin._elevation_factor.value
+
+
 
 
 class TerrainAndColorShaderProgram(MeshShaderProgram):

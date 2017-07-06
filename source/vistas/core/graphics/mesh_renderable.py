@@ -51,16 +51,14 @@ class MeshRenderable(Renderable):
 
         return shader
 
-    def render_for_selection_hit(self, camera, color):
+    def render_for_selection_hit(self, camera, r, g, b):
         if self.mesh is None:
             return
 
         shader = self.selection_shader
 
-        self.pre_render(camera)
-
         shader.pre_render(camera)
-        glUniform4f(shader.get_uniform_location('color'), *color.rgb.rgba_list)
+        glUniform4f(shader.get_uniform_location('color'), r, g, b, 1.0)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.mesh.index_buffer)
 
         glDrawElements(self.mesh.mode, self.mesh.num_indices, GL_UNSIGNED_INT, None)

@@ -154,7 +154,15 @@ class Camera(Observer):
         return im
 
     def select_object(self, width, height, x, y):
-        pass  # Todo
+        background_color = RGBColor(1.0, 1.0, 1.0, 1.0)
+        self.reset(width, height, background_color)
+
+        y = height - y
+
+        object = self.scene.select_object(self, x, y)
+        self.reset(width, height, background_color)
+
+        return object
 
     def update(self, observable: CameraObservable):
         if observable.is_sync:

@@ -1,6 +1,7 @@
 from pyrr import Matrix44
 from vistas.core.color import RGBColor
 from vistas.core.graphics.bounds import BoundingBox
+from OpenGL.GL import *
 
 
 class Scene:
@@ -44,8 +45,40 @@ class Scene:
                 obj.render_bounding_box(self.bounding_box_color, camera)
             camera.pop_matrix()
 
-    def select_object(self, x, y):
-        pass  # Todo
+    def select_object(self, camera, x, y):
+
+        red = glGetIntegerv(GL_RED_BITS)
+        green = glGetIntegerv(GL_GREEN_BITS)
+        blue = glGetIntegerv(GL_BLUE_BITS)
+
+        def make_mask(bits):
+            return 0xFFFFFFFF >> (32 - bits)
+
+        red_mask = make_mask(red) << (green + blue)
+        green_mask = make_mask(green) << blue
+        blue_mask = make_mask(blue)
+
+        red_shift = green + blue
+        green_shift = blue
+
+        for i, obj in enumerate(self.objects):
+            r = ((i & red_mask) >> red_shift) / 255.0
+            g = ((i & green_mask) >> green_shift) / 255.0
+            b = (i & blue_mask) / 255.0
+
+            camera.push_matrix()
+            camera.matrix *= Matrix44.from_translation(obj.position) * Matrix44.from_scale(obj.scale)
+            obj.render_for_selection_hit(camera, r, g, b)
+            camera.pop_matrix()
+
+        data = glReadPixels(x, y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE)
+
+        index = (data[0] << red_shift) | (data[1] << green_shift) | data[2]
+
+        if index < len(self.objects):
+            return self.objects[index]
+
+        return None
 
     def has_object(self, obj):
         return obj in self.objects

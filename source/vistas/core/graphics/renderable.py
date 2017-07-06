@@ -100,11 +100,11 @@ class Renderable:
         glDeleteBuffers(1, [vertex_buffer])
         glDeleteBuffers(1, [index_buffer])
 
-    def render_for_selection_hit(self, color):
-        pass  # Todo
+    def render_for_selection_hit(self, camera, r, g, b):
+        pass
 
     def get_selection_detail(self, width, height, x, y, camera):
-        pass  # Todo
+        pass
 
     @property
     def bounds(self):
