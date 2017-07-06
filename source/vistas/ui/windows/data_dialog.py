@@ -72,9 +72,9 @@ class DataDialog(wx.Dialog):
                 info['Data Type'] = 'Grid'
                 info['Cell Size'] = data.resolution
             if data.extent is not None:
-                pass    # Todo: spatial units?
+                pass    # spatial units?
             if data.time_info is not None:
-                pass    # Todo: temporal data units?
+                pass    # temporal data units?
             self.SetInfo(self.info_text, info)
             self.attr_choice.Clear()
             for varname in data.variables:

@@ -41,9 +41,4 @@ class ExportSceneDialog(wx.Dialog):
         export_canvas.Refresh()
         # Todo - delete camera controls?
 
-        # Todo - re-enable disabled windows?
-
         self.Destroy()
-
-    #def ShowModal(self):
-    #    pass    # Todo - reimplement?

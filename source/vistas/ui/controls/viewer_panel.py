@@ -118,10 +118,7 @@ class ViewerPanel(wx.Panel, Observer):
         self.gl_canvas.Bind(wx.EVT_LEFT_DCLICK, self.OnCanvasDClick)
         self.gl_canvas.Bind(wx.EVT_RIGHT_DOWN, self.OnCanvasRightClick)
 
-        # Todo: VI_EVENT_VIZPLUGIN_HAS_NEW_LEGEND event
-
         self.gl_canvas.camera.wireframe = False
-
         self.gl_canvas.SetFocus()
 
         self.legend_window = LegendWindow(self, wx.ID_ANY)
