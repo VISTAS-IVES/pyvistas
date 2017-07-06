@@ -212,7 +212,18 @@ class AppController(wx.EvtHandler):
 
                     break
 
-        # Todo - add graph panels
+        x_offset = 0
+        y_offset = prev_height
+
+        for panel in self.main_window.graph_panels:
+            if panel.visualization is not None:
+                node = self.main_window.project_controller.project.find_visualization_node(panel.visualization)
+                export_item = ExportItem(ExportItem.VISUALIZATION, (x_offset, y_offset),
+                                         panel.GetSize().Get())
+                export_item.viz_plugin = panel.visualization
+                export_item.project_node_id = node.node_id
+                exporter.add_item(export_item)
+                y_offset += export_item.size[1] + PADDING
 
         exporter.fit_to_items()
         return exporter

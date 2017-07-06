@@ -559,3 +559,9 @@ class Project:
             if node.flythrough is flythrough:
                 return node
         return None
+
+    def find_visualization_node(self, visualization):
+        for node in self.visualization_root.visualization_nodes:
+            if node.visualization is visualization:
+                return node
+        return None
