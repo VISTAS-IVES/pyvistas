@@ -4,9 +4,8 @@ import wx.grid
 
 class InspectWindow(wx.Frame):
     def __init__(self, parent, id):
-        super().__init__(parent, id, "Inspect")
-        self.SetWindowStyle(wx.FRAME_TOOL_WINDOW | wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX |
-                            wx.FRAME_FLOAT_ON_PARENT | wx.RESIZE_BORDER)
+        super().__init__(parent, id, "Inspect", style=wx.FRAME_TOOL_WINDOW | wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX
+                                                      | wx.FRAME_FLOAT_ON_PARENT | wx.RESIZE_BORDER)
         self.SetSize(200, 450)
         main_panel = wx.Panel(self, wx.ID_ANY)
         self.grid = wx.grid.Grid(main_panel, wx.ID_ANY)
@@ -36,13 +35,20 @@ class InspectWindow(wx.Frame):
         if num_rows:
             self.grid.DeleteRows(0, num_rows)
 
-        for i, key in enumerate(self._data):
+        if self._data is None:
+            return
+
+        self.grid.AppendRows(len(self._data.keys()))
+
+        i = 0
+        for key, val in self._data.items():
             self.grid.SetCellValue(i, 0, key)
-            self.grid.SetCellValue(i, 1, self._data[key])
+            self.grid.SetCellValue(i, 1, str(self._data[key]))
+            i += 1
 
     def Show(self, show=True):
         if not self.IsShown():
-            self.Show()
+            super().Show()
             size = self.GetSize().Get()
             p_size = self.GetParent().GetSize().Get()
             p_pos = self.GetParent().GetPosition()

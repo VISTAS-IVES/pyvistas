@@ -126,7 +126,7 @@ class Camera(Observer):
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
 
         if self.selection_view:
-            self.scene.select_object(0, 0)
+            self.scene.select_object(self, 0, 0)
         else:
             self.scene.render(self)
 

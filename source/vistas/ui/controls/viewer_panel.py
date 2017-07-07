@@ -7,6 +7,7 @@ from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.core.observers.interface import Observer
 from vistas.core.observers.camera import CameraObservable
 from vistas.ui.windows.legend import LegendWindow
+from vistas.ui.windows.inspect import InspectWindow
 from vistas.ui.controllers.project import ProjectChangedEvent
 from vistas.ui.controls.gl_canvas import GLCanvas
 from vistas.ui.project import Project
@@ -20,6 +21,8 @@ class ViewerPanel(wx.Panel, Observer):
     WEST = 'west'
 
     POPUP_COPY = 1
+
+    inspect_window = None   # InspectWindow
 
     def __init__(self, parent, id):
         super().__init__(parent, id)
@@ -305,8 +308,18 @@ class ViewerPanel(wx.Panel, Observer):
 
         self.GetParent().UpdateViewerSizes()
 
-    def OnCanvasDClick(self, event):
-        pass  # Todo
+    def OnCanvasDClick(self, event: wx.MouseEvent):
+        size = self.gl_canvas.GetSize().Get()
+
+        object = self.gl_canvas.camera.select_object(*size, event.GetX(), event.GetY())
+        if object is not None:
+            result = object.get_selection_detail(*size, event.GetX(), event.GetY(), self.gl_canvas.camera)
+
+            if self.inspect_window is None:
+                self.inspect_window = InspectWindow(self, wx.ID_ANY)
+
+            self.inspect_window.data = result
+            self.inspect_window.Show()
 
     def OnCanvasRightClick(self, event):
         menu = wx.Menu()

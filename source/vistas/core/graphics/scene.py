@@ -1,3 +1,4 @@
+import struct
 from pyrr import Matrix44
 from vistas.core.color import RGBColor
 from vistas.core.graphics.bounds import BoundingBox
@@ -51,6 +52,8 @@ class Scene:
         green = glGetIntegerv(GL_GREEN_BITS)
         blue = glGetIntegerv(GL_BLUE_BITS)
 
+        print(red, green, blue)
+
         def make_mask(bits):
             return 0xFFFFFFFF >> (32 - bits)
 
@@ -71,8 +74,7 @@ class Scene:
             obj.render_for_selection_hit(camera, r, g, b)
             camera.pop_matrix()
 
-        data = glReadPixels(x, y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE)
-
+        data = struct.unpack('b'*3, glReadPixels(x, y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE))
         index = (data[0] << red_shift) | (data[1] << green_shift) | data[2]
 
         if index < len(self.objects):

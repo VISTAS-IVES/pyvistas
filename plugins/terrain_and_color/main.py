@@ -4,7 +4,7 @@ import numpy
 import math
 import shapely.geometry as geometry
 from rasterio import features
-
+from collections import OrderedDict
 from OpenGL.GL import *
 from pyrr import Vector3, Vector4
 
@@ -61,7 +61,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         self.flow_dir_data = None
         self.flow_acc_data = None
 
-        self._selected_point = None
+        self.selected_point = None
         self._needs_terrain = self._needs_color = False
         self._needs_boundaries = False
         self._needs_flow = False
@@ -519,15 +519,15 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             # Create boundary image
             texture_w, texture_h = 512, 512
 
+            feature_extent = self.terrain_data.extent
+            xscale = texture_w / feature_extent.width
+            yscale = texture_h / feature_extent.height
+            xmin = feature_extent.xmin + self.terrain_data.resolution / 2.0
+            ymin = feature_extent.ymin - self.terrain_data.resolution / 2.0
+
             image_data = numpy.ones((texture_h, texture_w, 3), dtype=numpy.uint8) * 255
 
             if self.boundary_data is not None:
-
-                feature_extent = self.boundary_data.extent
-                xscale = texture_w / feature_extent.width
-                yscale = texture_h / feature_extent.height
-                xmin = feature_extent.xmin + self.terrain_data.resolution / 2.0
-                ymin = feature_extent.ymin - self.terrain_data.resolution / 2.0
 
                 # Fit geometry to texture
                 shapes = self.boundary_data.get_features()
@@ -540,7 +540,25 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 image_data[:, :, 0] = features.rasterize([geometry.shape(f['geometry']).exterior for f in shapes],
                                                          out_shape=(texture_h, texture_w), fill=255, default_value=0)
 
-            # Todo - mark selected point on terrain
+            if self.selected_point != (-1, -1):
+                cell_size = self.terrain_data.resolution
+                grid_height, grid_width = self.terrain_data.shape
+                box_w, box_h = cell_size * xscale, cell_size * yscale
+                tex_x_scale = texture_w / grid_width
+                tex_y_scale = texture_h / grid_height
+                center = (self.selected_point[0] * tex_x_scale, self.selected_point[1] * abs(tex_y_scale))
+
+                # Draw black rectangle directly into data
+                min_x = center[0] - box_w / 2
+                min_x = min_x if min_x >= 0 else 0
+                max_x = center[0] + box_w / 2
+                max_x = max_x if max_x <= 511 else 511
+                min_y = center[1] - box_h / 2
+                min_y = min_y if min_y >= 0 else 0
+                max_y = center[1] + box_h / 2
+                max_y = max_y if max_y <= 511 else 511
+
+                image_data[min_x: max_x, min_y: max_y, 0] = 0
 
             shader.boundary_texture = Texture(data=image_data.ravel(), width=texture_w, height=texture_h)
         else:
@@ -626,7 +644,7 @@ class TerrainRenderable(MeshRenderable):
         device_y = 1 * 2.0 / y / height
 
         ray_clip = Vector4([device_x, device_y, -1, 1])
-        ray_eye = camera.proj_matrix.T * ray_clip
+        ray_eye = camera.proj_matrix.inverse * ray_clip
         ray_eye = Vector4([ray_eye.x, ray_eye.y, -1.0, 1.0])
 
         ray_world = (camera.matrix.T * ray_eye).vector3[0]
@@ -636,11 +654,12 @@ class TerrainRenderable(MeshRenderable):
         v1 = Vector3([bbox.min_x, bbox.min_y, bbox.min_z])
         v2 = Vector3([bbox.max_x, bbox.min_y, bbox.min_z])
         v3 = Vector3([bbox.min_x, bbox.min_y, bbox.max_z])
-        plane_normal = ((v1 - v1).cross(v3 - v1))
+        plane_normal = ((v2 - v1).cross(v3 - v1))
         plane_normal.normalise()
 
         camera_pos = camera.get_position()
         denom = ray_world.dot(plane_normal)
+        current_time = Timeline.app().current
 
         if abs(denom) > 1e-6:
 
@@ -648,15 +667,79 @@ class TerrainRenderable(MeshRenderable):
 
             t = -((camera_pos.dot(plane_normal) + d ) / denom)
 
-            terrain_ref = self.plugin.terrain.get_data("", Timeline.app().current)
+            terrain_ref = self.plugin.terrain_data.get_data("", current_time)
             terrain_stats = self.plugin.terrain_data.variable_stats("")
-            res = self.plugin.terrain.resolution
+            res = self.plugin.terrain_data.resolution
             nodata_value = terrain_stats.nodata_value
-            shape = terrain_ref.shape
+            height, width = terrain_ref.shape
             min_height_value = terrain_stats.min_value
             max_height_value = terrain_stats.max_value
             factor = 1.0
             elevation_multiplier = self.plugin._elevation_factor.value
+
+            max_height = numpy.sqrt(width * height * res) / 2
+            if max_height_value > max_height:
+                factor = max_height / max_height_value
+
+            point = ray_world * t + camera_pos
+            cell_x = int(round((point.x - v1.x) / res))
+            cell_y = int(round((point.z - v1.z) / res))
+
+            angle = numpy.arcsin(camera_pos.y / t)
+            step = res / numpy.cos(angle)
+
+            t2 = 0
+            while t2 < t:
+
+                p = ray_world * t2 + camera_pos
+                x = int(round((p.x - v1.x) / res))
+                y = int(round((p.z - v1.z) / res))
+
+                if x >= 0 and x < width and y >= 0 and y < height:
+                    cell_height = terrain_ref[y, x]
+                    cell_height = cell_height * factor if cell_height != nodata_value else min_height_value
+                    cell_height *= elevation_multiplier
+
+                    if cell_height >= p.y:
+                        cell_x = x
+                        cell_y = y
+                        break
+
+                t2 += step
+
+            if self.plugin.attribute_data is not None:
+
+                attribute_ref = self.plugin.attribute_data.get_data(self.plugin._get_attribute(self.plugin._attribute),
+                                                                    current_time)
+                attr_height, attr_width = attribute_ref.shape
+                if 0 <= cell_x < attr_width and 0 <= cell_y < attr_height:
+
+                    result = OrderedDict()
+                    result['Point'] = "{}, {}".format(cell_x, cell_y)
+                    result['Value'] = attribute_ref[cell_x, cell_y],
+                    result['Height'] = terrain_ref[cell_x, cell_y]
+
+                    if self.plugin.flow_dir_data is not None:
+                        flow_dir_ref = self.plugin.flow_dir_data.get_data("", current_time)
+                        direction = flow_dir_ref[cell_x, cell_y]
+                        result['Flow Direction (input)'] = direction
+                        degrees = 45.0 + 45.0 * direction
+                        result['Flow Direction (degrees)'] = degrees if degrees < 360.0 else degrees - 360.0
+
+                    if self.plugin.flow_acc_data is not None:
+                        result['Flow Accumulation'] = self.plugin.flow_acc_data.get_data("", current_time)[cell_x, cell_y]
+
+                    self.plugin.selected_point = (cell_x, cell_y)
+                    self.plugin.needs_boundaries = True
+                    self.plugin.refresh()
+
+                    return result
+
+        self.plugin.selected_point = (-1, -1)
+        self.plugin.needs_boundaries = True
+        self.plugin.refresh()
+
+
 
 
 
