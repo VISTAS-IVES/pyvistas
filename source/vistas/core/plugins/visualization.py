@@ -169,7 +169,3 @@ class VisualizationPlugin3D(VisualizationPlugin):
         """
 
         pass
-
-    @property
-    def scene(self):
-        raise NotImplemented
