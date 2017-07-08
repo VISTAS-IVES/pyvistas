@@ -6,6 +6,7 @@ import os
 import re
 from bisect import insort
 from pyproj import Proj
+from osgeo.osr import SpatialReference
 
 from vistas.core.timeline import Timeline
 from vistas.core.gis.extent import Extent
@@ -19,8 +20,6 @@ class ESRIGridAscii(RasterDataPlugin):
     description = 'A plugin to read ESRI Grid Ascii (.asc) files.'
     author = 'Conservation Biology Institute'
     extensions = [('asc', 'ESRI Ascii Grid')]
-
-    UTM_10N = "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
 
     # VELMA filename patterns
     VELMA_FILENAME_BASIC_RE = re.compile(r"(.+)_(\d+)_(\d+)_(\d{4})_(\d+)\.asc", re.I)
@@ -72,11 +71,18 @@ class ESRIGridAscii(RasterDataPlugin):
                 self._is_velma = True
                 break
 
+        projection = None
         prj_file = self.path.replace('.asc', '.prj')
         if os.path.exists(prj_file):
-            projection = None       # Todo: check for PRJ file properly, and then get the pyproj definition
-        else:
-            projection = Proj(self.UTM_10N)
+            with open(prj_file, 'r') as f:
+
+                text = f.read()
+                if 'PROJCS' in text:            # Convert to Proj4 if WKT
+                    ref = SpatialReference()
+                    ref.ImportFromWkt(text)
+                    text = ref.ExportToProj4()
+
+                projection = Proj(text)
 
         self._extent = Extent(
             self._header['xllcorner'],
