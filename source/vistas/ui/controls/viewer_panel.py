@@ -430,7 +430,7 @@ class ViewerPanel(wx.Panel, Observer):
                 self.saved_interactor_state = self.gl_canvas.camera_interactor
             self.gl_canvas.camera_interactor = interactor
             self.gl_canvas.camera = interactor.camera
-            self.gl_canvas.camera_interactor.reset_position(False)  # Todo - replace line with reset camera controls
+            self.gl_canvas.camera_interactor.reset_position(False)
         else:
             if self.saved_interactor_state is not None:
                 self.gl_canvas.camera_interactor = self.saved_interactor_state
@@ -439,7 +439,7 @@ class ViewerPanel(wx.Panel, Observer):
             if self.reset_interactor:
                 self.gl_canvas.camera_interactor.reset_position()
                 self.reset_interactor = False
-            self.gl_canvas.camera_interactor.reset_position(False)  # Todo - replace line with reset camera controls
+            self.gl_canvas.camera_interactor.reset_position(False)
 
     def UpdateGeocoderInfo(self):
         pass  # Todo

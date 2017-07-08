@@ -14,7 +14,6 @@ class GLCanvas(wx.glcanvas.GLCanvas):
         super().__init__(parent, id, attribList=attrib_list)
 
         self.camera = camera
-        # self.camera_controls = GLCameraControls(self, camera)  # Todo: Fix camera control UI
         self.camera_interactor = SphereInteractor(camera)
         self._x = self._y = -1
 
@@ -25,12 +24,6 @@ class GLCanvas(wx.glcanvas.GLCanvas):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         if get_platform() == 'windows':
             self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
-
-        # self.SetFocus()  # Crashes on Mac
-
-    # @property
-    # def camera_interactor(self):
-    #    return self.camera_controls.camera_interactor
 
     def OnPaint(self, event):
         if not GLCanvas.initialized:
@@ -72,7 +65,7 @@ class GLCanvas(wx.glcanvas.GLCanvas):
     def OnKey(self, event: wx.KeyEvent):
         keycode = event.GetUnicodeKey()
         if keycode != wx.WXK_NONE:
-            self.camera_interactor.key_down("{:c}".format(keycode))     # submit ascii letters
+            self.camera_interactor.key_down("{:c}".format(keycode))
             self.Refresh()
 
     def OnPostRedisplay(self, event):

@@ -27,7 +27,6 @@ class ViewerContainerPanel(wx.Panel):
 
         # Events
         self.Bind(wx.EVT_SIZE, self.OnSize)
-        # Todo: VI_EVENT_CAMERA_MODE_CHANGED
 
     def __del__(self):
         self.SyncAllCameras(False, False)
@@ -118,7 +117,6 @@ class ViewerContainerPanel(wx.Panel):
                     x, y, self.GetSize().GetWidth() * viewer.width,
                     self.GetSize().GetHeight() * viewer.height
                 )
-                # viewer.gl_canvas.camera_controls.reposition_all()  # Todo
 
     def OnSize(self, event):
         self.UpdateViewerSizes()
@@ -157,9 +155,6 @@ class ViewerContainerPanel(wx.Panel):
                 for i in range(row.num_viewers):
                     row.viewers[i].ProjectChanged(event)
 
-    def OnCameraModeChanged(self, event):
-        pass  # Todo
-
     def GetMainViewerPanel(self):
         return self.rows[0].viewers[0]
 
@@ -186,14 +181,8 @@ class ViewerContainerPanel(wx.Panel):
         if do_sync:
             interactor = self.GetMainViewerPanel().gl_canvas.camera_interactor
             observable.sync_camera(interactor, save_state)
-            for panel in self.GetAllViewerPanels():
-                if panel is not self.GetMainViewerPanel():
-                    pass    # Todo - hide gl_camera_controls
         else:
             main_panel_interactor = observable.global_interactor
             observable.unsync_camera()
             if main_panel_interactor is not None:
                 self.GetMainViewerPanel().gl_canvas.camera_interactor = main_panel_interactor
-            for panel in self.GetAllViewerPanels():
-                if panel is not self.GetMainViewerPanel():
-                    pass    # Todo - hide gl_camera_controls

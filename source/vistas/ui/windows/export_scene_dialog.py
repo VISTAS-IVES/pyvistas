@@ -39,6 +39,4 @@ class ExportSceneDialog(wx.Dialog):
         self.scene_item.refresh_cache()
         export_canvas.RefreshItemCache(self.scene_item)
         export_canvas.Refresh()
-        # Todo - delete camera controls?
-
         self.Destroy()
