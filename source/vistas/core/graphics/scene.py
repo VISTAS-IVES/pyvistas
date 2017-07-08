@@ -52,8 +52,6 @@ class Scene:
         green = glGetIntegerv(GL_GREEN_BITS)
         blue = glGetIntegerv(GL_BLUE_BITS)
 
-        print(red, green, blue)
-
         def make_mask(bits):
             return 0xFFFFFFFF >> (32 - bits)
 
@@ -77,7 +75,7 @@ class Scene:
         data = struct.unpack('b'*3, glReadPixels(x, y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE))
         index = (data[0] << red_shift) | (data[1] << green_shift) | data[2]
 
-        if index < len(self.objects):
+        if self.objects and 0 <= index < len(self.objects):
             return self.objects[index]
 
         return None
