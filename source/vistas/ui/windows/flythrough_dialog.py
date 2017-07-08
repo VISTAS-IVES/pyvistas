@@ -171,7 +171,7 @@ class FlythroughDialog(wx.Frame):
         self.gl_canvas.Refresh()
         self.UpdateDraggablesFromCamera()
         self.Refresh()
-        # Todo: Reset camera interactor position?
+        self.gl_canvas.camera_interactor.reset_position(False)
 
         self.active_dialogs.append(self)
 
@@ -209,7 +209,7 @@ class FlythroughDialog(wx.Frame):
     def SelectKeyframe(self, event):
         self.flythrough.update_camera_to_keyframe(event.frame)
         self.UpdateDraggablesFromCamera()
-        # Todo: reset camera interactor position?
+        self.gl_canvas.camera_interactor.reset_position(False)
 
     def DeleteKeyframe(self, event):
         self.flythrough.remove_keyframe(event.frame)
@@ -231,7 +231,7 @@ class FlythroughDialog(wx.Frame):
             self.timer.Start(1000 / self.flythrough.fps, wx.TIMER_ONE_SHOT)
         else:
             self.play_pause_button.SetBitmapLabel(self.play_label)
-            # Todo: reset camera interactor position?
+            self.gl_canvas.camera_interactor.reset_position(False)
 
     def RecordKeyframe(self, event):
         frame = self.keyframe_timeline.current_frame
@@ -247,7 +247,7 @@ class FlythroughDialog(wx.Frame):
         else:
             self.timer.Stop()
             self.play_pause_button.SetBitmapLabel(self.play_label)
-            # Todo: reset camera interactor position?
+            self.gl_canvas.camera_interactor.reset_position(False)
         event.Skip()
 
     def OnReset(self, event):
@@ -256,7 +256,7 @@ class FlythroughDialog(wx.Frame):
             self.play_pause_button.SetBitmapLabel(self.play_label)
         self.keyframe_timeline.current_frame = 0
         self.flythrough.update_camera_to_keyframe(0)
-        # Todo: reset camera interactor position?
+        self.gl_canvas.camera_interactor.reset_position(False)
         self.UpdateDraggablesFromCamera()
 
     def OnBackward(self, event):
@@ -266,7 +266,7 @@ class FlythroughDialog(wx.Frame):
             self.keyframe_timeline.current_frame = frame
             self.flythrough.update_camera_to_keyframe(frame)
         self.UpdateDraggablesFromCamera()
-        # Todo: reset camera interactor position?
+        self.gl_canvas.camera_interactor.reset_position(False)
 
     def OnForward(self, event):
         frame = self.keyframe_timeline.current_frame
@@ -275,7 +275,7 @@ class FlythroughDialog(wx.Frame):
             self.keyframe_timeline.current_frame = frame
             self.flythrough.update_camera_to_keyframe(frame)
         self.UpdateDraggablesFromCamera()
-        # Todo: reset camera interactor position?
+        self.gl_canvas.camera_interactor.reset_position(False)
 
     def RecalculateKeyframeIndices(self):
         old_max_frame = self.keyframe_timeline.max_frame
