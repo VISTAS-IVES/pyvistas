@@ -169,3 +169,9 @@ class VisualizationPlugin3D(VisualizationPlugin):
         """
 
         pass
+
+    @property
+    def geocoder_info(self):
+        """ Returns geolocated items within a given scene. """
+
+        return None

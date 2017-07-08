@@ -142,6 +142,9 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
     def update_option(self, option: Option=None):
 
+        if option is None or option.plugin is not self:
+            return
+
         name = option.name
 
         if name == self._attribute.name:
