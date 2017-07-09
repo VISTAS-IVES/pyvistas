@@ -16,11 +16,31 @@ class ElevationService:
     TILE_SIZE = 256
     AWS_ELEVATION = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"
 
-    def __init__(self, zoom=15):
-        self.zoom = zoom
+    def __init__(self):
         self.x = None
         self.y = None
+        self.resolution = None
         self._current_grid = None
+        self._zoom = None
+
+    @property
+    def zoom(self):
+        """
+            Only get tiles where we benefit from lower zoom level.
+            See https://gist.github.com/tucotuco/1193577#file-globalmaptiles-py-L268
+        """
+
+        if self._zoom is not None:
+            return self._zoom
+
+        if self.resolution is None:
+            return 15   # Max zoom for AWS
+
+        # Calculate self._zoom once and cache
+        for i in range(30):
+            if self.resolution > (2 * numpy.pi * 6378137) / (256 * 2 ** i):
+                self._zoom = i - 1 if i != 0 else 0
+                return self._zoom
 
     def get_grid(self, x, y):
         if x != self.x or y != self.y:
@@ -50,11 +70,15 @@ class ElevationService:
 
         numpy.savetxt(path, data, header=header, comments='')
 
+        # save projection info to adjacent file
+        with open(path.replace('asc', 'prj'), 'w') as f:
+            f.write(extent.projection.srs)
+
     @staticmethod
     def _get_tile_path(z, x, y):
         return os.path.join(get_resources_directory(), 'Tiles', 'AWS', str(z), str(x), "{}.png".format(y))
 
-    def get_tiles(self, extent):
+    def get_tiles(self, extent, task):
 
         async def fetch_tile(client, url, tile_path):
             async with client.get(url) as r:
@@ -62,6 +86,7 @@ class ElevationService:
                 if not os.path.exists(os.path.dirname(tile_path)):
                     os.makedirs(os.path.dirname(tile_path))
                 tile_im.save(tile_path)
+                task.inc_progress()
 
         # Retrieve tiles that we don't currently have
         with aiohttp.ClientSession() as client:
@@ -115,32 +140,26 @@ class ElevationService:
                                     z=self.zoom, x=i, y=j
                                 ), self._get_tile_path(self.zoom, i, j))
                             )
-
+            task.target = len(requests)
             asyncio.get_event_loop().run_until_complete(asyncio.gather(*requests))
 
-    def create_dem(self, plugin, save_path, task):
-        if not isinstance(plugin, RasterDataPlugin):
-            raise ValueError("DEM generation only supported for raster-based plugins.")
+    def create_dem(self, native_extent, projected_extent, shape, resolution, save_path, task):
 
-        if plugin.extent.projection is None:
-            raise ValueError("Plugin extent has no projection info")
-
-        native_extent = plugin.extent
-        projected_extent = native_extent.project(Proj(init="EPSG:4326"))
+        self.resolution = resolution    # self.zoom is now available
 
         # Ensure tiles for extent are on disk
         task.status = task.RUNNING
-        task.description = 'Building DEM file, saving to {}'.format(save_path)
-        self.get_tiles(projected_extent)
+        task.description = 'Collecting elevation data...'
+        self.get_tiles(projected_extent, task)
 
-        height, width = plugin.shape
+        task.description = 'Building DEM file...'
+        height, width = shape
         task.target = width * height
-        res = plugin.resolution
-        height_grid = numpy.zeros(plugin.shape, dtype=numpy.float32)
+        height_grid = numpy.zeros(shape, dtype=numpy.float32)
         for j in range(height):
             for i in range(width):
-                x = native_extent.xmin + i * res
-                y = native_extent.ymax - j * res
+                x = native_extent.xmin + i * resolution
+                y = native_extent.ymax - j * resolution
 
                 # convert x,y to wgs extent
                 lon, lat = transform(native_extent.projection, projected_extent.projection, x, y)
@@ -166,8 +185,22 @@ class ElevationService:
                 height_grid[j][i] = self.get_grid(tile.x, tile.y)[v, u]
                 task.inc_progress()
 
-        self._write_esri_grid_ascii_file(save_path, height_grid, native_extent, res)
+        self._write_esri_grid_ascii_file(save_path, height_grid, native_extent, resolution)
 
-        plugin = Plugin.by_name('esri_grid_ascii')()
-        plugin.set_path(save_path)
-        return plugin
+    def create_dem_from_plugin(self, plugin, save_path, task):
+        if not isinstance(plugin, RasterDataPlugin):
+            shape = (100, 100)  # Todo - determine resolution from extent information
+            res = 270
+        else:
+            shape = plugin.shape
+            res = plugin.resolution
+
+        self.create_dem(
+            plugin.extent,
+            plugin.extent.project(Proj(init="EPSG:4326")),
+            shape, res, save_path, task
+        )
+
+        new_plugin = Plugin.by_name('esri_grid_ascii')()
+        new_plugin.set_path(save_path)
+        return new_plugin
