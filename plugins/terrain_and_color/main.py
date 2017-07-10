@@ -4,9 +4,11 @@ import numpy
 import math
 import shapely.geometry as geometry
 from rasterio import features
+from rasterio import transform
 from collections import OrderedDict
 from OpenGL.GL import *
 from pyrr import Vector3, Vector4
+from pyproj import transform as proj_transform
 
 from vistas.core.color import RGBColor
 from vistas.core.histogram import Histogram
@@ -462,6 +464,10 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             self._scene.add_object(self.mesh_renderable)
 
             self._update_terrain_color()
+        else:
+            if self.mesh_renderable is not None:
+                self._scene.remove_object(self.mesh_renderable)
+                self.mesh_renderable = None
 
     @staticmethod
     def _compute_normals(heightfield, indices):
@@ -521,32 +527,37 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
             # Create boundary image
             texture_w, texture_h = 512, 512
-
-            feature_extent = self.terrain_data.extent
-            xscale = texture_w / feature_extent.width
-            yscale = texture_h / feature_extent.height
-            xmin = feature_extent.xmin + self.terrain_data.resolution / 2.0
-            ymin = feature_extent.ymin - self.terrain_data.resolution / 2.0
-
             image_data = numpy.ones((texture_h, texture_w, 3), dtype=numpy.uint8) * 255
+
+            terrain_extent = self.terrain_data.extent
 
             if self.boundary_data is not None:
 
+                feature_extent = self.boundary_data.extent
+
                 # Fit geometry to texture
                 shapes = self.boundary_data.get_features()
+
                 for f in shapes:
                     if f['geometry']['type'] == 'Polygon':
                         for ring in f['geometry']['coordinates']:
                             for i in range(len(ring)):
-                                ring[i] = (int((ring[i][0] - xmin) * xscale), int((ring[i][1] - ymin) * yscale))
+                                if terrain_extent.projection:
+                                    pass
+                                    #ring[i] = proj_transform(feature_extent.projection, terrain_extent.projection, *ring[i])
 
-                image_data[:, :, 0] = features.rasterize([geometry.shape(f['geometry']).exterior for f in shapes],
-                                                         out_shape=(texture_h, texture_w), fill=255, default_value=0)
+                image_data[:, :, 0] = numpy.flipud(features.rasterize(
+                    [geometry.shape(f['geometry']).exterior for f in shapes if f['geometry']['type'] == 'Polygon'],
+                    out_shape=(texture_h, texture_w), fill=255, default_value=0,
+                    transform=transform.from_bounds(*terrain_extent.as_list(), 512, 512)
+                ))
 
             if self.selected_point != (-1, -1):
                 p = self.selected_point
                 cell_size = self.terrain_data.resolution
                 grid_width, grid_height = self.terrain_data.shape
+                xscale = texture_w / terrain_extent.width
+                yscale = texture_h / terrain_extent.height
                 box_w, box_h = cell_size * xscale, cell_size * yscale
                 center = (int(p[0] / grid_height * texture_w), int(512 - p[1] / grid_width * texture_h))
 
