@@ -191,6 +191,7 @@ class ProjectController(wx.EvtHandler):
 
     def AddDataFromFile(self, parent: FolderNode):
         plugins = get_data_plugins()
+        plugins.sort(key= lambda x: x.id)
         extensions = ';'.join('*.{}'.format(x[0]) for x in itertools.chain.from_iterable(x.extensions for x in plugins))
 
         if not extensions:
@@ -259,6 +260,7 @@ class ProjectController(wx.EvtHandler):
     def AddVisualization(self, parent):
         allow_3d = parent.type_in_ancestry('scene')
         plugins = get_visualization_plugins() if allow_3d else get_2d_visualization_plugins()
+        plugins.sort(key=lambda x: x.id)
 
         visualization_dialog = wx.SingleChoiceDialog(
             wx.GetTopLevelParent(self.project_panel), 'Select a visualization to add to this scene:',
