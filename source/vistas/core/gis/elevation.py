@@ -3,6 +3,7 @@ import aiohttp
 import asyncio
 import os
 import numpy
+from collections import OrderedDict
 from PIL import Image
 from pyproj import Proj, transform
 from io import BytesIO
@@ -59,14 +60,14 @@ class ElevationService:
         xllcorner, yllcorner, *_ = extent.as_list()
         nrows, ncols = data.shape
 
-        header = '\n'.join(['{} {}'.format(key, val) for key, val in {
-            'nrows': nrows,
-            'ncols': ncols,
-            'xllcorner': xllcorner,
-            'yllcorner': yllcorner,
-            'cellsize': cellsize,
-            'nodata_value': -9999.0
-        }.items()])
+        header_dict = OrderedDict()
+        header_dict['nrows'] = nrows
+        header_dict['ncols'] = ncols
+        header_dict['xllcorner'] = xllcorner
+        header_dict['yllcorner'] = yllcorner
+        header_dict['cellsize'] = cellsize
+        header_dict['nodata_value'] = -9999.0
+        header = '\n'.join(['{} {}'.format(key, val) for key, val in header_dict.items()])
 
         numpy.savetxt(path, data, header=header, comments='')
 
