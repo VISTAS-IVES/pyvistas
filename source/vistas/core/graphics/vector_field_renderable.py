@@ -194,7 +194,7 @@ class VectorFieldRenderable(Renderable):
         self.shader.uniform1f("scale", self.vector_scale)
         self.shader.uniform1i("hideNoData", self.hide_no_data)
         self.shader.uniform1f("noDataValue", self.nodata_value)
-        self.shader.uniform3fv("offsetMultipliers", 1, self.offset_multipliers.v[:3])
+        self.shader.uniform3fv("offsetMultipliers", 1, numpy.array(self.offset_multipliers))
         self.shader.uniform1f("timer", self.animation_value)
         self.shader.uniform1i("scaleMag", self.use_magnitude_scale)
         self.shader.uniform1i("filterMag", self.use_mag_filter)
