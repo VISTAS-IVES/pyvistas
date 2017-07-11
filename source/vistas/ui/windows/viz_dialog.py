@@ -208,7 +208,7 @@ class VisualizationDialog(wx.Frame):
         else:
             if has_multiple_inputs:
                 if sub_idx < self.viz.role_size(role_idx):
-                    self.viz.get_multiple_data(role_idx).pop(sub_idx)
+                    self.viz.remove_subdata(role_idx, sub_idx)
             else:
                 self.viz.set_data(None, role_idx)
 

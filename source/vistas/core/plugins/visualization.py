@@ -49,6 +49,11 @@ class VisualizationPlugin(Plugin):
         """ Get a list of data plugins associated with a specific role """
         return []
 
+    def remove_subdata(self, role, subrole):
+        """ Removes a data plugin from a list data plugins associated with a specific role """
+
+        raise NotImplemented
+
     def set_filter(self, min_value, max_value):
         """ Set the filter min/max for the visualization """
 
