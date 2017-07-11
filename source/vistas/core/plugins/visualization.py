@@ -31,10 +31,6 @@ class VisualizationPlugin(Plugin):
         """ Returns whether the role can have multiple sub-roles """
         return False
 
-    def role_supports_variable_inputs(self, role):
-        """ Returns whether the role can have a variadic number of sub-roles """
-        return False
-
     def role_size(self, role):
         """ Get the number of inputs for a specific role """
         return 1
@@ -49,7 +45,7 @@ class VisualizationPlugin(Plugin):
 
         raise NotImplemented
 
-    def get_multiple_data(self, role) -> [DataPlugin]:
+    def get_multiple_data(self, role) -> list:
         """ Get a list of data plugins associated with a specific role """
         return []
 

@@ -22,7 +22,7 @@ class GraphVisualization(VisualizationPlugin2D):
     def __init__(self):
         super().__init__()
 
-        self.data = None
+        self.data = []
 
         self.labels_option = Option(self, Option.CHECKBOX, 'Show Labels', True)
         self.x_units_option = Option(self, Option.CHECKBOX, 'X-Axis Units', True)
@@ -44,11 +44,11 @@ class GraphVisualization(VisualizationPlugin2D):
 
     @property
     def can_visualize(self):
-        return self.data is not None
+        return len(self.data) > 0
 
     @property
     def visualization_name(self):
-        return 'Graph Visualization' if self.data is None else 'Graph of {}'.format(self.data.data_name)
+        return 'Graph Visualization' if len(self.data) == 0 else 'Graph of {}'.format(self.data[0].data_name)
 
     @property
     def data_roles(self):
@@ -56,12 +56,27 @@ class GraphVisualization(VisualizationPlugin2D):
             (DataPlugin.ARRAY, 'Data')
         ]
 
+    def role_supports_multiple_inputs(self, role):
+        if role == 0:
+            return True
+        return False
+
+    def role_size(self, role):
+        return len(self.data)
+
     def set_data(self, data: DataPlugin, role):
-        self.data = data
+
+        if data is None:
+            self.data = []
+        else:
+            self.data.append(data)
 
         wx.PostEvent(App.get().app_controller.main_window, VisualizationUpdateEvent(plugin=self))
 
     def get_data(self, role):
+        return self.data[0] if len(self.data) > 0 else None
+
+    def get_multiple_data(self, role):
         return self.data
 
     def fig_to_pil(self, fig):
@@ -90,12 +105,12 @@ class GraphVisualization(VisualizationPlugin2D):
             ax = fig.add_subplot(1, 1, 1, facecolor=background_color)
             ax.margins(1 / width, 1 / height)
 
-            data = (self.data.get_data(self.data.variables[0]),)
-            if self.data.time_info.is_temporal:
-                data = ([(x - datetime(1, 1, 1)).days for x in self.data.time_info.timestamps],) + data
+            data = (self.data[0].get_data(self.data[0].variables[0]),)
+            if self.data[0].time_info.is_temporal:
+                data = ([(x - datetime(1, 1, 1)).days for x in self.data[0].time_info.timestamps],) + data
                 ax.xaxis.set_major_formatter(dates.DateFormatter('%b %d, %Y'))
 
-            ax.plot(*data, color=line_color, label=self.data.variables[0], linewidth=1)
+            ax.plot(*data, color=line_color, label=self.data[0].variables[0], linewidth=1)
 
             for spine in ('right', 'top'):
                 ax.spines[spine].set_visible(False)
@@ -107,7 +122,7 @@ class GraphVisualization(VisualizationPlugin2D):
                 for text in legend.get_texts():
                     text.set_color(label_color)
 
-            if show_cursor and self.data.time_info.is_temporal:
+            if show_cursor and self.data[0].time_info.is_temporal:
                 current_time = Timeline.app().current
                 color = (1, 1, 1) if self.bg_color_option.value.hsv.v < .5 else (0, 0, 0)
                 ax.axvline(x=(current_time - datetime(1, 1, 1)).days, color=color)

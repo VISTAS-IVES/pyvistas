@@ -156,12 +156,11 @@ class VisualizationDialog(wx.Frame):
                 self.data_panel_sizer.Add(multiple_inputs_sizer, 0, wx.EXPAND | wx.TOP, 10)
 
                 last_idx = 0
-                for input_idx, node in enumerate(current_data):
-                    self.AddMultipleDataChoice(available_data, node, i, input_idx, label)
-                    last_idx = input_idx
+                for node in current_data:
+                    self.AddMultipleDataChoice(available_data, node, i, last_idx, label)
+                    last_idx += 1
 
-                if self.viz.role_supports_variable_inputs(i):
-                    self.AddMultipleDataChoice(available_data, None, i, last_idx, label)
+                self.AddMultipleDataChoice(available_data, None, i, last_idx, label)
 
             else:   # Single role input
                 label_text = wx.StaticText(self.data_panel, wx.ID_ANY, label)
@@ -199,18 +198,17 @@ class VisualizationDialog(wx.Frame):
         role_idx = self.role_indexes[data_choice]
         sub_idx = data_choice.GetId()
 
-        has_multiple_inputs = self.viz.role_supports_variable_inputs(role_idx) or \
-            self.viz.role_supports_multiple_inputs(role_idx)
+        has_multiple_inputs = self.viz.role_supports_multiple_inputs(role_idx)
 
         if data is not None:
-            if has_multiple_inputs:
-                if sub_idx < self.viz.role_size(role_idx):
-                    pass    # Todo: How to set and remove sub-role data?
+            if has_multiple_inputs and sub_idx < self.viz.role_size(role_idx):
+                self.viz.get_multiple_data(role_idx).pop(sub_idx)
 
             self.viz.set_data(data, role_idx)
         else:
             if has_multiple_inputs:
-                pass    # Todo: set and remove sub-role data
+                if sub_idx < self.viz.role_size(role_idx):
+                    self.viz.get_multiple_data(role_idx).pop(sub_idx)
             else:
                 self.viz.set_data(None, role_idx)
 
