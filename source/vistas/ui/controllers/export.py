@@ -416,7 +416,7 @@ class ExportController(wx.EvtHandler):
                         legend_viz = viz
                         break
 
-                if legend_viz.has_legend():
+                if legend_viz and legend_viz.has_legend():
                     item.viz_plugin = legend_viz
                     item.project_node_id = project_node.node_id
                 else:
