@@ -520,6 +520,9 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
     def _update_boundaries(self):
 
+        if self.mesh_renderable is None:
+            return
+
         shader = self.mesh_renderable.mesh.shader
 
         if self.terrain_data is not None:
@@ -533,23 +536,12 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
             if self.boundary_data is not None:
 
-                feature_extent = self.boundary_data.extent
-
-                # Fit geometry to texture
+                # Burn geometry to texture
                 shapes = self.boundary_data.get_features()
-
-                for f in shapes:
-                    if f['geometry']['type'] == 'Polygon':
-                        for ring in f['geometry']['coordinates']:
-                            for i in range(len(ring)):
-                                if terrain_extent.projection:
-                                    pass
-                                    #ring[i] = proj_transform(feature_extent.projection, terrain_extent.projection, *ring[i])
-
                 image_data[:, :, 0] = numpy.flipud(features.rasterize(
                     [geometry.shape(f['geometry']).exterior for f in shapes if f['geometry']['type'] == 'Polygon'],
                     out_shape=(texture_h, texture_w), fill=255, default_value=0,
-                    transform=transform.from_bounds(*terrain_extent.as_list(), 512, 512)
+                    transform=transform.from_bounds(*terrain_extent.as_list(), texture_w, texture_h)
                 ))
 
             if self.selected_point != (-1, -1):

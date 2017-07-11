@@ -8,7 +8,7 @@ from PIL import Image
 from pyproj import Proj, transform
 from io import BytesIO
 from vistas.core.plugins.interface import Plugin
-from vistas.core.plugins.data import RasterDataPlugin
+from vistas.core.plugins.data import FeatureDataPlugin
 from vistas.core.paths import get_resources_directory
 
 
@@ -38,7 +38,7 @@ class ElevationService:
             return 15   # Max zoom for AWS
 
         # Calculate self._zoom once and cache
-        for i in range(30):
+        for i in range(16):
             if self.resolution > (2 * numpy.pi * 6378137) / (256 * 2 ** i):
                 self._zoom = i - 1 if i != 0 else 0
                 return self._zoom
@@ -189,9 +189,25 @@ class ElevationService:
         self._write_esri_grid_ascii_file(save_path, height_grid, native_extent, resolution)
 
     def create_dem_from_plugin(self, plugin, save_path, task):
-        if not isinstance(plugin, RasterDataPlugin):
-            shape = (100, 100)  # Todo - determine resolution from extent information
-            res = 270
+        if isinstance(plugin, FeatureDataPlugin):
+
+            # Generate a 'wide' area for the vector data to be clipped to.
+            wgs84 = plugin.extent.project(Proj(init='EPSG:4326'))
+            xmin, ymin, xmax, ymax = wgs84.as_list()
+            res = 300
+
+            def measure(lat1, lon1, lat2, lon2):
+                r = 6378137
+                dlat = lat2 * numpy.pi / 180 - lat1 * numpy.pi / 180
+                dlon = lon2 * numpy.pi / 180 - lon1 * numpy.pi / 180
+                a = numpy.sin(dlat / 2) * numpy.sin(dlat / 2) \
+                    + numpy.cos(lat1 * numpy.pi / 180) * numpy.cos(lat2 * numpy.pi / 180) \
+                    * numpy.sin(dlon / 2) * numpy.sin(dlon / 2)
+                c = 2 * numpy.arctan2(numpy.sqrt(a), numpy.sqrt(1 - a))
+                return r * c
+
+            shape = (int(measure(ymin, xmin, ymax, xmin) / res), int(measure(ymin, xmin, ymin, xmax) / res))
+
         else:
             shape = plugin.shape
             res = plugin.resolution
@@ -204,4 +220,7 @@ class ElevationService:
 
         new_plugin = Plugin.by_name('esri_grid_ascii')()
         new_plugin.set_path(save_path)
+        task.description = 'Calculating stats for DEM'
+        task.status = task.INDETERMINATE
+        new_plugin.calculate_stats()
         return new_plugin

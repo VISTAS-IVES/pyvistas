@@ -32,6 +32,3 @@ class GenerateDEMThread(Thread):
         DataNode(plugin, plugin.data_name, self.controller.project.data_root)
         self.controller.PopulateTreesFromProject(self.controller.project)
         self.task.status = Task.COMPLETE
-
-        thread = CalculateStatsThread(plugin)
-        thread.start()
