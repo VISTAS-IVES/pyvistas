@@ -43,6 +43,10 @@ class ElevationService:
                 self._zoom = i - 1 if i != 0 else 0
                 return self._zoom
 
+        # Alas, we couldn't calculate a proper zoom, default to max zoom
+        self._zoom = 15
+        return self._zoom
+
     def get_grid(self, x, y):
         if x != self.x or y != self.y:
             self.x = x
