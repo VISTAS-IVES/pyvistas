@@ -245,16 +245,24 @@ class VisualizationNode(ProjectNode):
         data_info = []
         for i, pair in enumerate(self.visualization.data_roles):
             data_type, name = pair
-            data_node = Project.get().find_data_node(self.visualization.get_data(i))
-            if data_node is None:
-                node_id = None
+
+            if self.visualization.role_supports_multiple_inputs(i):
+                plugins = self.visualization.get_multiple_data(i)
             else:
-                node_id = data_node.node_id
-            data_info.append({
-                'type': data_type,
-                'role': name,
-                'data_id': node_id
-            })
+                plugins = [self.visualization.get_data(i)]
+
+            for p in plugins:
+                data_node = Project.get().find_data_node(p)
+                if data_node is None:
+                    node_id = None
+                else:
+                    node_id = data_node.node_id
+                data_info.append({
+                    'type': data_type,
+                    'role': name,
+                    'data_id': node_id,
+                    'role_id': i
+                })
 
         data.update({
             'plugin': self.visualization.id,
@@ -272,15 +280,23 @@ class VisualizationNode(ProjectNode):
             plugin.scene = data.get('parent').scene
 
         # Load data sources
+        idx = 0
         for i, pair in enumerate(plugin.data_roles):
             dtype, role = pair
-            data_info = data['data'][i]
-            data_id = data_info['data_id']
-            if data_info['role'] == role and data_info['type'] == dtype:
+            data_info = data['data'][idx]
+            idx += 1
+            node_data = [data_info]
+            if plugin.role_supports_multiple_inputs(i):
+                while idx < len(data['data']) and data['data'][idx]['role_id'] == i:
+                    node_data.append(data['data'][idx])
+                    idx += 1
 
-                data_node = Project.get().get_node_by_id(data_id)
-                if data_node is not None:
-                    plugin.set_data(data_node.data, i)
+            for node in node_data:
+                data_id = node['data_id']
+                if node['role'] == role and node['type'] == dtype:
+                    data_node = Project.get().get_node_by_id(data_id)
+                    if data_node is not None:
+                        plugin.set_data(data_node.data, i)
 
         # Load option values
         options = data['options']
