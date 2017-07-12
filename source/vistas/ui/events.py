@@ -57,3 +57,6 @@ RedisplayEvent, EVT_REDISPLAY = wx.lib.newevent.NewEvent()
 
 # Event for alerting the UI to refresh legends
 NewLegendEvent, EVT_NEW_LEGEND = wx.lib.newevent.NewEvent()
+
+# Event for alerting the UI gl_canvas instances that synced camera mode has changed
+CameraChangedEvent, EVT_CAMERA_MODE_CHANGED = wx.lib.newevent.NewEvent()

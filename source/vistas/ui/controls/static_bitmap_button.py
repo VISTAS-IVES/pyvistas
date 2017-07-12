@@ -3,7 +3,7 @@ import wx
 
 
 class StaticBitmapButton(wx.Window):
-    def __init__(self, parent, id, label: wx.Bitmap, pos=None, size=wx.Size(20, 20), style=0):
+    def __init__(self, parent, id, label: wx.Bitmap, pos=wx.DefaultPosition, size=wx.Size(20, 20), style=0):
         super().__init__(parent, id, pos, size, style)
 
         self._click = False

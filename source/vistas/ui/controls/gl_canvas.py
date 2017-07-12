@@ -2,8 +2,7 @@ import wx
 import wx.glcanvas
 
 from vistas.core.utils import get_platform
-# from vistas.ui.controls.gl_camera import GLCameraControls
-from vistas.core.graphics.camera_interactor import SphereInteractor
+from vistas.ui.controls.gl_camera import GLCameraControls
 
 
 class GLCanvas(wx.glcanvas.GLCanvas):
@@ -14,7 +13,7 @@ class GLCanvas(wx.glcanvas.GLCanvas):
         super().__init__(parent, id, attribList=attrib_list)
 
         self.camera = camera
-        self.camera_interactor = SphereInteractor(camera)
+        self.camera_controls = GLCameraControls(self, camera)
         self._x = self._y = -1
 
         self.Bind(wx.EVT_MOTION, self.OnMotion)
@@ -24,6 +23,14 @@ class GLCanvas(wx.glcanvas.GLCanvas):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         if get_platform() == 'windows':
             self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+
+    @property
+    def camera_interactor(self):
+        return self.camera_controls.camera_interactor
+
+    @camera_interactor.setter
+    def camera_interactor(self, interactor):
+        self.camera_controls.camera_interactor = interactor
 
     def OnPaint(self, event):
         if not GLCanvas.initialized:
