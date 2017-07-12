@@ -72,7 +72,7 @@ class ViewerPanel(wx.Panel, Observer):
             attrib_list += [WX_GL_CORE_PROFILE]
 
         self.gl_canvas = GLCanvas(
-            self, wx.ID_ANY, self.camera, attrib_list=attrib_list
+            self, wx.ID_ANY, self.camera, attrib_list=attrib_list, can_sync=True
         )
         self.gl_canvas.Refresh()
 
@@ -429,17 +429,15 @@ class ViewerPanel(wx.Panel, Observer):
             if observable.need_state_saved:
                 self.saved_interactor_state = self.gl_canvas.camera_interactor
             self.gl_canvas.camera_interactor = interactor
-            self.gl_canvas.camera = interactor.camera
-            self.gl_canvas.camera_interactor.reset_position(False)
+            self.gl_canvas.camera_controls.Reset()
         else:
             if self.saved_interactor_state is not None:
                 self.gl_canvas.camera_interactor = self.saved_interactor_state
-                self.gl_canvas.camera = self.saved_interactor_state.camera
             self.saved_interactor_state = None
             if self.reset_interactor:
                 self.gl_canvas.camera_interactor.reset_position()
                 self.reset_interactor = False
-            self.gl_canvas.camera_interactor.reset_position(False)
+            self.gl_canvas.camera_controls.Reset()
 
     def UpdateGeocoderInfo(self):
         pass  # Todo

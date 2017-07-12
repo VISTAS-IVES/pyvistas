@@ -60,3 +60,12 @@ NewLegendEvent, EVT_NEW_LEGEND = wx.lib.newevent.NewEvent()
 
 # Event for alerting the UI gl_canvas instances that synced camera mode has changed
 CameraChangedEvent, EVT_CAMERA_MODE_CHANGED = wx.lib.newevent.NewEvent()
+
+# Event for sending a camera interactor event to other camera interactors
+CameraSyncEventBase, EVT_CAMERA_SYNC = wx.lib.newevent.NewEvent()
+
+
+class CameraSyncEvent(CameraSyncEventBase):
+
+    def __init__(self, matrix=None):
+        super().__init__(matrix=matrix)
