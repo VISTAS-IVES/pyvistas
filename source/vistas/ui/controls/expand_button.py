@@ -6,22 +6,30 @@ import wx
 class ExpandButton(wx.Panel):
     def __init__(self, parent):
         super().__init__(parent, wx.ID_ANY)
+
         self.SetPosition(wx.Point(0, 50))
         self.SetSize(wx.Size(20, 20))
-        self.frame = wx.Frame(wx.GetTopLevelParent(self),
-                              style=wx.CLIP_CHILDREN | wx.FRAME_NO_TASKBAR | wx.FRAME_FLOAT_ON_PARENT | wx.BORDER_NONE)
+
+        self.frame = wx.Frame(
+            wx.GetTopLevelParent(self),
+            style=wx.CLIP_CHILDREN | wx.FRAME_NO_TASKBAR | wx.FRAME_FLOAT_ON_PARENT | wx.BORDER_NONE
+        )
         self._alpha = 50
         self.frame.SetTransparent(self._alpha)
         self.frame.SetSize(wx.Size(20, 20))
         self.frame.SetPosition(self.GetScreenPosition())
         self.frame.Show()
+
         self.frame.Bind(wx.EVT_PAINT, self.OnPaint)
         self.frame.Bind(wx.EVT_ENTER_WINDOW, self.OnEnter)
         self.frame.Bind(wx.EVT_LEAVE_WINDOW, self.OnLeave)
         self.frame.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
         self.Bind(wx.EVT_MOVE, self.OnMove)
+        self.Bind(wx.EVT_SIZE, self.OnMove)
+
         while parent is not None:
             parent.Bind(wx.EVT_MOVE, self.OnMove)
+            parent.Bind(wx.EVT_SIZE, self.OnMove)
             parent = parent.GetParent()
 
         self._expanded = True
