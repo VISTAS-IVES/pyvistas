@@ -6,6 +6,7 @@ from vistas.core.preferences import Preferences
 from vistas.core.observers.camera import CameraObservable
 from vistas.ui.controllers.project import ProjectChangedEvent
 from vistas.ui.controls.viewer_panel import ViewerPanel
+from vistas.ui.events import EVT_CAMERA_MODE_CHANGED
 
 
 class ViewerContainerPanel(wx.Panel):
@@ -27,8 +28,11 @@ class ViewerContainerPanel(wx.Panel):
 
         # Events
         self.Bind(wx.EVT_SIZE, self.OnSize)
+        self.Bind(EVT_CAMERA_MODE_CHANGED, self.OnCameraModeChanged)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy)
 
-    def __del__(self):
+    def OnDestroy(self, event):
+        self.Unbind(EVT_CAMERA_MODE_CHANGED)
         self.SyncAllCameras(False, False)
 
     def AddViewer(self, new_viewer=None):
@@ -176,13 +180,23 @@ class ViewerContainerPanel(wx.Panel):
             viewer.camera.selection_view = self.selection_view
             viewer.Refresh()
 
+    def OnCameraModeChanged(self, event):
+        if CameraObservable.get().is_sync:
+            self.SyncAllCameras(True, False)
+
     def SyncAllCameras(self, do_sync, save_state):
         observable = CameraObservable.get()
         if do_sync:
             interactor = self.GetMainViewerPanel().gl_canvas.camera_interactor
             observable.sync_camera(interactor, save_state)
+            for panel in self.GetAllViewerPanels():
+                if panel is not self.GetMainViewerPanel():
+                    panel.gl_canvas.camera_controls.Hide()
         else:
             main_panel_interactor = observable.global_interactor
             observable.unsync_camera()
             if main_panel_interactor is not None:
                 self.GetMainViewerPanel().gl_canvas.camera_interactor = main_panel_interactor
+            for panel in self.GetAllViewerPanels():
+                if panel is not self.GetMainViewerPanel():
+                    panel.gl_canvas.camera_controls.Show()

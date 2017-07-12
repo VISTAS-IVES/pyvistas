@@ -1,6 +1,8 @@
 from vistas.core.paths import get_resource_bitmap
 from vistas.core.graphics.camera_interactor import *
 from vistas.ui.controls.static_bitmap_button import StaticBitmapButton
+from vistas.ui.utils import get_main_window
+from vistas.ui.events import CameraChangedEvent
 
 import wx
 
@@ -169,4 +171,4 @@ class GLCameraControls(wx.EvtHandler):
             self.sphere_button.Select(False)
             self.freelook_button.Select(False)
 
-        # Todo - send camera sync event
+        wx.PostEvent(get_main_window(), CameraChangedEvent())

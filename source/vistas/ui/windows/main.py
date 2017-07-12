@@ -185,6 +185,7 @@ class MainWindow(wx.Frame):
         self.Bind(EVT_NEW_LEGEND, self.OnNewLegend)
         self.Bind(EVT_TIMELINE_CHANGED, self.OnTimeline)
         self.Bind(EVT_MESSAGE, self.OnMessage)
+        self.Bind(EVT_CAMERA_MODE_CHANGED, self.OnCameraModeChanged)
         self.Bind(EVT_VISUALIZATION_UPDATED, self.OnVisualizationUpdated)
 
     def SerializeState(self):
@@ -300,6 +301,9 @@ class MainWindow(wx.Frame):
         # Update viz plugins
         for node in self.project_controller.project.all_visualizations:
             node.visualization.timeline_changed()
+
+    def OnCameraModeChanged(self, event):
+        wx.PostEvent(self.viewer_container_panel, event)
 
     def OnVisualizationUpdated(self, event):
         wx.PostEvent(self.viewer_container_panel, event)
