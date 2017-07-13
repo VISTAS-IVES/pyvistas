@@ -65,7 +65,7 @@ class Camera(Observer):
         self.matrix = Matrix44.look_at(eye, target, up)
 
     def set_position(self, position: Vector3):
-        relative_pos = self.matrix * position * -1
+        relative_pos = self.matrix * -position
         self.matrix[3, 0] = relative_pos.x
         self.matrix[3, 1] = relative_pos.y
         self.matrix[3, 2] = relative_pos.z
@@ -97,7 +97,7 @@ class Camera(Observer):
         self.set_position(pos)
 
     def move_relative(self, movement):
-        self.matrix *= Matrix44.from_translation(movement)
+        self.matrix = Matrix44.from_translation(-movement) * self.matrix
 
     def rotate_relative(self, rotation):
         pos = self.get_position()

@@ -58,11 +58,11 @@ class SphereInteractor(CameraInteractor):
         if shift:
             self._distance = self._distance + dy / friction * center_dist
         elif ctrl:
-            self._shift_x = self._shift_x + dx * center_dist / friction
-            self._shift_y = self._shift_y - dy * center_dist / friction
+            self._shift_x += dx * center_dist / friction
+            self._shift_y -= dy * center_dist / friction
         else:
-            self._angle_x = self._angle_x + dx / friction
-            self._angle_y = self._angle_y - dy / friction
+            self._angle_x += dx / friction
+            self._angle_y -= dy / friction
         self.refresh_position()
 
     def mouse_wheel(self, value, delta, shift, alt, ctrl):
@@ -125,42 +125,47 @@ class FreelookInteractor(CameraInteractor):
         super().__init__(camera, reset_mv)
 
     def mouse_motion(self, dx, dy, shift, alt, ctrl):
-        friction = 5.0
+        friction = 500.0
         self._forward = 0.0
         self._strafe = 0.0
-        self._angle_x = self._angle_x + dy / friction
-        self._angle_y = self._angle_y + dx / friction
+        self._angle_x += dy / friction
+        self._angle_y += dx / friction
         self.refresh_position()
 
     def key_down(self, key):
         self._forward = 0.0
         self._strafe = 0.0
-        friction = self.camera.scene.bounding_box.diameter / 500.0
+        speed = self.camera.scene.bounding_box.diameter / 50
         if key == "W":
-            self._forward = self._forward - friction
+            self._forward -= speed
         elif key == "S":
-            self._forward = self._forward + friction
+            self._forward += speed
         elif key == "A":
-            self._strafe = self._strafe - friction
+            self._strafe -= speed
         elif key == "D":
-            self._strafe = self._strafe + friction
+            self._strafe += speed
         self.refresh_position()
 
     def refresh_position(self):
         self.camera.move_relative(Vector3([self._strafe, 0.0, self._forward]))
         pos = self.camera.get_position()
-        self.camera.matrix = self.default_matrix * Matrix44.from_y_rotation(self._angle_y) * \
-                             Matrix44.from_x_rotation(self._angle_x)
+        self.camera.matrix = Matrix44.from_x_rotation(self._angle_x) * Matrix44.from_y_rotation(self._angle_y)
         self.camera.set_position(pos)
         post_redisplay()
 
     def reset_position(self, reset_mv=True):
-        self._strafe = 0.0
-        self._forward = 0.0
-        self._angle_y = self._angle_x = 0.0
         if reset_mv:
             self.camera.matrix = Matrix44.identity(dtype=numpy.float32)
+            bbox = self.camera.scene.bounding_box
+            center = bbox.center
+            eye = Vector3([center.x, center.y, bbox.max_z + bbox.diameter])
+            up = Vector3([0, 1, 0])
+            self.camera.look_at(eye, center, up)
         self.default_matrix = self.camera.matrix
+        self._strafe = 0.0
+        self._forward = 0.0
+        self._angle_y = 0.0
+        self._angle_x = 0.0
         self.refresh_position()
 
 
@@ -168,10 +173,10 @@ class PanInteractor(SphereInteractor):
 
     def __init__(self, camera, reset_mv=True):
         super().__init__(camera, reset_mv)
-        self.camera_type = CameraInteractor.PAN
+        self.camera_type = CameraInteractor.PAN     # Setting type after super overrides camera_type = SPHERE
 
     def mouse_motion(self, dx, dy, shift, alt, ctrl):
         dist = self.camera.distance_to_point(self.camera.scene.bounding_box.center) / self._friction
-        self._shift_x = self._shift_x + dx * dist
-        self._shift_y = self._shift_y - dy * dist
+        self._shift_x += dx * dist
+        self._shift_y -= dy * dist
         self.refresh_position()
