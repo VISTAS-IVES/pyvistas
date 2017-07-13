@@ -1,4 +1,5 @@
 import threading
+from time import sleep
 
 import wx.lib.newevent
 
@@ -12,7 +13,7 @@ class Thread(threading.Thread, wx.EvtHandler):
 
         self.Bind(EVT_THREAD_SYNC, self.on_sync)
 
-    def sync_with_main(self, func, args=(), kwargs={}, block=False):
+    def sync_with_main(self, func, args=(), kwargs={}, block=False, delay=0):
         thread_event = threading.Event()
         event = ThreadSyncEvent(func=func, args=args, kwargs=kwargs, event=thread_event)
 
@@ -20,6 +21,8 @@ class Thread(threading.Thread, wx.EvtHandler):
 
         if block:
             thread_event.wait()
+            if delay:
+                sleep(delay)
 
     def on_sync(self, event):
         event.func(*event.args, **event.kwargs)

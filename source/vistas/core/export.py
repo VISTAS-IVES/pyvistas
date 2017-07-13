@@ -1,3 +1,4 @@
+import time
 from vistas.core.fonts import get_font_path
 from vistas.core.threading import Thread
 from vistas.core.plugins.visualization import VisualizationPlugin, VisualizationPlugin3D
@@ -136,7 +137,7 @@ class ExportItem:
     @time_format.setter
     def time_format(self, time_format):
         try:
-            time = Timeline.app().current.strftime(time_format)  # Throws a ValueError if supplied format is invalid
+            t = Timeline.app().current.strftime(time_format)  # Throws a ValueError if supplied format is invalid
             self._time_format = time_format
             self.compute_bbox()
         except ValueError:
@@ -296,7 +297,8 @@ class Exporter:
 
     def refresh_item_caches(self):
         for item in self.items:
-            item.refresh_cache()
+            if item.item_type != item.LABEL:    # Labels won't change during export
+                item.refresh_cache()
 
 
 class ExportFramesTask(Thread):
@@ -309,7 +311,7 @@ class ExportFramesTask(Thread):
         self.task = Task("Exporting Frames", "Exporting frames...")
 
     def run(self):
-        self.task.target = self.exporter.video_frames-1
+        self.task.target = self.exporter.video_frames
         self.encoder.fps = self.exporter.video_fps
         self.task.progress = 0
         self.task.status = Task.RUNNING
@@ -318,6 +320,9 @@ class ExportFramesTask(Thread):
         self.encoder.open(self.path, *self.exporter.size)
 
         if self.exporter.is_temporal:
+
+            delay = 0  # Give the main thread a chance to catch up
+
             for frame in range(self.exporter.video_frames):
                 error = self.task.status == Task.SHOULD_STOP or not timeline.current <= self.exporter.animation_end or \
                         not self.encoder.is_ok()
@@ -336,7 +341,12 @@ class ExportFramesTask(Thread):
                             (local_fly_fps * frame * item.flythrough.num_keyframes) / self.exporter.video_frames
                         )
 
-                self.sync_with_main(self.exporter.refresh_item_caches, block=True)
+                # Determine max time spend in main thread for syncing, and then add that delay
+                t = time.time()
+                self.sync_with_main(self.exporter.refresh_item_caches, block=True, delay=delay)
+                elapsed = time.time() - t
+                if delay == 0:
+                    delay = elapsed
 
                 frame_bitmap = Image.new("RGB", self.exporter.size, (0, 0, 0))
                 for item in self.exporter.items:
