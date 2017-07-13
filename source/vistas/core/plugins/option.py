@@ -80,7 +80,7 @@ class OptionGroup:
     def flat_list(self) -> [Option]:
         options = []
         for item in self.items:
-            if type(item) is Option:
+            if isinstance(item, Option):
                 options.append(item)
             else:
                 child_options = item.flat_list
