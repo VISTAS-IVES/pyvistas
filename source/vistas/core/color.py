@@ -1,3 +1,6 @@
+from random import random
+
+
 class Color:
     @property
     def rgb(self):
@@ -12,6 +15,10 @@ class Color:
             return self
         else:
             return self.as_hsv()
+
+    @classmethod
+    def random(cls):
+        return cls(random(), random(), random())
 
 
 class RGBColor(Color):
