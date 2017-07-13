@@ -10,6 +10,7 @@ from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.option import Option, OptionGroup
 from vistas.core.plugins.visualization import VisualizationPlugin2D, VisualizationUpdateEvent
 from vistas.core.timeline import Timeline
+from vistas.ui.utils import post_newoptions_available
 from vistas.ui.app import App
 
 
@@ -47,8 +48,8 @@ class GraphVisualization(VisualizationPlugin2D):
         if num_categories > current_categories:
             for i in range(num_categories - current_categories):
                 self.categories_group.items.append(Option(self, Option.INT, 'Value', 0))
-                self.categories_group.items.append(Option(self, Option.COLOR, 'Color', RGBColor.random()))
                 self.categories_group.items.append(Option(self, Option.TEXT, 'Label', ''))
+                self.categories_group.items.append(Option(self, Option.COLOR, 'Color', RGBColor.random()))
                 self.categories_group.items.append(Option(self, Option.SPACER))
         elif num_categories < current_categories:
             current_options = self.categories_group.flat_list
@@ -61,6 +62,9 @@ class GraphVisualization(VisualizationPlugin2D):
     def update_option(self, option=None):
         if option.plugin is not self:
             return
+
+        if option.name == 'Number of Categories':
+            post_newoptions_available(self)
 
         wx.PostEvent(App.get().app_controller.main_window, VisualizationUpdateEvent(plugin=self))
 
@@ -93,19 +97,42 @@ class GraphVisualization(VisualizationPlugin2D):
         return Image.open(f, 'r')
 
     def render(self, width, height):
-        #if self.data is None:
-        #    return
+        if self.data is None:
+            return
+
+        grid = self.data.get_data(self.data.variables[self.attribute_option.value], Timeline.app().current)
 
         background_color = self.bg_color_option.value.rgb.rgb_list
         label_color = self.label_color_option.value.rgb.rgb_list
         show_labels = self.labels_option.value
+        num_categories = self.num_categories.value
+        categories = self.categories_group.flat_list
 
-        N = 5
-        men_means = (20, 35, 30, 35, 27)
-        men_std = (2, 3, 4, 1, 2)
+        unique_values = dict(zip(*numpy.unique(grid, return_counts=True)))  # dictionary of unique values to count
+        values = list()
+        colors = list()
+        labels = list()
 
-        ind = numpy.arange(N)  # the x locations for the groups
-        w = 0.35  # the width of the bars
+        for i in range(num_categories):
+            try:
+                value, label, color, _ = [opt.value for opt in categories[i*4:i*4+4]]
+            except:
+                continue    # Bail on this index, the viz is probably updating
+
+            if label == '':
+                label = value
+
+            if value in unique_values:
+                values.append(unique_values[value])
+            else:
+                values.append(0)
+
+            colors.append(color.rgb.rgb_list)
+            labels.append(label)
+
+        indices = numpy.arange(len(values))
+        values = tuple(values)
+        labels = tuple(labels)
 
         fig = pyplot.figure(
             figsize=(width / 100, height / 100), dpi=100, tight_layout=True,
@@ -114,22 +141,17 @@ class GraphVisualization(VisualizationPlugin2D):
 
         try:
             ax = fig.add_subplot(1, 1, 1, facecolor=background_color)
-            ax.margins(1 / width, w / height)
+            ax.margins(1 / width, 1 / height)
 
-            bars = ax.bar(ind, men_means, w, label='Men', color='r', yerr=men_std)
+            bars = ax.bar(indices, values, label='Men', color='r')
 
-            for b in ind:
-                bars[b].set_color(RGBColor.random().rgb_list)     # Set unique colors here
+            for b in indices:
+                bars[b].set_color(colors[b])            # Set unique colors here
 
             # add some text for labels, title and axes ticks
-            ax.set_xticks(ind + w / 2)
-            ax.set_xticklabels(('G1', 'G2', 'G3', 'G4', 'G5'))      # labels go here
-
-            if show_labels:
-                legend = ax.legend(loc='best', facecolor=background_color)
-                legend.get_frame().set_alpha(.6)
-                for text in legend.get_texts():
-                    text.set_color(label_color)
+            ax.set_xticks(indices)
+            ax.set_xticklabels(tuple(labels))           # labels go here
+            ax.get_xaxis().set_visible(show_labels)
 
             ax.tick_params(color=label_color)
             for spine in ('left', 'bottom'):
@@ -138,19 +160,11 @@ class GraphVisualization(VisualizationPlugin2D):
             for label in ax.get_xticklabels() + ax.get_yticklabels():
                 label.set_color(label_color)
 
-
-            def autolabel(rects):
-                """
-                Attach a text label above each bar displaying its height
-                """
-                for rect in rects:
-                    height = rect.get_height()
-                    ax.text(rect.get_x() + rect.get_width() / 2., 1.05 * height,
-                            '%d' % int(height),
-                            ha='center', va='bottom')
-
-            #autolabel(rects1)
-            #autolabel(rects2)
+            # attach a text label within each bar displaying the count
+            for rect in bars:
+                count = rect.get_height()
+                ax.text(rect.get_x() + rect.get_width() / 2., 0.5 * count, '%d' % int(count), ha='center', va='bottom',
+                        color=label_color)
 
             return self.fig_to_pil(fig).resize((width, height))
 
