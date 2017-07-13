@@ -39,9 +39,4 @@ class BoundingBox:
         self.max_z += distance.z
 
     def __eq__(self, other):
-        return self.min_x == other.min_x and \
-            self.max_x == other.max_x and \
-            self.min_y == other.min_y and \
-            self.max_y == other.max_y and \
-            self.min_z == other.min_z and \
-            self.max_z == other.max_y
+        return self.__dict__ == other.__dict__
