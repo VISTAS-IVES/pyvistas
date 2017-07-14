@@ -60,7 +60,7 @@ class AppController(wx.EvtHandler):
         splash_background = wx.Image(
             os.path.join(paths.get_resources_directory(), 'images', 'splash.png'), wx.BITMAP_TYPE_ANY
         ).ConvertToBitmap()
-        splash_composite = wx.Bitmap(500, 225)
+        splash_composite = wx.Bitmap(600, 200)
         dc = wx.MemoryDC(splash_composite)
         version_string = 'VISTAS Version: {} (Python)'.format(version)
         opengl_string = 'OpenGL Version: {}'.format(gl_version)
@@ -71,8 +71,8 @@ class AppController(wx.EvtHandler):
 
         dc.DrawBitmap(splash_background, 0, 0, True)
         dc.SetTextForeground(wx.Colour(0, 0, 0))
-        dc.DrawText(version_string, 490 - version_extent.x, 210 - opengl_extent.y - version_extent.y)
-        dc.DrawText(opengl_string, 490 - opengl_extent.x, 215 - opengl_extent.y)
+        dc.DrawText(version_string, 10, 195 - opengl_extent.y - version_extent.y)
+        dc.DrawText(opengl_string, 10, 195 - opengl_extent.y)
         dc.SelectObject(wx.Bitmap())
 
         wx.adv.SplashScreen(
