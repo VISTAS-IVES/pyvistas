@@ -5,8 +5,10 @@ from cx_Freeze import setup, Executable
 
 SOURCE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-os.environ['TCL_LIBRARY'] = r'C:\Python35\tcl\tcl8.6'
-os.environ['TK_LIBRARY'] = r'C:\Python35\tcl\tk8.6'
+if 'TCL_LIBRARY' not in os.environ:
+    os.environ['TCL_LIBRARY'] = r'C:\Python35\tcl\tcl8.6'
+if 'TK_LIBRARY' not in os.environ:
+    os.environ['TK_LIBRARY'] = r'C:\Python35\tcl\tk8.6'
 
 build_options = dict(
     packages=[
