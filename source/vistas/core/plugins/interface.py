@@ -31,6 +31,7 @@ class Plugin(metaclass=PluginBase):
     name = None
     description = None
     author = None
+    version = None
 
     @classmethod
     def by_name(cls, name):

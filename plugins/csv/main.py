@@ -12,6 +12,7 @@ class CSVDataPlugin(ArrayDataPlugin):
     name = 'CSV Data Plugin'
     description = 'Loads (time-optional) numerical data from a CSV file.'
     author = 'Conservation Biology Institute'
+    version = '1.0'
     extensions = [('csv', 'CSV')]
 
     def __init__(self, *args, **kwargs):

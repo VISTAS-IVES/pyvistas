@@ -19,6 +19,7 @@ class GraphVisualization(VisualizationPlugin2D):
     name = 'Barchart Visualization'
     description = 'Plots barcharts of values from a grid'
     author = 'Conservation Biology Institute'
+    version = '1.0'
 
     def __init__(self):
         super().__init__()

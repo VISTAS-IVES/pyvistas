@@ -12,6 +12,7 @@ class NetCDF4DataPlugin(RasterDataPlugin):
     name = 'NetCDF'
     description = 'A plugin to read NetCDF (.nc) files.'
     author = 'Conservation Biology Institute'
+    version = '1.0'
     extensions = [('nc', 'NetCDF')]
 
     def __init__(self, *args, **kwargs):

@@ -13,6 +13,7 @@ class Shapefile(FeatureDataPlugin):
     name = 'Shapefile Data Plugin'
     description = 'A plugin to read shapefiles (.shp)'
     author = 'Conservation Biology Institute'
+    version = '1.0'
     extensions = [('shp', 'Shapefile')]
 
     def __init__(self, *args, **kwargs):

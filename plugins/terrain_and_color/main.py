@@ -42,6 +42,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
     name = 'Terrain & Color'
     description = 'Terrain visualization with color inputs.'
     author = 'Conservation Biology Institute'
+    version = '1.0'
     visualization_name = 'Terrain & Color'
 
     def __init__(self):

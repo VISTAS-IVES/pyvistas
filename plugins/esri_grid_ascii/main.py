@@ -19,6 +19,7 @@ class ESRIGridAscii(RasterDataPlugin):
     name = 'ESRI Grid Ascii Data Plugin'
     description = 'A plugin to read ESRI Grid Ascii (.asc) files.'
     author = 'Conservation Biology Institute'
+    version = '1.0'
     extensions = [('asc', 'ESRI Ascii Grid')]
 
     # VELMA filename patterns

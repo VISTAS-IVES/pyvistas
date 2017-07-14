@@ -114,7 +114,7 @@ class PluginsWindow(wx.Frame):
             self.type_static.SetLabel("Visualization Plugin")
         else:
             self.type_static.SetLabel("Unknown plugin type")
-        self.version_static.SetLabel('')   # Todo: implement plugin.version
+        self.version_static.SetLabel(plugin.version)
         self.author_static.SetLabel(plugin.author)
         self.description_static.SetLabel(plugin.description)
         self.description_static.Wrap(self.plugin_details_panel.GetClientSize().x)
@@ -130,7 +130,7 @@ class PluginsWindow(wx.Frame):
         else:
             label = "Unknown"
         self.plugins_list.SetItem(i, 1, label)
-        self.plugins_list.SetItem(i, 2, '')    # Todo: implement plugin.version
+        self.plugins_list.SetItem(i, 2, plugin.version)
 
     def OnWindowClose(self, event):
         self.Hide()
