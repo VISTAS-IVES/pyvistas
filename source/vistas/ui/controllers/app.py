@@ -61,7 +61,12 @@ class AppController(wx.EvtHandler):
             os.path.join(paths.get_resources_directory(), 'images', 'splash.png'), wx.BITMAP_TYPE_ANY
         ).ConvertToBitmap()
         splash_composite = wx.Bitmap(600, 200)
+        
         dc = wx.MemoryDC(splash_composite)
+        dc = wx.MemoryDC(splash_composite)
+        dc.SetBackground(wx.Brush(wx.Colour(236, 236, 236)))
+        dc.Clear()
+
         version_string = 'VISTAS Version: {} (Python)'.format(version)
         opengl_string = 'OpenGL Version: {}'.format(gl_version)
 
