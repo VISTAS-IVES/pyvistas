@@ -60,10 +60,7 @@ class ViewerPanel(wx.Panel, Observer):
         self.scene_choice.SetToolTip('Select a scene to view')
 
         self.legend_button = wx.BitmapButton(self, wx.ID_ANY, get_resource_bitmap('stripes.png'))
-        self.geodata_button = wx.BitmapButton(self, wx.ID_ANY, get_resource_bitmap('globe.png'))
-
         self.legend_button.SetToolTip('Show/hide legend')
-        self.geodata_button.SetToolTip('Show place names')
 
         self.camera = Camera()
 
@@ -82,7 +79,6 @@ class ViewerPanel(wx.Panel, Observer):
         top_sizer = wx.BoxSizer(wx.HORIZONTAL)
         top_sizer.Add(self.scene_choice, 1, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL)
         top_sizer.Add(self.legend_button, 0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
-        top_sizer.Add(self.geodata_button, 0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
 
         content_sizer = wx.BoxSizer(wx.VERTICAL)
         content_sizer.Add(top_sizer, 0, wx.EXPAND | wx.ALL, 5)
@@ -100,7 +96,6 @@ class ViewerPanel(wx.Panel, Observer):
         # Event handlers
         self.scene_choice.Bind(wx.EVT_CHOICE, self.OnSceneChoice)
         self.legend_button.Bind(wx.EVT_BUTTON, self.OnLegendLabel)
-        self.geodata_button.Bind(wx.EVT_BUTTON, self.OnGeographicLabel)
 
         self.north_resize_area.Bind(wx.EVT_LEFT_DOWN, self.OnResizeLeftDown)
         self.north_resize_area.Bind(wx.EVT_LEFT_UP, self.OnResizeLeftUp)
@@ -396,9 +391,6 @@ class ViewerPanel(wx.Panel, Observer):
         self.legend_window.ShowWindow()
         self.legend_window.Refresh()
 
-    def OnGeographicLabel(self, event):
-        pass  # Todo
-
     def VizHasNewLegend(self):
         self.UpdateLegend()
         self.parent.RefreshAllViewers()
@@ -438,6 +430,3 @@ class ViewerPanel(wx.Panel, Observer):
                 self.gl_canvas.camera_interactor.reset_position()
                 self.reset_interactor = False
             self.gl_canvas.camera_controls.Reset()
-
-    def UpdateGeocoderInfo(self):
-        pass  # Todo
