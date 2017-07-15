@@ -144,13 +144,16 @@ class FreelookInteractor(CameraInteractor):
             self._strafe -= speed
         elif key == "D":
             self._strafe += speed
+
+        self.camera.matrix = Matrix44.from_translation(-Vector3([self._strafe, 0, self._forward])) * self.camera.matrix
+        self.default_matrix = self.camera.matrix
+        self._angle_y = 0.0
+        self._angle_x = 0.0
         self.refresh_position()
 
     def refresh_position(self):
-        self.camera.move_relative(Vector3([self._strafe, 0.0, self._forward]))
-        pos = self.camera.get_position()
-        self.camera.matrix = Matrix44.from_x_rotation(self._angle_x) * Matrix44.from_y_rotation(self._angle_y)
-        self.camera.set_position(pos)
+        self.camera.matrix = Matrix44.from_x_rotation(self._angle_x) * \
+                             Matrix44.from_y_rotation(-self._angle_y) * self.default_matrix
         post_redisplay()
 
     def reset_position(self, reset_mv=True):
