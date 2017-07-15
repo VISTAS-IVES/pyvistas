@@ -1,14 +1,22 @@
 import asyncio
 import logging
+import os
 import sys
 import traceback
+from logging.config import dictConfig
 
 import wx
 
-import vistas
+from vistas.core.utils import get_platform
 from vistas.ui.controllers.app import AppController
 from vistas.ui.windows.exception_dialog import ExceptionDialog
 
+try:
+    import BUILD_CONSTANTS
+except ImportError:
+    BUILD_CONSTANTS = None
+
+profile = getattr(BUILD_CONSTANTS, 'VISTAS_PROFILE', 'dev')
 logger = logging.getLogger(__name__)
 
 HandleExceptionEvent, EVT_HANDLE_EXCEPTION = wx.lib.newevent.NewEvent()
@@ -32,7 +40,45 @@ class App(wx.App):
         self.Bind(EVT_HANDLE_EXCEPTION, self.OnHandleException)
 
     def OnInit(self):
-        logger.debug('VISTAS {} starting...'.format(vistas.__version__))
+        if get_platform() == 'macos':
+            logs_dir = os.path.join(wx.StandardPaths.Get().UserLocalDataDir, 'VISTAS', 'logs')
+        else:
+            logs_dir = os.path.join(wx.StandardPaths.Get().UserConfigDir, 'VISTAS', 'logs')
+
+        if not os.path.exists(logs_dir):
+            os.makedirs(logs_dir)
+
+        dictConfig({
+            'version': 1,
+            'formatters': {
+                'verbose': {
+                    'format': '[%(levelname)s] [%(asctime)s:%(msecs).0f] %(message)s\n',
+                    'datefmt': '%Y/%m/%d %H:%M:%S'
+                }
+            },
+            'handlers': {
+                'console': {
+                    'class': 'logging.StreamHandler',
+                    'formatter': 'verbose',
+                    'level': 'DEBUG',
+                    'stream': 'ext://sys.stdout'
+                },
+                'file': {
+                    'class': 'logging.handlers.TimedRotatingFileHandler',
+                    'formatter': 'verbose',
+                    'level': 'DEBUG',
+                    'filename': os.path.join(logs_dir, 'debug.txt'),
+                    'when': 'D',
+                    'interval': 7
+                }
+            },
+            'loggers': {
+                'vistas': {
+                    'level': 'DEBUG',
+                    'handlers': ['console'] if profile == 'dev' else ['file']
+                }
+            }
+        })
 
         sys.excepthook = exception_hook
 
@@ -42,8 +88,6 @@ class App(wx.App):
             asyncio.set_event_loop(asyncio.SelectorEventLoop())
 
         self.app_controller = AppController()
-
-        logger.debug('VISTAS started')
 
         App.init = True
 
