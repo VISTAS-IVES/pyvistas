@@ -9,7 +9,7 @@ from pyproj import Proj, transform
 from io import BytesIO
 from vistas.core.plugins.interface import Plugin
 from vistas.core.plugins.data import FeatureDataPlugin
-from vistas.core.paths import get_resources_directory
+from vistas.core.paths import get_userconfig_path
 
 
 class ElevationService:
@@ -81,7 +81,7 @@ class ElevationService:
 
     @staticmethod
     def _get_tile_path(z, x, y):
-        return os.path.join(get_resources_directory(), 'Tiles', 'AWS', str(z), str(x), "{}.png".format(y))
+        return os.path.join(get_userconfig_path(), 'Tiles', 'AWS', str(z), str(x), "{}.png".format(y))
 
     def get_tiles(self, extent, task):
 
