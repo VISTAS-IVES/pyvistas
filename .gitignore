@@ -3,3 +3,5 @@ source/build/
 *.pyd
 source/vistas/core/encoders/wmv/_wmv\.cpp
 resources/Tiles/*
+source/*.exe
+source/*.exe_makensisw_temp
