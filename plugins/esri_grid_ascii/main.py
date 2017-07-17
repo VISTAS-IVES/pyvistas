@@ -41,6 +41,9 @@ class ESRIGridAscii(RasterDataPlugin):
         self._is_subday = False
         self._is_velma = False
         self._velma_pattern = None
+        self._current_grid = None
+        self._current_time = None
+        self._current_variable = None
 
     @staticmethod
     def _read_header(path):
@@ -128,6 +131,10 @@ class ESRIGridAscii(RasterDataPlugin):
         return h['nrows'] > 0 and h['ncols'] > 0
 
     def get_data(self, variable, date=None):
+
+        if self._current_grid is not None and self._current_time == date and self._current_variable == variable:
+            return self._current_grid
+
         path = os.path.abspath(self.path)
         nodata_value = self._header['nodata_value']
         if self._is_velma and self._temporal_info.is_temporal:
@@ -155,7 +162,10 @@ class ESRIGridAscii(RasterDataPlugin):
 
         data = numpy.loadtxt(path, skiprows=6).astype(numpy.float32)
         data = numpy.ma.masked_where(data == nodata_value, data)    # Mask out nodata
-        return data.T
+        self._current_grid = data.T
+        self._current_variable = variable
+        self._current_time = date
+        return self._current_grid
 
     @property
     def shape(self):
