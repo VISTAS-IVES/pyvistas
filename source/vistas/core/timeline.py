@@ -147,11 +147,6 @@ class Timeline:
 
     def add_timestamp(self, timestamp: datetime.datetime):
         if timestamp not in self._timestamps:
-            if len(self._timestamps):
-                if timestamp > self._timestamps[-1]:
-                    self.end = timestamp
-                elif timestamp < self._timestamps[0]:
-                    self.start = timestamp
             insort(self._timestamps, timestamp)     # unique and sorted
 
             # recalculate smallest timedelta
