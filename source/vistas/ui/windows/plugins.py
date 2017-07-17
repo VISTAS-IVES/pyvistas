@@ -1,8 +1,8 @@
-from vistas.core.plugins.management import *
-from vistas.core.paths import get_icon
-
 import wx
 import wx.core
+
+from vistas.core.paths import get_icon
+from vistas.core.plugins.management import *
 
 
 class PluginsWindow(wx.Frame):

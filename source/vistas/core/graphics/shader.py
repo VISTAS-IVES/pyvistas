@@ -1,10 +1,11 @@
-import os
 import logging
-import wx
-import numpy
+import os
 
+import numpy
+import wx
 from OpenGL.GL import *
 from pyrr import Matrix33, Matrix44
+
 from vistas.ui.utils import post_redisplay
 
 logger = logging.getLogger(__name__)

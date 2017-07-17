@@ -1,12 +1,12 @@
 import datetime
 
-from vistas.core.timeline import Timeline
-from vistas.ui.events import TimelineEvent
-from vistas.ui.utils import post_timeline_change, post_message
-
 import wx
 import wx.adv
 import wx.lib.intctrl
+
+from vistas.core.timeline import Timeline
+from vistas.ui.events import TimelineEvent
+from vistas.ui.utils import post_timeline_change, post_message
 
 
 class TimeIntervalPanel(wx.Panel):

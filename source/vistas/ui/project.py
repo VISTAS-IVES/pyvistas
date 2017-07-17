@@ -2,12 +2,13 @@ import json
 import os
 
 from pyrr import Matrix44
-from vistas.core.graphics.scene import Scene
-from vistas.core.graphics.flythrough import Flythrough, FlythroughPoint
+
 from vistas.core.color import RGBColor
+from vistas.core.export import Exporter
+from vistas.core.graphics.flythrough import Flythrough, FlythroughPoint
+from vistas.core.graphics.scene import Scene
 from vistas.core.plugins.interface import Plugin
 from vistas.core.plugins.visualization import VisualizationPlugin3D
-from vistas.core.export import Exporter
 from vistas.core.timeline import Timeline
 from vistas.ui.utils import post_message
 

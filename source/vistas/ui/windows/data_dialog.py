@@ -1,11 +1,12 @@
 from collections import OrderedDict
-from vistas.core.plugins.data import DataPlugin
-from vistas.ui.controls.options_panel import OptionsPanel
-from vistas.core.threading import Thread
-from vistas.core.task import Task
 
 import wx
 import wx.richtext
+
+from vistas.core.plugins.data import DataPlugin
+from vistas.core.task import Task
+from vistas.core.threading import Thread
+from vistas.ui.controls.options_panel import OptionsPanel
 
 
 class CalculateStatsThread(Thread):

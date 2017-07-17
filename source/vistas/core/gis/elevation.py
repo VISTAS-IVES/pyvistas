@@ -1,15 +1,17 @@
-import mercantile
-import aiohttp
 import asyncio
 import os
-import numpy
 from collections import OrderedDict
+from io import BytesIO
+
+import aiohttp
+import mercantile
+import numpy
 from PIL import Image
 from pyproj import Proj, transform
-from io import BytesIO
-from vistas.core.plugins.interface import Plugin
-from vistas.core.plugins.data import FeatureDataPlugin
+
 from vistas.core.paths import get_userconfig_path
+from vistas.core.plugins.data import FeatureDataPlugin
+from vistas.core.plugins.interface import Plugin
 
 
 class ElevationService:

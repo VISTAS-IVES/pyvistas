@@ -1,9 +1,10 @@
+from math import floor
+
 from pyrr import Vector3
+
 from vistas.core.graphics.camera import Camera
 from vistas.core.math import catmull_rom_splines
 from vistas.ui.utils import post_redisplay
-
-from math import floor
 
 
 class FlythroughPoint:

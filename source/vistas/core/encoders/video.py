@@ -1,8 +1,9 @@
-import numpy
 import os
-import imageio
 
+import imageio
+import numpy
 from PIL import Image
+
 from vistas.core.encoders.interface import VideoEncoder
 from vistas.core.task import Task
 

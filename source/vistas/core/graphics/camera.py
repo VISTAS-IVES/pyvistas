@@ -5,8 +5,8 @@ from pyrr import Matrix44, Vector3
 
 from vistas.core.color import RGBColor
 from vistas.core.graphics.scene import Scene
-from vistas.core.observers.interface import Observer
 from vistas.core.observers.camera import CameraObservable
+from vistas.core.observers.interface import Observer
 
 
 class Camera(Observer):

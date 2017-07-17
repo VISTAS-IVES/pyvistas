@@ -3,17 +3,17 @@ import wx
 from vistas.core.paths import get_resource_bitmap
 from vistas.core.plugins.visualization import EVT_VISUALIZATION_UPDATED
 from vistas.core.utils import get_platform
-from vistas.ui.controls.graph_panel import GraphPanel
-from vistas.ui.events import *
 from vistas.ui.controllers.project import ProjectController
-from vistas.ui.controls.project_panel import ProjectPanel
-from vistas.ui.controls.options_panel import OptionsPanel
-from vistas.ui.controls.viewer_container_panel import ViewerContainerPanel
-from vistas.ui.controls.timeline_panel import TimelinePanel
-from vistas.ui.controls.main_status_bar import MainStatusBar
 from vistas.ui.controls.expand_button import ExpandButton
-from vistas.ui.windows.viz_dialog import VisualizationDialog
+from vistas.ui.controls.graph_panel import GraphPanel
+from vistas.ui.controls.main_status_bar import MainStatusBar
+from vistas.ui.controls.options_panel import OptionsPanel
+from vistas.ui.controls.project_panel import ProjectPanel
+from vistas.ui.controls.timeline_panel import TimelinePanel
+from vistas.ui.controls.viewer_container_panel import ViewerContainerPanel
+from vistas.ui.events import *
 from vistas.ui.windows.flythrough_dialog import FlythroughDialog
+from vistas.ui.windows.viz_dialog import VisualizationDialog
 
 
 class MainWindow(wx.Frame):

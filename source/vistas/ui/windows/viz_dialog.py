@@ -1,14 +1,14 @@
 from collections import OrderedDict
 
-from vistas.core.plugins.visualization import VisualizationPlugin, VisualizationPlugin2D, VisualizationPlugin3D
-from vistas.core.plugins.data import DataPlugin
-from vistas.ui.project import DataNode
-from vistas.ui.events import ProjectChangedEvent
-from vistas.ui.controls.histogram_ctrl import HistogramCtrl, HISTOGRAM_CTRL_RANGE_VALUE_CHANGED_EVT
-from vistas.ui.controls.options_panel import OptionsPanel
-
 import wx
 import wx.richtext
+
+from vistas.core.plugins.data import DataPlugin
+from vistas.core.plugins.visualization import VisualizationPlugin, VisualizationPlugin2D, VisualizationPlugin3D
+from vistas.ui.controls.histogram_ctrl import HistogramCtrl, HISTOGRAM_CTRL_RANGE_VALUE_CHANGED_EVT
+from vistas.ui.controls.options_panel import OptionsPanel
+from vistas.ui.events import ProjectChangedEvent
+from vistas.ui.project import DataNode
 
 
 class VisualizationDialog(wx.Frame):

@@ -1,9 +1,9 @@
-from vistas.core.export import ExportItem
-from vistas.ui.controls.gl_canvas import GLCanvas
-from vistas.core.utils import get_platform
-
 import wx
 from wx.glcanvas import WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, WX_GL_CORE_PROFILE
+
+from vistas.core.export import ExportItem
+from vistas.core.utils import get_platform
+from vistas.ui.controls.gl_canvas import GLCanvas
 
 
 class ExportSceneDialog(wx.Dialog):

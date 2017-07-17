@@ -1,15 +1,16 @@
 import time
-from vistas.core.fonts import get_font_path
-from vistas.core.threading import Thread
-from vistas.core.plugins.visualization import VisualizationPlugin, VisualizationPlugin3D
-from vistas.core.graphics.camera import Camera
-from vistas.core.task import Task
-from vistas.core.timeline import Timeline
-from vistas.core.encoders.interface import VideoEncoder
-from vistas.ui.utils import post_message
 
-from pyrr import Matrix44
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
+from pyrr import Matrix44
+
+from vistas.core.encoders.interface import VideoEncoder
+from vistas.core.fonts import get_font_path
+from vistas.core.graphics.camera import Camera
+from vistas.core.plugins.visualization import VisualizationPlugin, VisualizationPlugin3D
+from vistas.core.task import Task
+from vistas.core.threading import Thread
+from vistas.core.timeline import Timeline
+from vistas.ui.utils import post_message
 
 
 class ExportItem:

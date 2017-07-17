@@ -1,15 +1,14 @@
-from pyrr import Vector3
-from vistas.core.paths import get_icon, get_resource_bitmap
-from vistas.core.utils import get_platform
-from vistas.ui.controls.gl_canvas import GLCanvas
-from vistas.ui.controls.draggable_value import DraggableValue, EVT_DRAG_VALUE_EVENT
-from vistas.ui.controls.keyframe_timeline import KeyframeTimeline, KeyframeTimelineEvent, EVT_KEYTIMELINE
-from vistas.ui.utils import post_redisplay
-
-
 import wx
 import wx.lib.intctrl
+from pyrr import Vector3
 from wx.glcanvas import WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, WX_GL_CORE_PROFILE
+
+from vistas.core.paths import get_icon, get_resource_bitmap
+from vistas.core.utils import get_platform
+from vistas.ui.controls.draggable_value import DraggableValue, EVT_DRAG_VALUE_EVENT
+from vistas.ui.controls.gl_canvas import GLCanvas
+from vistas.ui.controls.keyframe_timeline import KeyframeTimeline, KeyframeTimelineEvent, EVT_KEYTIMELINE
+from vistas.ui.utils import post_redisplay
 
 
 class FlythroughDialog(wx.Frame):

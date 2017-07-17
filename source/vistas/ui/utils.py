@@ -1,6 +1,7 @@
+import wx
+
 from vistas.core.utils import get_platform
 from vistas.ui.events import PluginOptionEvent, RedisplayEvent, NewLegendEvent, TimelineEvent, MessageEvent
-import wx
 
 
 def get_paint_dc(win):

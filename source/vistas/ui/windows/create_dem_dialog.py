@@ -1,11 +1,10 @@
-import sys
 import asyncio
+import sys
 
 from vistas.core.gis.elevation import ElevationService
-from vistas.core.threading import Thread
 from vistas.core.task import Task
+from vistas.core.threading import Thread
 from vistas.ui.project import DataNode
-from vistas.ui.windows.data_dialog import CalculateStatsThread
 
 
 class GenerateDEMThread(Thread):

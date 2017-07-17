@@ -1,7 +1,7 @@
-from vistas.core.timeline import Timeline
-
 import wx
 import wx.lib.masked.numctrl
+
+from vistas.core.timeline import Timeline
 
 
 class ExportOptionsDialog(wx.Dialog):

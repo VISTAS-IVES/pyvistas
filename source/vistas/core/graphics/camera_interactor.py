@@ -1,6 +1,8 @@
-import numpy
 import math
+
+import numpy
 from pyrr import Matrix44, Vector3
+
 from vistas.core.graphics.camera import Camera
 from vistas.ui.utils import post_redisplay
 

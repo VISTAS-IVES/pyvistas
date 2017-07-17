@@ -1,8 +1,10 @@
 import struct
+
+from OpenGL.GL import *
 from pyrr import Matrix44
+
 from vistas.core.color import RGBColor
 from vistas.core.graphics.bounds import BoundingBox
-from OpenGL.GL import *
 
 
 class Scene:

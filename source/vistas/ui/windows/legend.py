@@ -1,8 +1,8 @@
-from vistas.ui.utils import make_window_transparent
-from vistas.ui.controls.static_image import StaticImage
-
-from PIL import Image
 import wx
+from PIL import Image
+
+from vistas.ui.controls.static_image import StaticImage
+from vistas.ui.utils import make_window_transparent
 
 
 class LegendWindow(wx.Frame):

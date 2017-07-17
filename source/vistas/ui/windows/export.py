@@ -1,8 +1,8 @@
-from vistas.core.export import ExportItem
-from vistas.core.utils import get_platform
-
 import wx
 import wx.lib.intctrl
+
+from vistas.core.export import ExportItem
+from vistas.core.utils import get_platform
 
 
 class ExportItemBitmap(wx.EvtHandler):

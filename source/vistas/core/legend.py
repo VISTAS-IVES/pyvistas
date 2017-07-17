@@ -1,6 +1,6 @@
-from vistas.core.color import Color, interpolate_color
 from PIL import Image, ImageDraw, ImageFont
 
+from vistas.core.color import Color, interpolate_color
 from vistas.core.fonts import get_font_path
 
 

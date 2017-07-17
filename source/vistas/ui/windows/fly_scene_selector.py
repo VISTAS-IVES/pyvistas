@@ -1,6 +1,6 @@
-from vistas.ui.project import SceneNode
-
 import wx
+
+from vistas.ui.project import SceneNode
 
 
 class FlythroughSceneSelector(wx.Dialog):

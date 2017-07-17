@@ -1,9 +1,10 @@
 import copy
-import numpy
 import os
 
+import numpy
 from OpenGL.GL import *
 from pyrr import Vector3
+
 from vistas.core.graphics.bounds import BoundingBox
 from vistas.core.graphics.shader import ShaderProgram
 from vistas.core.paths import get_resources_directory

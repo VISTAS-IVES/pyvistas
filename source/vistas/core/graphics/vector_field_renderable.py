@@ -1,16 +1,15 @@
-from ctypes import sizeof, c_void_p
-import numpy
 import os
+from ctypes import sizeof, c_void_p
 
+import numpy
+import wx
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from pyrr import Vector3
 
-import wx
-
 from vistas.core.color import RGBColor
-from vistas.core.graphics.shader import ShaderProgram
 from vistas.core.graphics.renderable import Renderable
+from vistas.core.graphics.shader import ShaderProgram
 from vistas.core.paths import get_resources_directory
 from vistas.ui.utils import post_redisplay
 

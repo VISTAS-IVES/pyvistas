@@ -1,6 +1,6 @@
-import platform
-import json
 import datetime
+import json
+import platform
 
 
 def get_platform():
