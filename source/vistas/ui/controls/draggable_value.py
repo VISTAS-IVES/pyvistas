@@ -1,7 +1,7 @@
-from vistas.ui.utils import get_paint_dc
-
 import wx
 import wx.lib.newevent
+
+from vistas.ui.utils import get_paint_dc
 
 DraggableValueEventBase, EVT_DRAG_VALUE_EVENT = wx.lib.newevent.NewEvent()
 

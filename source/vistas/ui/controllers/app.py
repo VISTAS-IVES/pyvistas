@@ -1,20 +1,20 @@
+import logging
 import os
 
-import logging
 import wx
 import wx.adv
 from OpenGL.GL import *
 
 from vistas import __version__ as version
 from vistas.core import paths
+from vistas.core.export import Exporter, ExportItem
 from vistas.core.plugins.management import load_plugins
 from vistas.core.preferences import Preferences
-from vistas.core.export import Exporter, ExportItem
 from vistas.core.timeline import Timeline
 from vistas.ui.controllers.export import ExportController
+from vistas.ui.windows.fly_scene_selector import FlythroughSceneSelector
 from vistas.ui.windows.main import MainWindow
 from vistas.ui.windows.plugins import PluginsWindow
-from vistas.ui.windows.fly_scene_selector import FlythroughSceneSelector
 from vistas.ui.windows.timeline_filter import TimeFilterWindow
 
 logger = logging.getLogger(__name__)

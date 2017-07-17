@@ -2,8 +2,8 @@ from functools import reduce
 
 import wx
 
-from vistas.core.preferences import Preferences
 from vistas.core.observers.camera import CameraObservable
+from vistas.core.preferences import Preferences
 from vistas.ui.controllers.project import ProjectChangedEvent
 from vistas.ui.controls.viewer_panel import ViewerPanel
 from vistas.ui.events import EVT_CAMERA_MODE_CHANGED, EVT_CAMERA_SYNC, CameraSyncEvent

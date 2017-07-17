@@ -1,5 +1,6 @@
-from vistas.core.task import Task
 import wx
+
+from vistas.core.task import Task
 
 
 class MainStatusBar(wx.StatusBar):

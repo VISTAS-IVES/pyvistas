@@ -1,10 +1,10 @@
+import wx
+
 from vistas.core.color import RGBColor
 from vistas.core.plugins.option import Option, OptionGroup
-from vistas.ui.events import PluginOptionEvent
 from vistas.ui.controls.editable_slider import EditableSlider, EVT_SLIDER_CHANGE_EVENT
 from vistas.ui.controls.file_chooser import FileChooserCtrl, EVT_FILE_VALUE_CHANGE
-
-import wx
+from vistas.ui.events import PluginOptionEvent
 
 
 class OptionsPanel(wx.ScrolledWindow):

@@ -1,10 +1,10 @@
-from vistas.core.paths import get_resource_bitmap
-from vistas.core.graphics.camera_interactor import *
-from vistas.ui.controls.static_bitmap_button import StaticBitmapButton
-from vistas.ui.utils import get_main_window
-from vistas.ui.events import CameraChangedEvent
-
 import wx
+
+from vistas.core.graphics.camera_interactor import *
+from vistas.core.paths import get_resource_bitmap
+from vistas.ui.controls.static_bitmap_button import StaticBitmapButton
+from vistas.ui.events import CameraChangedEvent
+from vistas.ui.utils import get_main_window
 
 
 class GLCameraButtonFrame(wx.Frame):

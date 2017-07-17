@@ -1,5 +1,6 @@
-from vistas.core.utils import get_platform
 import wx
+
+from vistas.core.utils import get_platform
 
 
 class StaticImage(wx.Panel):

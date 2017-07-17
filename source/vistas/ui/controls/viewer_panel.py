@@ -2,16 +2,16 @@ import wx
 from wx.glcanvas import WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, WX_GL_CORE_PROFILE
 
 from vistas.core.graphics.camera import Camera
+from vistas.core.observers.camera import CameraObservable
+from vistas.core.observers.interface import Observer
 from vistas.core.paths import get_resource_bitmap
 from vistas.core.plugins.visualization import VisualizationPlugin3D
-from vistas.core.observers.interface import Observer
-from vistas.core.observers.camera import CameraObservable
-from vistas.ui.windows.legend import LegendWindow
-from vistas.ui.windows.inspect import InspectWindow
+from vistas.core.utils import get_platform
 from vistas.ui.controllers.project import ProjectChangedEvent
 from vistas.ui.controls.gl_canvas import GLCanvas
 from vistas.ui.project import Project
-from vistas.core.utils import get_platform
+from vistas.ui.windows.inspect import InspectWindow
+from vistas.ui.windows.legend import LegendWindow
 
 
 class ViewerPanel(wx.Panel, Observer):

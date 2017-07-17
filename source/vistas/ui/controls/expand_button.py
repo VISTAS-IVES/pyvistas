@@ -1,6 +1,6 @@
-from vistas.ui.utils import get_paint_dc
-
 import wx
+
+from vistas.ui.utils import get_paint_dc
 
 
 class ExpandButton(wx.Panel):

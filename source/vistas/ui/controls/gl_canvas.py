@@ -1,8 +1,8 @@
 import wx
 import wx.glcanvas
 
-from vistas.core.utils import get_platform
 from vistas.core.observers.camera import CameraObservable
+from vistas.core.utils import get_platform
 from vistas.ui.controls.gl_camera import GLCameraControls
 from vistas.ui.events import CameraSyncEvent
 

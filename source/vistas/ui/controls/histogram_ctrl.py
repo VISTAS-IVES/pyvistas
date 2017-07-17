@@ -1,8 +1,8 @@
-from vistas.core.histogram import Histogram
-from vistas.ui.utils import get_paint_dc, get_platform
-
 import wx
 import wx.lib.newevent
+
+from vistas.core.histogram import Histogram
+from vistas.ui.utils import get_paint_dc, get_platform
 
 HistogramCtrlValueChangedEvent, HISTOGRAM_CTRL_RANGE_VALUE_CHANGED_EVT = wx.lib.newevent.NewEvent()
 

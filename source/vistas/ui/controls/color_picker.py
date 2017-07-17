@@ -1,6 +1,6 @@
-from vistas.core.color import Color, RGBColor
-
 import wx
+
+from vistas.core.color import Color, RGBColor
 
 
 class ColorPickerCtrl(wx.BitmapButton):

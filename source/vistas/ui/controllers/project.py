@@ -4,18 +4,18 @@ import os
 
 import wx
 
+from vistas.core.graphics.flythrough import Flythrough
 from vistas.core.graphics.scene import Scene
-from vistas.core.timeline import Timeline
 from vistas.core.plugins.management import get_data_plugins, get_visualization_plugins, get_2d_visualization_plugins
 from vistas.core.plugins.visualization import VisualizationPlugin3D
-from vistas.core.graphics.flythrough import Flythrough
-from vistas.ui.project import Project, SceneNode, FolderNode, VisualizationNode, DataNode, FlythroughNode
+from vistas.core.timeline import Timeline
 from vistas.ui.events import ProjectChangedEvent
-from vistas.ui.windows.viz_dialog import VisualizationDialog
-from vistas.ui.windows.flythrough_dialog import FlythroughDialog
-from vistas.ui.windows.data_dialog import DataDialog, CalculateStatsThread
-from vistas.ui.windows.task_dialog import TaskDialog
+from vistas.ui.project import Project, SceneNode, FolderNode, VisualizationNode, DataNode, FlythroughNode
 from vistas.ui.windows.create_dem_dialog import GenerateDEMThread
+from vistas.ui.windows.data_dialog import DataDialog, CalculateStatsThread
+from vistas.ui.windows.flythrough_dialog import FlythroughDialog
+from vistas.ui.windows.task_dialog import TaskDialog
+from vistas.ui.windows.viz_dialog import VisualizationDialog
 
 logger = logging.getLogger(__name__)
 

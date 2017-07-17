@@ -1,18 +1,18 @@
+import wx
+
+from vistas.core.encoders.png import PNGEncoder
+from vistas.core.encoders.video import ImageIOVideoEncoder
 from vistas.core.export import Exporter, ExportItem
-from vistas.core.plugins.visualization import VisualizationPlugin2D, VisualizationPlugin3D
-from vistas.core.timeline import Timeline
 from vistas.core.graphics.camera import Camera
 from vistas.core.graphics.camera_interactor import SphereInteractor
-from vistas.core.encoders.video import ImageIOVideoEncoder
-from vistas.core.encoders.png import PNGEncoder
+from vistas.core.plugins.visualization import VisualizationPlugin2D, VisualizationPlugin3D
+from vistas.core.timeline import Timeline
 from vistas.ui.project import Project
-from vistas.ui.windows.export import ExportFrame, ExportItemBitmap
-from vistas.ui.windows.export_scene_dialog import ExportSceneDialog
-from vistas.ui.windows.export_options_dialog import ExportOptionsDialog
-from vistas.ui.windows.task_dialog import TaskDialog
 from vistas.ui.utils import post_message, get_platform
-
-import wx
+from vistas.ui.windows.export import ExportFrame, ExportItemBitmap
+from vistas.ui.windows.export_options_dialog import ExportOptionsDialog
+from vistas.ui.windows.export_scene_dialog import ExportSceneDialog
+from vistas.ui.windows.task_dialog import TaskDialog
 
 
 class ExportTextCtrl(wx.TextCtrl):

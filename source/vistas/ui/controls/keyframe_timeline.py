@@ -8,7 +8,6 @@ KeyframeTimelineBase, EVT_KEYTIMELINE = wx.lib.newevent.NewEvent()
 
 
 class KeyframeTimelineEvent(KeyframeTimelineBase):
-
     SELECTED = 1
     DELETED = 2
     UPDATED = 3
