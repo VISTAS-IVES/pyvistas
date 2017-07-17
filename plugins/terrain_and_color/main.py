@@ -379,6 +379,11 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
     def _create_terrain_mesh(self):
         if self.terrain_data is not None:
+
+            if self.mesh_renderable is not None:    # height grid was set before, needs to be removed
+                self._scene.remove_object(self.mesh_renderable)
+                self.mesh_renderable = None
+
             elevation_attribute = self._get_attribute(self._elevation_attribute)
             height_stats = self.terrain_data.variable_stats(elevation_attribute)
             nodata_value = height_stats.nodata_value
