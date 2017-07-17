@@ -8,3 +8,12 @@ development, and to make plugin development easier.
 
 VISTAS is currently available for Windows, with a macOS version in the works. A binary download will be added soon,
 after further testing of the initial Python version.
+
+## Contributors ##
+
+* [Nik Molnar](https://github.com/nikmolnar)
+* [Taylor Mutch](https://github.com/TaylorMutch)
+
+## Acknowledgements ##
+
+VISTAS development is funded by the National Science Foundation (BIO/DBI 1062572)
