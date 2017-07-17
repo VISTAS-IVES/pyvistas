@@ -62,7 +62,7 @@ class GLCameraButton(wx.Frame):
         self.frame.Show()
         main_panel = wx.Panel(self)
         main_panel.SetSize(self.GetSize())
-        self.button = StaticBitmapButton(main_panel, id, bitmap)
+        self.button = StaticBitmapButton(main_panel, id, bitmap, size=self.GetSize())
         self.offset = 0
         self.controls = controls
 
