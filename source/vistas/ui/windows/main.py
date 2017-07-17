@@ -43,6 +43,9 @@ class MainWindow(wx.Frame):
     MENU_DEBUG_TOGGLE_WIREFRAME = 602
     MENU_DEBUG_TOGGLE_SELECTION_VIEW = 603
 
+    MENU_HELP = 701
+    MENU_HELP_REPORT_ISSUE = 702
+
     def __init__(self, parent, id):
         super().__init__(parent, id, 'VISTAS')
 
@@ -93,7 +96,11 @@ class MainWindow(wx.Frame):
         debug_menu = wx.Menu()
         debug_menu.Append(self.MENU_DEBUG_TOGGLE_WIREFRAME, 'Toggle &Wireframe')
         debug_menu.Append(self.MENU_DEBUG_TOGGLE_SELECTION_VIEW, 'Toggle &Selection View')
-        menu_bar.Append(debug_menu, "&Debug")
+        menu_bar.Append(debug_menu, '&Debug')
+
+        help_menu = wx.Menu()
+        help_menu.Append(self.MENU_HELP_REPORT_ISSUE, '&Report an issue')
+        menu_bar.Append(help_menu, '&Help')
 
         self.SetMenuBar(menu_bar)
 
