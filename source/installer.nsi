@@ -20,9 +20,7 @@ Section
 	SetOutPath $INSTDIR
 	File /r "build\exe.win-amd64-3.5\"
 
-	createDirectory "$SMPROGRAMS\VISTAS"
-	createShortCut "$SMPROGRAMS\VISTAS\VISTAS.lnk" "$INSTDIR\VISTAS.exe"
-	createShortCut "$SMPROGRAMS\VISTAS\Uninstall VISTAS.lnk" "$INSTDIR\uninstall.exe"
+	createShortCut "$SMPROGRAMS\VISTAS.lnk" "$INSTDIR\VISTAS.exe"
 
 	WriteUninstaller "$INSTDIR\uninstall.exe"
 
