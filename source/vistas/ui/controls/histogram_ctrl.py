@@ -182,9 +182,9 @@ class HistogramCtrl(wx.Control):
     def RefreshBins(self):
         width = self.GetSize().x
         self.bins = self.histogram.generate_histogram(width)
-        self.max_count = self.bins.size
-        self.min_value = self.bins.min()
-        self.max_value = self.bins.max()
+        self.max_count = self.bins.max()
+        self.min_value = self.histogram.data.min()
+        self.max_value = self.histogram.data.max()
         if self.min_value != self.max_value:
             self._px_per_value = (width - self.HANDLE_WIDTH) / (self.max_value - self.min_value)
         else:

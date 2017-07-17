@@ -285,7 +285,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
     @property
     def is_filterable(self):
-        return self.attribute_data is not None
+        return True
 
     @property
     def is_filtered(self):
@@ -294,7 +294,9 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
     @property
     def filter_histogram(self):
         if self.attribute_data is not None:
-            return Histogram(self.attribute_data.get_data(self._get_attribute(self._attribute), Timeline.app().current))
+            variable = self._get_attribute(self._attribute)
+            nodata_value = self.attribute_data.variable_stats(variable).nodata_value
+            return Histogram(self.attribute_data.get_data(variable, Timeline.app().current), nodata_value)
         else:
             return Histogram()
 

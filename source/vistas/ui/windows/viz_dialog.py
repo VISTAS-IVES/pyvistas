@@ -6,7 +6,6 @@ from vistas.ui.project import DataNode
 from vistas.ui.events import ProjectChangedEvent
 from vistas.ui.controls.histogram_ctrl import HistogramCtrl, HISTOGRAM_CTRL_RANGE_VALUE_CHANGED_EVT
 from vistas.ui.controls.options_panel import OptionsPanel
-from vistas.ui.utils import post_redisplay
 
 import wx
 import wx.richtext
@@ -237,8 +236,8 @@ class VisualizationDialog(wx.Frame):
         event.Skip()
 
     def OnFilterChange(self, event):
-        self.viz.set_filter(event.min_stop, event.max_stop)
-        post_redisplay()
+        if self.viz.is_filterable:
+            self.viz.set_filter(event.min_stop, event.max_stop)
 
     def OnClearFilter(self, event):
         if self.viz.is_filterable:
