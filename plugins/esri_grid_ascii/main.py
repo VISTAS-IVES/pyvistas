@@ -1,16 +1,17 @@
-from linecache import getline
-import json
 import datetime
-import numpy
+import json
 import os
 import re
 from bisect import insort
-from pyproj import Proj
-from osgeo.osr import SpatialReference
+from linecache import getline
 
-from vistas.core.timeline import Timeline
+import numpy
+from osgeo.osr import SpatialReference
+from pyproj import Proj
+
 from vistas.core.gis.extent import Extent
 from vistas.core.plugins.data import RasterDataPlugin, VariableStats, TemporalInfo
+from vistas.core.timeline import Timeline
 
 
 class ESRIGridAscii(RasterDataPlugin):

@@ -1,7 +1,7 @@
 from io import BytesIO
 
-import wx
 import numpy
+import wx
 from PIL import Image
 from matplotlib import pyplot
 
@@ -10,8 +10,8 @@ from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.option import Option, OptionGroup
 from vistas.core.plugins.visualization import VisualizationPlugin2D, VisualizationUpdateEvent
 from vistas.core.timeline import Timeline
-from vistas.ui.utils import post_newoptions_available
 from vistas.ui.app import App
+from vistas.ui.utils import post_newoptions_available
 
 
 class GraphVisualization(VisualizationPlugin2D):

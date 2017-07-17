@@ -1,9 +1,11 @@
-import os
 import datetime
+import os
+
 import numpy
-from vistas.core.plugins.data import RasterDataPlugin, TemporalInfo, VariableStats
-from vistas.core.gis.extent import Extent
 from netCDF4 import Dataset
+
+from vistas.core.gis.extent import Extent
+from vistas.core.plugins.data import RasterDataPlugin, TemporalInfo, VariableStats
 
 
 class NetCDF4DataPlugin(RasterDataPlugin):

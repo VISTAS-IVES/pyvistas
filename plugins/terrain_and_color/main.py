@@ -1,28 +1,27 @@
+import math
+from collections import OrderedDict
 from ctypes import sizeof, c_float
 
 import numpy
-import math
 import shapely.geometry as geometry
-from rasterio import features
-from rasterio import transform
-from collections import OrderedDict
 from OpenGL.GL import *
 from pyrr import Vector3, Vector4
-from pyproj import transform as proj_transform
+from rasterio import features
+from rasterio import transform
 
 from vistas.core.color import RGBColor
-from vistas.core.histogram import Histogram
-from vistas.core.timeline import Timeline
 from vistas.core.graphics.bounds import BoundingBox
 from vistas.core.graphics.mesh import Mesh, MeshShaderProgram
 from vistas.core.graphics.mesh_renderable import MeshRenderable
-from vistas.core.graphics.vector_field_renderable import VectorFieldRenderable
 from vistas.core.graphics.texture import Texture
 from vistas.core.graphics.utils import map_buffer
+from vistas.core.graphics.vector_field_renderable import VectorFieldRenderable
+from vistas.core.histogram import Histogram
+from vistas.core.legend import Legend
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.option import Option, OptionGroup
 from vistas.core.plugins.visualization import VisualizationPlugin3D
-from vistas.core.legend import Legend
+from vistas.core.timeline import Timeline
 from vistas.ui.utils import *
 
 

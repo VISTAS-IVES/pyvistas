@@ -1,7 +1,8 @@
-import os
 import csv
-import numpy
 import datetime
+import os
+
+import numpy
 
 from vistas.core.plugins.data import ArrayDataPlugin, TemporalInfo, VariableStats
 

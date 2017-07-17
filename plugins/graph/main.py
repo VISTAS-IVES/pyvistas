@@ -1,8 +1,8 @@
+from datetime import datetime
 from io import BytesIO
 
 import wx
 from PIL import Image
-from datetime import datetime
 from matplotlib import pyplot, dates
 
 from vistas.core.color import RGBColor

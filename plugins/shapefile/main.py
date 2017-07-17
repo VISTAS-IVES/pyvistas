@@ -1,8 +1,8 @@
 import os
+
 import fiona
 from pyproj import Proj
 
-from vistas.core.timeline import Timeline
 from vistas.core.gis.extent import Extent
 from vistas.core.plugins.data import FeatureDataPlugin, VariableStats, TemporalInfo
 
