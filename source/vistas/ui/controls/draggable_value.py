@@ -12,7 +12,7 @@ class DraggableValueEvent(DraggableValueEventBase):
 
 
 class DraggableValue(wx.Window):
-    def __init__(self, parent, id, value, per_px):
+    def __init__(self, parent, id, value, per_px, min_value=None, max_value=None):
         super().__init__(parent, id)
 
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
@@ -20,6 +20,8 @@ class DraggableValue(wx.Window):
         self._per_px = per_px
         self._dragging = False
         self._mouse_pos = None
+        self.min_value = min_value
+        self.max_value = max_value
         self.value = value
         self._temp_value = 0
         self.SetCursor(wx.Cursor(wx.CURSOR_SIZEWE))
@@ -41,6 +43,10 @@ class DraggableValue(wx.Window):
 
     @value.setter
     def value(self, value):
+        if self.min_value is not None and value < self.min_value:
+            value = self.min_value
+        elif self.max_value is not None and value > self.max_value:
+            value = self.max_value
         self._value = value
         self._repaint()
 

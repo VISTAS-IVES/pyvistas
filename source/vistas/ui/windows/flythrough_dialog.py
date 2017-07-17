@@ -8,7 +8,6 @@ from vistas.core.utils import get_platform
 from vistas.ui.controls.draggable_value import DraggableValue, EVT_DRAG_VALUE_EVENT
 from vistas.ui.controls.gl_canvas import GLCanvas
 from vistas.ui.controls.keyframe_timeline import KeyframeTimeline, KeyframeTimelineEvent, EVT_KEYTIMELINE
-from vistas.ui.utils import post_redisplay
 
 
 class FlythroughDialog(wx.Frame):
@@ -60,9 +59,10 @@ class FlythroughDialog(wx.Frame):
         self.direction_y = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
         self.direction_z = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
         up_label = wx.StaticText(draggable_panel, wx.ID_ANY, "Up: ")
-        self.up_x = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
-        self.up_y = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
-        self.up_z = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX)
+        args = {'min_value': -1.0, 'max_value': 1.0}
+        self.up_x = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX, **args)
+        self.up_y = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX, **args)
+        self.up_z = DraggableValue(draggable_panel, wx.ID_ANY, 0, self.VALUE_PER_PX, **args)
 
         # playback
         playback_panel = wx.Panel(main_panel, wx.ID_ANY)
@@ -192,9 +192,8 @@ class FlythroughDialog(wx.Frame):
         up = Vector3([self.up_x.value, self.up_y.value, self.up_z.value])
         direction = Vector3([self.direction_x.value, self.direction_y.value, self.direction_z.value])
         self.flythrough.camera.look_at(pos, pos + direction, up)
-        post_redisplay()
+        self.gl_canvas.camera_interactor.reset_position(False)
         self.gl_canvas.Refresh()
-        #self.gl_canvas.camera_interactor.reset_position(False)
         self.UpdateTimeline()
 
     def OnKeyframe(self, event: KeyframeTimelineEvent):
