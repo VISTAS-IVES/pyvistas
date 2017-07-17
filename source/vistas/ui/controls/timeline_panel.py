@@ -376,7 +376,8 @@ class TimelinePanel(wx.Panel):
             self.timeline_ctrl.timeline.current = self.timeline_ctrl.timeline.end
 
     def OnTimer(self, event):
-        if self.timeline_ctrl.timeline.enabled and self.timeline_ctrl.timeline.current < self.timeline_ctrl.timeline.end:
+        timeline = self.timeline_ctrl.timeline
+        if timeline.enabled and timeline.current < timeline.end and timeline.current < timeline.filter_end:
             speed = self.timeline_ctrl.animation_speed
 
             self.timeline_ctrl.timeline.forward()
