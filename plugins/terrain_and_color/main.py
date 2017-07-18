@@ -758,7 +758,6 @@ class TerrainAndColorShaderProgram(MeshShaderProgram):
 
         tw, th = 512, 512
         img_data = (numpy.ones((tw, th, 3)).astype(numpy.uint8) * 255).ravel()
-        img_data = img_data.ravel()
         self.boundary_texture = Texture(data=img_data, width=tw, height=tw)
 
         self.has_color = False
