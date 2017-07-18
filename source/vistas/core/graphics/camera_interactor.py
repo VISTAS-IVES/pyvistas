@@ -32,9 +32,6 @@ class CameraInteractor:
     def key_down(self, key):
         pass  # implemented by subclasses
 
-    def key_up(self, key):
-        pass  # implemented by subclasses
-
     def mouse_motion(self, dx, dy, shift, alt, ctrl):
         pass  # implemented by subclasses
 
@@ -45,7 +42,22 @@ class CameraInteractor:
         pass  # implemented by subclasses
 
     def reset_position(self, reset_mv=True):
-        pass  # implemented by subclasses
+        if reset_mv:
+            self.camera.matrix = Matrix44.identity(dtype=numpy.float32)
+            bbox = self.camera.scene.bounding_box
+            center = bbox.center
+            eye = Vector3([center.x, center.y, bbox.max_z + bbox.diameter])
+            up = Vector3([0, 1, 0])
+            self.camera.look_at(eye, center, up)
+        self.default_matrix = self.camera.matrix
+        self._distance = 0
+        self._forward = 0
+        self._strafe = 0
+        self._shift_x = 0
+        self._shift_y = 0
+        self._angle_x = 0
+        self._angle_y = 0
+        self.refresh_position()
 
 
 class SphereInteractor(CameraInteractor):
@@ -101,24 +113,6 @@ class SphereInteractor(CameraInteractor):
 
         post_redisplay()
 
-    def reset_position(self, reset_mv=True):
-        if reset_mv:
-            self.camera.matrix = Matrix44.identity(dtype=numpy.float32)
-            bbox = self.camera.scene.bounding_box
-            center = bbox.center
-            eye = Vector3([center.x, center.y, bbox.max_z + bbox.diameter])
-            up = Vector3([0, 1, 0])
-            self.camera.look_at(eye, center, up)
-        self.default_matrix = self.camera.matrix
-        self._distance = 0
-        self._forward = 0
-        self._strafe = 0
-        self._shift_x = 0
-        self._shift_y = 0
-        self._angle_x = 0
-        self._angle_y = 0
-        self.refresh_position()
-
 
 class FreelookInteractor(CameraInteractor):
 
@@ -157,21 +151,6 @@ class FreelookInteractor(CameraInteractor):
         self.camera.matrix = Matrix44.from_x_rotation(self._angle_x) * \
                              Matrix44.from_y_rotation(-self._angle_y) * self.default_matrix
         post_redisplay()
-
-    def reset_position(self, reset_mv=True):
-        if reset_mv:
-            self.camera.matrix = Matrix44.identity(dtype=numpy.float32)
-            bbox = self.camera.scene.bounding_box
-            center = bbox.center
-            eye = Vector3([center.x, center.y, bbox.max_z + bbox.diameter])
-            up = Vector3([0, 1, 0])
-            self.camera.look_at(eye, center, up)
-        self.default_matrix = self.camera.matrix
-        self._strafe = 0.0
-        self._forward = 0.0
-        self._angle_y = 0.0
-        self._angle_x = 0.0
-        self.refresh_position()
 
 
 class PanInteractor(SphereInteractor):
