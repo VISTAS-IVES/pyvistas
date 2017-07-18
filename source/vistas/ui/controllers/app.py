@@ -33,7 +33,7 @@ class AppController(wx.EvtHandler):
         self.plugins_window = PluginsWindow(self.main_window, wx.ID_ANY)
         self.plugins_window.Hide()
 
-        self.time_filter_window = TimeFilterWindow(self.main_window, wx.ID_ANY)
+        self.time_filter_window = TimeFilterWindow(self.main_window)
         self.time_filter_window.Hide()
 
         main_window_state = Preferences.app().get('main_window_state')
@@ -135,7 +135,7 @@ class AppController(wx.EvtHandler):
             sync = self.main_window.GetToolBar().FindById(MainWindow.MENU_SYNC_CAMERAS).IsToggled()
             self.main_window.viewer_container_panel.SyncAllCameras(sync, True)
         elif event_id == MainWindow.MENU_OPEN_TIMELINE_FILTER:
-            if self.time_filter_window.timeline.enabled:
+            if Timeline.app().enabled:
                 self.time_filter_window.Show()
         elif event_id == MainWindow.MENU_WINDOW_PLUGINS:
             self.plugins_window.Show()

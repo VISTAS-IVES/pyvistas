@@ -51,35 +51,35 @@ class TimeIntervalPanel(wx.Panel):
 
     @property
     def interval(self):
-        days = int(self.days.GetValue())
-        seconds = int(self.seconds.GetValue())
+        days = self.days.GetValue()
+        seconds = self.seconds.GetValue()
         return datetime.timedelta(days, seconds, 0)
 
     @interval.setter
     def interval(self, value: datetime.timedelta):
-        self.days.SetValue(value.days)
-        self.seconds.SetValue(value.seconds)
+        self.days.ChangeValue(value.days)
+        self.seconds.ChangeValue(value.seconds)
         self.UpdateEnabledInputs()
 
 
 class TimeFilterWindow(wx.Frame):
-    def __init__(self, parent, id):
+    def __init__(self, parent):
         super().__init__(
-            parent, id, "Timeline Filter",
+            parent, wx.ID_ANY, "Timeline Filter",
             style=wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX | wx.FRAME_FLOAT_ON_PARENT
         )
-        self.timeline = Timeline.app()
+        timeline = Timeline.app()
         self._filter_has_changed = False
 
         main_panel = wx.Panel(self, wx.ID_ANY)
 
-        self.start_ctrl = wx.adv.CalendarCtrl(main_panel, wx.ID_ANY, date=wx.pydate2wxdate(self.timeline.start))
-        self.start_ctrl.SetDateRange(wx.pydate2wxdate(self.timeline.start),
-                                     wx.pydate2wxdate(self.timeline.end))
+        self.start_ctrl = wx.adv.CalendarCtrl(main_panel, wx.ID_ANY, date=wx.pydate2wxdate(timeline.start))
+        self.start_ctrl.SetDateRange(wx.pydate2wxdate(timeline.start),
+                                     wx.pydate2wxdate(timeline.end))
 
-        self.end_ctrl = wx.adv.CalendarCtrl(main_panel, wx.ID_ANY, date=wx.pydate2wxdate(self.timeline.end))
-        self.end_ctrl.SetDateRange(wx.pydate2wxdate(self.timeline.start),
-                                   wx.pydate2wxdate(self.timeline.end))
+        self.end_ctrl = wx.adv.CalendarCtrl(main_panel, wx.ID_ANY, date=wx.pydate2wxdate(timeline.end))
+        self.end_ctrl.SetDateRange(wx.pydate2wxdate(timeline.start),
+                                   wx.pydate2wxdate(timeline.end))
 
         self.apply_button = wx.Button(main_panel, wx.ID_ANY, "Apply")
         self.apply_button.SetDefault()
@@ -125,23 +125,24 @@ class TimeFilterWindow(wx.Frame):
         self.end_ctrl.Bind(wx.adv.EVT_CALENDAR_SEL_CHANGED, self.OnCalendar)
         self.apply_button.Bind(wx.EVT_BUTTON, self.OnApply)
         self.reset_button.Bind(wx.EVT_BUTTON, self.OnReset)
+        self.Refresh()
 
     def ApplyFilter(self):
-
+        timeline = Timeline.app()
         start = wx.wxdate2pydate(self.start_ctrl.GetDate())
         end = wx.wxdate2pydate(self.end_ctrl.GetDate())
         interval = self.interval_panel.interval
-        time_span = self.timeline.end - self.timeline.start
+        time_span = timeline.end - timeline.start
         valid_range = start < end
-        valid_interval = self.timeline.min_step <= interval < time_span
+        valid_interval = timeline.min_step <= interval < time_span
 
-        if valid_range and valid_interval and self.timeline.enabled:
-            self.timeline.filter_start = start
-            self.timeline.filter_end = end
-            self.timeline.filter_interval = interval
-            self.timeline.use_filter = not (self.timeline.filter_start == self.timeline.start and
-                                            self.timeline.filter_end == self.timeline.end and
-                                            self.timeline.filter_interval == self.timeline.min_step)
+        if valid_range and valid_interval and timeline.enabled:
+            timeline.filter_start = start
+            timeline.filter_end = end
+            timeline.filter_interval = interval
+            timeline.use_filter = not (timeline.filter_start == timeline.start and
+                                            timeline.filter_end == timeline.end and
+                                            timeline.filter_interval == timeline.min_step)
             self._filter_has_changed = False
             self.RefreshTimeline()
             self.Refresh()
@@ -161,14 +162,15 @@ class TimeFilterWindow(wx.Frame):
         post_timeline_change(Timeline.app().current, TimelineEvent.VALUE_CHANGED)
 
     def UpdateFromTimeline(self):
+        timeline = Timeline.app()
         self._filter_has_changed = False
-        self.start_ctrl.SetDate(wx.pydate2wxdate(self.timeline.filter_start))
-        self.start_ctrl.SetDateRange(wx.pydate2wxdate(self.timeline.start),
-                                     wx.pydate2wxdate(self.timeline.end))
-        self.end_ctrl.SetDate(wx.pydate2wxdate(self.timeline.filter_end))
-        self.end_ctrl.SetDateRange(wx.pydate2wxdate(self.timeline.start),
-                                   wx.pydate2wxdate(self.timeline.end))
-        self.interval_panel.interval = self.timeline.filter_interval
+        self.start_ctrl.SetDateRange(wx.pydate2wxdate(timeline.start),
+                                     wx.pydate2wxdate(timeline.end))
+        self.start_ctrl.SetDate(wx.pydate2wxdate(timeline.filter_start))
+        self.end_ctrl.SetDateRange(wx.pydate2wxdate(timeline.start),
+                                   wx.pydate2wxdate(timeline.end))
+        self.end_ctrl.SetDate(wx.pydate2wxdate(timeline.filter_end))
+        self.interval_panel.interval = timeline.filter_interval
         self.Refresh()
 
     def OnShow(self, event):
@@ -191,12 +193,12 @@ class TimeFilterWindow(wx.Frame):
         self.ApplyFilter()
 
     def OnReset(self, event):
-
         # Reset timeline filter to start and finish
-        self.timeline.filter_start = self.timeline.start
-        self.timeline.filter_end = self.timeline.end
-        self.timeline.filter_interval = self.timeline.min_step
-        self.interval_panel.interval = self.timeline.filter_interval
+        timeline = Timeline.app()
+        timeline.filter_start = timeline.start
+        timeline.filter_end = timeline.end
+        timeline.filter_interval = timeline.min_step
+        self.interval_panel.interval = timeline.filter_interval
         self._filter_has_changed = False
         self.RefreshTimeline()
         self.Refresh()
