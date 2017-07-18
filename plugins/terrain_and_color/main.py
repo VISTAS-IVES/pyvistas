@@ -146,12 +146,16 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
         name = option.name
 
-        if name == self._attribute.name:
+        if name in [self._min_color.name, self._max_color.name, self._min_value.name, self._max_value.name]:
+            post_new_legend()
+
+        elif name == self._attribute.name:
             self._needs_color = True
             stats = self.attribute_data.variable_stats(self._attribute.selected)
             self._min_value.value = stats.min_value
             self._max_value.value = stats.max_value
             post_newoptions_available(self)
+            post_new_legend()
 
         elif name == self._elevation_attribute.name:
             self._needs_terrain = True
@@ -245,6 +249,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 self._min_value.value, self._max_value.value = 0, 0
                 self._attribute.labels = []
             post_newoptions_available(self)
+            post_new_legend()
 
         elif role == 2:
             self.boundary_data = data
@@ -373,7 +378,6 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             shader.filter_max = self._filter_max
 
         post_redisplay()
-        post_new_legend()
 
     def _create_terrain_mesh(self):
         if self.terrain_data is not None:
