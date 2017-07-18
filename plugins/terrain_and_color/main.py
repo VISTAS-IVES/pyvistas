@@ -719,14 +719,15 @@ class TerrainRenderable(MeshRenderable):
                 t2 += step
 
             if self.plugin.attribute_data is not None:
-
-                attribute_ref = self.plugin.attribute_data.get_data(self.plugin._get_attribute(self.plugin._attribute))
+                attribute_ref = self.plugin.attribute_data.get_data(
+                    self.plugin._get_attribute(self.plugin._attribute), Timeline.app().current
+                )
                 attr_width, attr_height = attribute_ref.shape
                 if 0 <= cell_x < attr_width and 0 <= cell_y < attr_height:
 
                     result = OrderedDict()
                     result['Point'] = "{}, {}".format(cell_x, cell_y)
-                    result['Value'] = attribute_ref[cell_x, cell_y],
+                    result['Value'] = attribute_ref[cell_x, cell_y]
                     result['Height'] = terrain_ref[cell_x, cell_y]
 
                     if self.plugin.flow_dir_data is not None:
