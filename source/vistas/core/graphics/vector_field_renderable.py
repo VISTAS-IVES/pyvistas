@@ -38,7 +38,7 @@ class VectorFieldRenderable(Renderable):
         0, 1, 2,
         1, 2, 3,
 
-        # rrow head base,
+        # arrow head base,
         4, 5, 6,
         4, 7, 6,
 
@@ -111,11 +111,11 @@ class VectorFieldRenderable(Renderable):
         if len(data.shape) > 0:
             data = data.ravel()
 
-        assert data.size % 7 == 0    # ensure array is 6 floats wide
+        assert data.size % 7 == 0    # ensure array is 7 floats wide
 
         self.instances = int(data.size / 7)
 
-        # Generate VAO and use layout locations 0-4 in shader program
+        # Generate VAO and use layout locations 0-5 in shader program
         glBindVertexArray(self._vao)
 
         # Enable position array at location 0
@@ -150,7 +150,7 @@ class VectorFieldRenderable(Renderable):
 
         glBindBuffer(GL_ARRAY_BUFFER, 0)
 
-        # Inform OpenGL buffers 1 - 4 are instanced arrays
+        # Inform OpenGL buffers 1 - 5 are instanced arrays
         glVertexAttribDivisor(1, 1)
         glVertexAttribDivisor(2, 1)
         glVertexAttribDivisor(3, 1)
