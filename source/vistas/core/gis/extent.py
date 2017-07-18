@@ -112,7 +112,8 @@ class Extent:
 
 def union_bbox(bboxes):
     """
-    Return the extent that includes all bounding boxes.
+    Return the extent that includes all bounding boxes. Resulting extent projection will use first bounding box
+    projection in list.
     """
 
     bboxes = [x for x in bboxes if x is not None]
