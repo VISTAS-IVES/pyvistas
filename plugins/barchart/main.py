@@ -85,6 +85,9 @@ class GraphVisualization(VisualizationPlugin2D):
 
     def set_data(self, data: DataPlugin, role):
         self.data = data
+        self.attribute_option.labels = self.data.variables if self.data else []
+        self.attribute_option.value = 0
+        post_newoptions_available(self)
         wx.PostEvent(App.get().app_controller.main_window, VisualizationUpdateEvent(plugin=self))
 
     def get_data(self, role):
@@ -101,7 +104,7 @@ class GraphVisualization(VisualizationPlugin2D):
         if self.data is None:
             return
 
-        grid = self.data.get_data(self.data.variables[self.attribute_option.value], Timeline.app().current)
+        grid = self.data.get_data(self.attribute_option.selected, Timeline.app().current)
 
         background_color = self.bg_color_option.value.rgb.rgb_list
         label_color = self.label_color_option.value.rgb.rgb_list

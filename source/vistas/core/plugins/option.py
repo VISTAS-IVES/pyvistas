@@ -5,6 +5,7 @@ import sys
 
 
 class Option:
+    """ An interface for specifying plugin options for a visualization. """
 
     NONE = 'none'
     SPACER = 'spacer'
@@ -39,6 +40,7 @@ class Option:
 
     @property
     def value(self):
+        """ Return the current value of the option. Return type is determined by the option's type. """
         return self._value
 
     @value.setter
@@ -49,6 +51,17 @@ class Option:
                 self._value = self.min_value
             elif self._value > self.max_value:
                 self._value = self.max_value
+
+    @property
+    def selected(self):
+        """
+        Return the currently selected label. If the option is not of type CHOICE,
+        it returns the same value as self.value.
+        """
+        if self.option_type == self.CHOICE:
+            return self.labels[self.value]
+        else:
+            return self.value
 
     def option_updated(self):
         get_main_window().AddPendingEvent(PluginOptionEvent(plugin=self.plugin, option=self,
@@ -67,6 +80,7 @@ class Option:
 
 
 class OptionGroup:
+    """ A container for grouping similar Options together. """
 
     VERTICAL = 'vertical'
     HORIZONTAL = 'horizontal'

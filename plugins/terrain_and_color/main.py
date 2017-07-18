@@ -139,9 +139,6 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 options.items.append(self._accumulation_group)
         return options
 
-    def _get_attribute(self, option: Option):
-        return option.labels[option.value]
-
     def update_option(self, option: Option=None):
 
         if option is None or option.plugin is not self:
@@ -151,7 +148,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
         if name == self._attribute.name:
             self._needs_color = True
-            stats = self.attribute_data.variable_stats(self._get_attribute(self._attribute))
+            stats = self.attribute_data.variable_stats(self._attribute.selected)
             self._min_value.value = stats.min_value
             self._max_value.value = stats.max_value
             post_newoptions_available(self)
@@ -293,7 +290,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
     @property
     def filter_histogram(self):
         if self.attribute_data is not None:
-            variable = self._get_attribute(self._attribute)
+            variable = self._attribute.selected
             nodata_value = self.attribute_data.variable_stats(variable).nodata_value
             return Histogram(self.attribute_data.get_data(variable, Timeline.app().current), nodata_value)
         else:
@@ -385,7 +382,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 self._scene.remove_object(self.mesh_renderable)
                 self.mesh_renderable = None
 
-            elevation_attribute = self._get_attribute(self._elevation_attribute)
+            elevation_attribute = self._elevation_attribute.selected
             height_stats = self.terrain_data.variable_stats(elevation_attribute)
             nodata_value = height_stats.nodata_value
             min_value = height_stats.min_value
@@ -503,7 +500,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 shader.has_color = True
 
                 # Retrieve color layer
-                attribute = self._get_attribute(self._attribute)
+                attribute = self._attribute.selected
                 data = self.attribute_data.get_data(attribute, Timeline.app().current)
 
                 if type(data) is numpy.ma.MaskedArray:
@@ -581,10 +578,10 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
         if self.terrain_data is not None and self.flow_dir_data is not None:
 
-            height_label = self._get_attribute(self._elevation_attribute)
+            height_label = self._elevation_attribute.selected
             flow_dir_label = self.flow_dir_data.variables[0]
             flow_acc_label = self.flow_acc_data.variables[0] if self.flow_acc_data is not None else ""
-            attribute_label = self._get_attribute(self._attribute)
+            attribute_label = self._attribute.selected
 
             height_data = self.terrain_data.get_data(height_label, Timeline.app().current)
             flow_dir = self.flow_dir_data.get_data(flow_dir_label, Timeline.app().current)
@@ -678,7 +675,7 @@ class TerrainRenderable(MeshRenderable):
 
             t = -((camera_pos.dot(plane_normal) + d ) / denom)
 
-            terrain_ref = self.plugin.terrain_data.get_data(self.plugin._get_attribute(self.plugin._elevation_attribute))
+            terrain_ref = self.plugin.terrain_data.get_data(self.plugin._elevation_attribute.selected)
             terrain_stats = self.plugin.terrain_data.variable_stats("")
             res = self.plugin.terrain_data.resolution
             nodata_value = terrain_stats.nodata_value
@@ -720,7 +717,7 @@ class TerrainRenderable(MeshRenderable):
 
             if self.plugin.attribute_data is not None:
                 attribute_ref = self.plugin.attribute_data.get_data(
-                    self.plugin._get_attribute(self.plugin._attribute), Timeline.app().current
+                    self.plugin._attribute.selected, Timeline.app().current
                 )
                 attr_width, attr_height = attribute_ref.shape
                 if 0 <= cell_x < attr_width and 0 <= cell_y < attr_height:
