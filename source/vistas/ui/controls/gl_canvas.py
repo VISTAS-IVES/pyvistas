@@ -41,6 +41,10 @@ class GLCanvas(wx.glcanvas.GLCanvas):
     def camera_interactor(self, interactor):
         self.camera_controls.camera_interactor = interactor
 
+    def Sync(self):
+        if self.can_sync and CameraObservable.get().is_sync:
+            wx.PostEvent(self.GetParent().GetParent(), CameraSyncEvent(matrix=self.camera_interactor.camera.matrix))
+
     def OnPaint(self, event):
         if not GLCanvas.initialized:
             GLCanvas.initialized = True
@@ -48,11 +52,8 @@ class GLCanvas(wx.glcanvas.GLCanvas):
             self.SetCurrent(GLCanvas.shared_gl_context)
             self.SwapBuffers()
 
-        size = self.GetSize()
-        dc = wx.PaintDC(self)   # noqa: F841
-
         self.SetCurrent(GLCanvas.shared_gl_context)
-        self.camera.render(size.GetWidth(), size.GetHeight())
+        self.camera.render(*self.GetSize().Get())
         self.SwapBuffers()
 
     def OnEraseBackground(self, event: wx.EraseEvent):
@@ -68,9 +69,7 @@ class GLCanvas(wx.glcanvas.GLCanvas):
             self._x = x
             self._y = y
 
-            if self.can_sync and CameraObservable.get().is_sync:
-                wx.PostEvent(self.GetParent().GetParent(), CameraSyncEvent(matrix=self.camera_interactor.camera.matrix))
-
+            self.Sync()
             self.Refresh()
         else:
             self._x = self._y = -1
@@ -80,12 +79,14 @@ class GLCanvas(wx.glcanvas.GLCanvas):
         self.camera_interactor.mouse_wheel(event.GetWheelRotation(), event.GetWheelDelta(), event.ShiftDown(),
                                            event.AltDown(), event.ControlDown())
         self._x = self._y = -1
+        self.Sync()
         self.Refresh()
 
     def OnKey(self, event: wx.KeyEvent):
         keycode = event.GetUnicodeKey()
         if keycode != wx.WXK_NONE:
             self.camera_interactor.key_down("{:c}".format(keycode))
+            self.Sync()
             self.Refresh()
 
     def OnPostRedisplay(self, event):
