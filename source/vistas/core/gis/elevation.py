@@ -1,6 +1,5 @@
 import asyncio
 import os
-from collections import OrderedDict
 from io import BytesIO
 
 import aiohttp
@@ -9,12 +8,17 @@ import numpy
 from PIL import Image
 from pyproj import Proj, transform
 
+from vistas.core.gis.file_writer import RasterWriter
 from vistas.core.paths import get_userconfig_path
 from vistas.core.plugins.data import FeatureDataPlugin
 from vistas.core.plugins.interface import Plugin
 
 
 class ElevationService:
+    """
+    An interface for obtaining elevation data from public datasets sorted as a tile service. Can generate a digital
+    elevation model (DEM) for use in visualizing spatial datasets in 3D.
+    """
 
     TILE_SIZE = 256
     AWS_ELEVATION = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"
@@ -60,26 +64,6 @@ class ElevationService:
             # decode AWS elevation to height grid
             self._current_grid = (grid[:, :, 0] * 256.0 + grid[:, :, 1] + grid[:, :, 2] / 256.0) - 32768.0
         return self._current_grid
-
-    @staticmethod
-    def _write_esri_grid_ascii_file(path, data, extent, cellsize):
-        xllcorner, yllcorner, *_ = extent.as_list()
-        nrows, ncols = data.shape
-
-        header_dict = OrderedDict()
-        header_dict['nrows'] = nrows
-        header_dict['ncols'] = ncols
-        header_dict['xllcorner'] = xllcorner
-        header_dict['yllcorner'] = yllcorner
-        header_dict['cellsize'] = cellsize
-        header_dict['nodata_value'] = -9999.0
-        header = '\n'.join(['{} {}'.format(key, val) for key, val in header_dict.items()])
-
-        numpy.savetxt(path, data, header=header, comments='')
-
-        # save projection info to adjacent file
-        with open(path.replace('asc', 'prj'), 'w') as f:
-            f.write(extent.projection.srs)
 
     @staticmethod
     def _get_tile_path(z, x, y):
@@ -192,7 +176,7 @@ class ElevationService:
                 height_grid[j][i] = self.get_grid(tile.x, tile.y)[v, u]
                 task.inc_progress()
 
-        self._write_esri_grid_ascii_file(save_path, height_grid, native_extent, resolution)
+        RasterWriter.write_esri_grid_ascii_file(save_path, height_grid, native_extent, resolution)
 
     def create_dem_from_plugin(self, plugin, save_path, task):
         if isinstance(plugin, FeatureDataPlugin):
