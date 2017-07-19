@@ -1,6 +1,7 @@
 import wx.lib.newevent
 
 
+# Event for alerting the UI that the project has changed in some way
 ProjectChangedEventBase, EVT_COMMAND_PROJECT_CHANGED = wx.lib.newevent.NewEvent()
 
 
@@ -17,7 +18,7 @@ class ProjectChangedEvent(ProjectChangedEventBase):
     def __init__(self, node=None, change=None):
         super().__init__(node=node, change=change)
 
-
+# Event for alerting the UI that a plugin option has been updated
 PluginOptionEventBase, EVT_PLUGIN_OPTION = wx.lib.newevent.NewEvent()
 
 
@@ -28,7 +29,7 @@ class PluginOptionEvent(PluginOptionEventBase):
     def __init__(self, plugin=None, option=None, change=None):
         super().__init__(plugin=plugin, option=option, change=change)
 
-
+# Event for alerting the UI to make changes due to updates to a timeline
 TimelineEventBase, EVT_TIMELINE_CHANGED = wx.lib.newevent.NewEvent()
 
 
@@ -39,7 +40,7 @@ class TimelineEvent(TimelineEventBase):
     def __init__(self, time=None, timeline=None, change=None):
         super().__init__(time=time, timeline=timeline, change=change)
 
-
+# Event for alerting the UI to post a message to the user
 MessageEventBase, EVT_MESSAGE = wx.lib.newevent.NewEvent()
 
 

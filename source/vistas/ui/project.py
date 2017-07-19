@@ -16,6 +16,11 @@ SAVE_FILE_VERSION = 1
 
 
 class ProjectNode:
+    """
+    An interface for containing information about a single project item. Subclasses determine the node's contents (i.e.
+    data/visualization plugins, scenes, flythroughs). ProjectNodes also provide methods for serialization when saving
+    project contents.
+    """
     next_id = 1
     node_type = ''
 
@@ -88,6 +93,10 @@ class ProjectNode:
 
 
 class FolderNode(ProjectNode):
+    """
+    A subclass of ProjectNode that contains a list of other ProjectNodes, or 'children'. Provides an interface for
+    obtaining child nodes of different types.
+    """
     node_type = 'folder'
 
     def __init__(self, label, *args, **kwargs):
@@ -190,6 +199,7 @@ class FolderNode(ProjectNode):
 
 
 class DataNode(ProjectNode):
+    """ A subclass of ProjectNode that contains a reference to a data plugin. """
     node_type = 'data'
 
     def __init__(self, data=None, *args, **kwargs):
@@ -224,6 +234,7 @@ class DataNode(ProjectNode):
 
 
 class VisualizationNode(ProjectNode):
+    """ A subclass of ProjectNode that contains a reference to a visualization plugin. """
     node_type = 'visualization'
 
     def __init__(self, visualization=None, *args, **kwargs):
@@ -319,6 +330,7 @@ class VisualizationNode(ProjectNode):
 
 
 class SceneNode(FolderNode):
+    """ A subclass of ProjectNode that contains a reference to a Scene. """
     node_type = 'scene'
 
     def __init__(self, scene=None, *args, **kwargs):
@@ -347,6 +359,7 @@ class SceneNode(FolderNode):
 
 
 class FlythroughNode(ProjectNode):
+    """ A subclass of ProjectNode that contains a reference to a Flythrough. """
     node_type = 'flythrough'
 
     def __init__(self, flythrough=None, *args, **kwargs):
@@ -415,6 +428,11 @@ NODE_TYPES = {
 
 
 class Project:
+    """
+    An interface for accessing information about a project's active ProjectNodes. Projects are also responsible for
+    orchestrating serialization and deserialization routines when saving and loading projects from disk, including data
+    migrations and handling exceptions.
+    """
     current_project = None
 
     def __init__(self, name='Untitled Project'):

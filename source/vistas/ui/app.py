@@ -23,6 +23,7 @@ HandleExceptionEvent, EVT_HANDLE_EXCEPTION = wx.lib.newevent.NewEvent()
 
 
 class App(wx.App):
+    """ The top-level UI application. """
     _global_app = None
     init = False
 
