@@ -1,11 +1,23 @@
 import wx
 from PIL import Image
 
+from vistas.core.threading import Thread
 from vistas.ui.controls.static_image import StaticImage
 from vistas.ui.utils import make_window_transparent
 
+LegendRenderEvent, EVT_LEGEND_RENDERED = wx.lib.newevent.NewEvent()
+
 
 class LegendWindow(wx.Frame):
+    class RenderThread(Thread):
+        def __init__(self, plugin, size, handler):
+            super().__init__()
+            self.plugin = plugin
+            self.size = size
+            self.handler = handler
+
+        def run(self):
+            wx.PostEvent(self.handler, LegendRenderEvent(image=self.plugin.get_legend(*self.size)))
 
     RESET_LEGEND = 0
 
@@ -42,6 +54,7 @@ class LegendWindow(wx.Frame):
         self.legend_image.Bind(wx.EVT_RIGHT_DOWN, self.OnRightClick)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy)
+        self.Bind(EVT_LEGEND_RENDERED, self.OnLegendRendered)
 
         self.translucent_background.Bind(wx.EVT_LEFT_DOWN, self.OnBackgroundFocus)
         self.translucent_background.Bind(wx.EVT_RIGHT_DOWN, self.OnBackgroundFocus)
@@ -65,6 +78,10 @@ class LegendWindow(wx.Frame):
             parent.Unbind(wx.EVT_PAINT)
             parent = parent.GetParent()
         event.Skip()
+
+    def OnLegendRendered(self, event: LegendRenderEvent):
+        self.legend_image.image = event.image
+        self.Refresh()
 
     def CalculateProportions(self):
         canvas_size = self.canvas.GetSize()
@@ -212,6 +229,6 @@ class LegendWindow(wx.Frame):
     def RefreshLegend(self):
         size = self.GetClientSize().Get()
         if self.visualization is not None and self.visualization.has_legend:
-            self.legend_image.image = self.visualization.get_legend(*size)
+            self.RenderThread(self.visualization, size, self).start()
         else:
             self.legend_image.image = Image.new("RGBA", size)

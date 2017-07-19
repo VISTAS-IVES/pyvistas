@@ -61,11 +61,7 @@ class Legend:
             y_offset = 0
             font, text_offset = Legend._compute_font([x[1] for x in categories], midpoint * 2)
 
-            for cat in categories:
-
-                color = cat[0]
-                label = cat[1]
-
+            for color, label in categories:
                 draw.rectangle([0, y_offset, midpoint, y_offset + line_height], fill=color.rgb.rgba_list)
                 draw.text((midpoint, y_offset + text_offset), label, font=font)
                 y_offset += line_height
