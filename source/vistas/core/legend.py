@@ -27,8 +27,11 @@ class Legend:
 
         pad = Legend.MIDPOINT_PADDING
         top = str(high_value)
-        mid = str(low_value + (high_value - low_value) / 2.0)
         bottom = str(low_value)
+
+        # Determine sig figs
+        sig_figs = min(len(top.split('.')[-1]), len(bottom.split('.')[-1]))
+        mid = str(round(low_value + (high_value - low_value) / 2.0, sig_figs))
 
         result = Image.new("RGBA", (width, height))
         midpoint = width / 4

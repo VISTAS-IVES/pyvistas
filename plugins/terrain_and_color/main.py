@@ -241,8 +241,8 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
             if data is not None:
                 stats = data.variable_stats(data.variables[0])
-                self._min_value.value = stats.min_value
-                self._max_value.value = stats.max_value
+                self._min_value.value = round(stats.min_value, 6)   # User can specify higher sig figs
+                self._max_value.value = round(stats.max_value, 6)
                 self._attribute.value = 0
                 self._attribute.labels = data.variables
             else:
