@@ -6,6 +6,7 @@ import numpy
 import shapely.geometry as geometry
 from OpenGL.GL import *
 from pyrr import Vector3, Vector4
+from pyrr.vector3 import generate_normals
 from rasterio import features
 from rasterio import transform
 
@@ -23,16 +24,6 @@ from vistas.core.plugins.option import Option, OptionGroup
 from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.core.timeline import Timeline
 from vistas.ui.utils import *
-
-
-def normalize_v3(arr):
-    """ Normalize a numpy array of 3 component vectors shape=(n,3) """
-
-    lens = numpy.sqrt(arr[:, 0]**2 + arr[:, 1]**2 + arr[:, 2]**2)
-    arr[:, 0] /= lens
-    arr[:, 1] /= lens
-    arr[:, 2] /= lens
-    return arr
 
 
 class TerrainAndColorPlugin(VisualizationPlugin3D):
@@ -479,20 +470,14 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
     @staticmethod
     def _compute_normals(heightfield, indices):
-        """ Calculate normals - 
-        see https://sites.google.com/site/dlampetest/python/calculating-normals-of-a-triangle-mesh-using-numpy
-        """
-
         verts = heightfield.reshape(-1, heightfield.shape[-1])
         faces = numpy.array([indices[i:i + 3] for i in range(len(indices) - 2)])
         norm = numpy.zeros(verts.shape, dtype=verts.dtype)
         tris = verts[faces]
-        n = numpy.cross(tris[::, 1] - tris[::, 0], tris[::, 2] - tris[::, 0])
-        normalize_v3(n)
+        n = generate_normals(tris[::, 2], tris[::, 0], tris[::, 1])
         norm[faces[:, 0]] += n
         norm[faces[:, 1]] += n
         norm[faces[:, 2]] += n
-        normalize_v3(norm)
         return norm.reshape(heightfield.shape)
 
     def _update_terrain_color(self):
