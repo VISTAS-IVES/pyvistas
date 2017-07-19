@@ -5,11 +5,11 @@ from vistas.core.plugins.interface import Plugin
 class VariableStats:
     """ Variable statistics interface """
 
-    def __init__(self, min_value=None, max_value=None, nodata_value=None, misc={}):
+    def __init__(self, min_value=None, max_value=None, nodata_value=None, misc=None):
         self.min_value = min_value
         self.max_value = max_value
         self.nodata_value = nodata_value
-        self.misc = misc
+        self.misc = misc if misc is not None else dict()
 
     @property
     def to_dict(self):
