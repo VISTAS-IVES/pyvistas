@@ -1,5 +1,6 @@
 import json
 import os
+import wx
 
 from pyrr import Matrix44
 
@@ -10,6 +11,7 @@ from vistas.core.graphics.scene import Scene
 from vistas.core.plugins.interface import Plugin
 from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.core.timeline import Timeline
+from vistas.ui.utils import post_message
 
 SAVE_FILE_VERSION = 1
 
@@ -79,7 +81,7 @@ class ProjectNode:
         if parent is not None:
             parent.add_child(self)
 
-    def serialize(self):
+    def serialize(self, path=None):
         return {
             'type': self.node_type,
             'id': self.node_id,
@@ -87,7 +89,7 @@ class ProjectNode:
         }
 
     @classmethod
-    def load(cls, data):
+    def load(cls, data, path=None):
         pass  # Implemented by subclasses
 
 
@@ -170,21 +172,21 @@ class FolderNode(ProjectNode):
 
         return nodes
 
-    def serialize(self):
-        data = super().serialize()
+    def serialize(self, path=None):
+        data = super().serialize(path)
         data.update({
-            'children': [x.serialize() for x in self.children]
+            'children': [x.serialize(path) for x in self.children]
         })
 
         return data
 
     @classmethod
-    def load(cls, data):
+    def load(cls, data, path=None):
         folder = cls(data.get('label'), data.get('parent'), data.get('id'))
 
         for child in data.get('children', []):
             child['parent'] = folder
-            NODE_TYPES[child['type']].load(child)
+            NODE_TYPES[child['type']].load(child, path)
 
         return folder
 
@@ -215,19 +217,45 @@ class DataNode(ProjectNode):
         self._data = value
         self.dirty = True
 
-    def serialize(self):
-        data = super().serialize()
+    def serialize(self, path=None):
+        data = super().serialize(path)
         data.update({
             'plugin': self.data.id,
-            'path': self.data.path
+            'absolute_path': os.path.abspath(self.data.path),
+            'relative_path': os.path.relpath(self.data.path, os.path.dirname(path))
         })
 
         return data
 
     @classmethod
-    def load(cls, data):
+    def load(cls, data, path=None):
         plugin = Plugin.by_name(data['plugin'])()
-        plugin.set_path(data['path'])
+        abs_path = data['absolute_path']
+        rel_path = os.path.join(path, data['relative_path'])
+
+        needs_stats = False
+        if os.path.exists(rel_path):
+            data_path = rel_path
+        elif os.path.exists(abs_path):
+            data_path = abs_path
+        else:
+            post_message("Could not find data for plugin {} at path {}".format(plugin.name, abs_path), 1)
+            md = wx.MessageDialog(None, "Would you like to attempt to repair the path to the missing data?",
+                                  "Data Not Found", wx.ICON_ERROR | wx.YES_NO)
+
+            extensions = ';'.join('*.{}'.format(x[0]) for x in plugin.extensions)
+            fd = wx.FileDialog(None, "Import File", wildcard='Data Files|{}'.format(extensions),
+                               style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_DEFAULT_STYLE)
+
+            if md.ShowModal() == wx.ID_YES and fd.ShowModal() == wx.ID_OK:
+                data_path = fd.GetPath()
+                needs_stats = True
+            else:
+                raise OSError("Could not repair data path.")
+
+        plugin.set_path(data_path)
+        if needs_stats:
+            plugin.calculate_stats()
 
         return cls(plugin, data.get('label'), data.get('parent'), data.get('id'))
 
@@ -250,7 +278,7 @@ class VisualizationNode(ProjectNode):
         self._visualization = value
         self.dirty = True
 
-    def serialize(self):
+    def serialize(self, path=None):
         data = super().serialize()
 
         data_info = []
@@ -284,7 +312,7 @@ class VisualizationNode(ProjectNode):
         return data
 
     @classmethod
-    def load(cls, data):
+    def load(cls, data, path=None):
         plugin = Plugin.by_name(data['plugin'])()
 
         if isinstance(plugin, VisualizationPlugin3D):
@@ -347,7 +375,7 @@ class SceneNode(FolderNode):
         self.dirty = True
 
     @classmethod
-    def load(cls, data):
+    def load(cls, data, path=None):
         scene = cls(Scene(data.get('label')), data.get('label'), data.get('parent'), data.get('id'))
 
         for child in data.get('children', []):
@@ -395,7 +423,7 @@ class FlythroughNode(ProjectNode):
         return data
 
     @classmethod
-    def load(cls, data):
+    def load(cls, data, path=None):
         node = cls(
             Flythrough(data.get('parent').scene, data.get('fps', 30), data.get('length', 60)),
             data.get('label'), data.get('parent'), data.get('id')
@@ -472,7 +500,7 @@ class Project:
         data = {
             'version': SAVE_FILE_VERSION,
             'name': self.name,
-            'data_root': self.data_root.serialize(),
+            'data_root': self.data_root.serialize(path),
             'visualization_root': self.visualization_root.serialize(),
             'exporter': self.exporter.serialize(),
             'timeline_filter': Timeline.app().serialize_filter()
@@ -493,7 +521,7 @@ class Project:
             self.migrate(data)
 
         self.name = data['name']
-        self.data_root = FolderNode.load(data['data_root'])
+        self.data_root = FolderNode.load(data['data_root'], os.path.dirname(path))
         self.visualization_root = FolderNode.load(data['visualization_root'])
         self.exporter = Exporter.load(data.get('exporter', None), self)
         controller.UpdateTimeline(self.data_root)
