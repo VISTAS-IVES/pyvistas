@@ -10,7 +10,6 @@ from vistas.core.graphics.scene import Scene
 from vistas.core.plugins.interface import Plugin
 from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.core.timeline import Timeline
-from vistas.ui.utils import post_message
 
 SAVE_FILE_VERSION = 1
 
@@ -485,23 +484,6 @@ class Project:
         self.is_dirty = False
 
     def load(self, path, controller):
-
-        def is_sqlite3(filename):
-            """ See http://www.sqlite.org/fileformat.html """
-
-            if not os.path.isfile(filename):
-                return False
-            if os.path.getsize(filename) < 100:  # SQLite database file header is 100 bytes
-                return False
-
-            with open(filename, 'rb') as f:
-                header = f.read(100)
-
-            return header[:16] == b'SQLite format 3\x00'
-
-        if is_sqlite3(path):
-            post_message("Cannot load pre-Python VISTAS saves.", 1)
-            return
 
         with open(path) as f:
             data = json.load(f)

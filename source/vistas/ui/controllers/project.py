@@ -11,6 +11,7 @@ from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.core.timeline import Timeline
 from vistas.ui.events import ProjectChangedEvent
 from vistas.ui.project import Project, SceneNode, FolderNode, VisualizationNode, DataNode, FlythroughNode
+from vistas.ui.utils import post_message
 from vistas.ui.windows.create_dem_dialog import GenerateDEMThread
 from vistas.ui.windows.data_dialog import DataDialog, CalculateStatsThread
 from vistas.ui.windows.flythrough_dialog import FlythroughDialog
@@ -155,6 +156,24 @@ class ProjectController(wx.EvtHandler):
 
     def LoadProject(self, path):
         if os.path.isfile(path):
+
+            def is_sqlite3(filename):
+                """ See http://www.sqlite.org/fileformat.html """
+
+                if not os.path.isfile(filename):
+                    return False
+                if os.path.getsize(filename) < 100:  # SQLite database file header is 100 bytes
+                    return False
+
+                with open(filename, 'rb') as f:
+                    header = f.read(100)
+
+                return header[:16] == b'SQLite format 3\x00'
+
+            if is_sqlite3(path):
+                post_message("Cannot load VISTAS saves prior to version 1.13.0.", 1)
+                return
+
             try:
                 self.NewProject(False, False)
                 self.save_path = path
