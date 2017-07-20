@@ -8,9 +8,12 @@ from vistas.ui.utils import get_main_window
 
 
 class GLCameraButtonFrame(wx.Frame):
+    BRIGHT = 1
+    DARK = 75
+
     def __init__(self, parent):
         super().__init__(parent, style=wx.FRAME_NO_TASKBAR | wx.FRAME_FLOAT_ON_PARENT)
-        self.alpha = 150
+        self.alpha = self.DARK
         self._selected = False
 
         self.SetTransparent(self.alpha)
@@ -26,9 +29,9 @@ class GLCameraButtonFrame(wx.Frame):
     def selected(self, value):
         self._selected = value
         if value:
-            self.alpha = 50
+            self.alpha = self.BRIGHT
         else:
-            self.alpha = 150
+            self.alpha = self.DARK
         self.Refresh()
 
     def OnPaint(self, event):
@@ -39,14 +42,14 @@ class GLCameraButtonFrame(wx.Frame):
         self.SetTransparent(self.alpha)
 
     def OnEnter(self, event):
-        self.alpha = 1
+        self.alpha = self.BRIGHT
         self.Refresh()
 
     def OnLeave(self, event):
         if self.selected:
-            self.alpha = 50
+            self.alpha = self.BRIGHT
         else:
-            self.alpha = 150
+            self.alpha = self.DARK
         self.Refresh()
 
 
@@ -122,10 +125,10 @@ class GLCameraControls(wx.EvtHandler):
         super().__init__()
         self.camera = camera
         self.sphere_button = GLCameraButton(self, gl_canvas, self.SPHERE, "glyphicons-372-global.png")
-        y_offset = self.sphere_button.GetSize().y
+        y_offset = self.sphere_button.GetSize().y + 5
         self.freelook_button = GLCameraButton(self, gl_canvas, self.FREELOOK, "glyphicons-52-eye-open.png")
         self.freelook_button.offset = y_offset
-        y_offset += self.freelook_button.GetSize().y
+        y_offset += self.freelook_button.GetSize().y + 5
         self.pan_button = GLCameraButton(self, gl_canvas, self.PAN, "glyphicons-187-move.png")
         self.pan_button.offset = y_offset
 
