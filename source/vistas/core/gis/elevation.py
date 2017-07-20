@@ -9,6 +9,7 @@ from PIL import Image
 from pyproj import Proj, transform
 
 from vistas.core.gis.file_writer import RasterWriter
+from vistas.core.gis.extent import Extent
 from vistas.core.paths import get_userconfig_path
 from vistas.core.plugins.data import FeatureDataPlugin
 from vistas.core.plugins.interface import Plugin
@@ -69,7 +70,7 @@ class ElevationService:
     def _get_tile_path(z, x, y):
         return os.path.join(get_userconfig_path(), 'Tiles', 'AWS', str(z), str(x), "{}.png".format(y))
 
-    def get_tiles(self, extent, task):
+    def get_tiles(self, extent, task=None):
 
         async def fetch_tile(client, url, tile_path):
             async with client.get(url) as r:
@@ -77,7 +78,8 @@ class ElevationService:
                 if not os.path.exists(os.path.dirname(tile_path)):
                     os.makedirs(os.path.dirname(tile_path))
                 tile_im.save(tile_path)
-                task.inc_progress()
+                if task:
+                    task.inc_progress()
 
         # Retrieve tiles that we don't currently have
         with aiohttp.ClientSession() as client:
@@ -131,7 +133,8 @@ class ElevationService:
                                     z=self.zoom, x=i, y=j
                                 ), self._get_tile_path(self.zoom, i, j))
                             )
-            task.target = len(requests)
+            if task:
+                task.target = len(requests)
             asyncio.get_event_loop().run_until_complete(asyncio.gather(*requests))
 
     def create_dem(self, native_extent, projected_extent, shape, resolution, save_path, task):
@@ -214,3 +217,28 @@ class ElevationService:
         task.status = task.INDETERMINATE
         new_plugin.calculate_stats()
         return new_plugin
+
+    def create_data_dem(self, extent, zoom, merge=False):
+
+        self._zoom = zoom
+        wgs84 = extent.project(Proj(init='EPSG:4326'))
+        self.get_tiles(wgs84)
+        xmin, ymin, xmax, ymax = wgs84.as_list()
+        ll_tile = mercantile.tile(xmin, ymin, self.zoom)
+        ur_tile = mercantile.tile(xmax, ymax, self.zoom)
+        ll_bbox = mercantile.bounds(ll_tile)
+        ur_bbox = mercantile.bounds(ur_tile)
+        xmin, ymin = ll_bbox.west, ll_bbox.south
+        xmax, ymax = ur_bbox.east, ur_bbox.north
+        dem_extent = Extent(xmin, ymin, xmax, ymax, projection=Proj(init='EPSG:4326'))
+        tiles = mercantile.tiles(*wgs84.as_list(), [self.zoom])
+        if merge:
+            shape = ((ll_tile.y - ur_tile.y + 1) * 256, (ur_tile.x - ll_tile.x + 1) * 256)
+            data = numpy.zeros(shape, dtype=numpy.float32)
+            for tile in tiles:
+                w = (tile.x - ll_tile.x) * 256
+                h = (tile.y - ur_tile.y) * 256
+                data[h: h + 256, w: w + 256] = self.get_grid(tile.x, tile.y)
+            return data, dem_extent
+        else:
+            return (self.get_grid(t.x, t.y) for t in tiles), dem_extent
