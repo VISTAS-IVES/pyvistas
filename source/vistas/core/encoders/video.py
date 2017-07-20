@@ -3,9 +3,13 @@ import os
 import imageio
 import numpy
 from PIL import Image
+from imageio.plugins.ffmpeg import FNAME_PER_PLATFORM, get_platform
 
 from vistas.core.encoders.interface import VideoEncoder
-from vistas.core.task import Task
+from vistas.core.paths import get_resources_directory
+
+ffmpeg_exe = os.path.abspath(os.path.join(get_resources_directory(), 'ffmpeg', FNAME_PER_PLATFORM[get_platform()]))
+os.environ.setdefault('IMAGEIO_FFMPEG_EXE', ffmpeg_exe)
 
 
 class ImageIOVideoEncoder(VideoEncoder):
@@ -26,11 +30,6 @@ class ImageIOVideoEncoder(VideoEncoder):
         self._fps = int(fps) if fps > 1 else 1
 
     def open(self, path, width, height):
-
-        task = Task("Downloading Assets", "Downloading ffmpeg assets for video")
-        task.status = task.INDETERMINATE
-        imageio.plugins.ffmpeg.download()   # Ensures we have the ffmpeg dependencies loaded, only loads one time
-        task.status = task.COMPLETE
 
         self.width = width
         self.height = height
