@@ -180,13 +180,6 @@ class ViewerPanel(wx.Panel, Observer):
         self.south_resize_area.Hide()
         self.west_resize_area.Hide()
 
-    def GetSceneChoice(self):
-        return self.scene_choice.GetSelection()
-
-    def SetSceneChoice(self, choice):
-        self.scene_choice.SetSelection(choice)
-        self.UpdateScene()
-
     def UpdateScene(self):
         for i, scene in enumerate(self.scenes):
             if i == self.scene_choice.GetSelection():
@@ -350,7 +343,7 @@ class ViewerPanel(wx.Panel, Observer):
                 self.scene_choice.SetSelection(i)
 
         # If not valid scene is currently selected and a scene exists, select it
-        if self.scenes and (not self.selected_scene or self.selected_scene.name != self.scene_choice.GetLabelText()):
+        if self.scenes and (not self.selected_scene or self.selected_scene.name != self.scene_choice.GetStringSelection()):
             self.scene_choice.SetSelection(0)
             self.scene_choice.AddPendingEvent(wx.CommandEvent(wx.wxEVT_CHOICE))
 
