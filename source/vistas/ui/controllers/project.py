@@ -86,7 +86,7 @@ class ProjectController(wx.EvtHandler):
             wx.OK | wx.CANCEL
         )
 
-        if not prompt or md.ShowModal() == wx.ID_OK:
+        if not prompt or not self.project.is_dirty or md.ShowModal() == wx.ID_OK:
             data_tree = self.project_panel.data_tree
             visualization_tree = self.project_panel.visualization_tree
 
@@ -107,6 +107,7 @@ class ProjectController(wx.EvtHandler):
 
             if default_scene:
                 default_scene_node = SceneNode(Scene('Default Scene'), label='Default Scene', parent=self.project.visualization_root)
+                default_scene_node.dirty = False
                 tree_parent = self.project_panel.visualization_tree.GetRootItem()
                 self.project_panel.visualization_tree.AppendSceneItem(
                     tree_parent, default_scene_node.label, default_scene_node
@@ -135,7 +136,6 @@ class ProjectController(wx.EvtHandler):
 
         self.project.save(self.save_path)
         self.SetProjectName()
-        self.project.dirty = False
 
         return True
 
@@ -183,7 +183,7 @@ class ProjectController(wx.EvtHandler):
             'Load Project', wx.OK | wx.CANCEL
         )
 
-        if fd.ShowModal() == wx.ID_OK and md.ShowModal() == wx.ID_OK:
+        if fd.ShowModal() == wx.ID_OK and (not self.project.is_dirty or md.ShowModal() == wx.ID_OK):
             self.LoadProject(fd.GetPath())
             return True
 

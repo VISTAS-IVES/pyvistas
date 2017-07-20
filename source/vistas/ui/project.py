@@ -440,15 +440,13 @@ class Project:
         self.data_root = FolderNode('Project Data')
         self.visualization_root = FolderNode('Project Visualizations')
         self.exporter = Exporter()
-        self.dirty = False
 
     @property
     def is_dirty(self):
-        return self.dirty or self.data_root.is_dirty or self.visualization_root.is_dirty
+        return self.data_root.is_dirty or self.visualization_root.is_dirty
 
     @is_dirty.setter
     def is_dirty(self, dirty):
-        self.dirty = dirty
         self.data_root.is_dirty = dirty
         self.visualization_root.is_dirty = dirty
 
@@ -484,7 +482,7 @@ class Project:
         with open(path, 'w') as f:
             json.dump(data, f)
 
-        self.dirty = False
+        self.is_dirty = False
 
     def load(self, path, controller):
 
@@ -519,7 +517,7 @@ class Project:
         controller.UpdateTimeline(self.data_root)
         Timeline.app().load_filter(data.get('timeline_filter', None))
 
-        self.dirty = False
+        self.is_dirty = False
 
     def migrate(self, data):
         pass    # No migrations yet
