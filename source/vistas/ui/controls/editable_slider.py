@@ -1,5 +1,6 @@
 import wx
-import wx.lib.newevent
+
+from vistas.ui.controls.float_ctrl import FloatCtrl
 
 EditableSliderEvent, EVT_SLIDER_CHANGE_EVENT = wx.lib.newevent.NewEvent()
 
@@ -13,8 +14,7 @@ class EditableSlider(wx.Panel):
 
         self.timer = wx.Timer(self)
         self.slider = wx.Slider(self, wx.ID_ANY, 0, 0, 100)
-        self.text = wx.TextCtrl(self, wx.ID_ANY, str(value), wx.DefaultPosition, wx.DefaultSize, wx.TE_PROCESS_ENTER)
-
+        self.text = FloatCtrl(self, value=value)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.SetSizer(sizer)
         sizer.Add(self.slider, 1, wx.RIGHT, 5)
@@ -43,7 +43,7 @@ class EditableSlider(wx.Panel):
             self.slider.SetValue((value - self._min_value) * 100 / (self._max_value - self._min_value))
 
         if text:
-            self.text.SetValue("{:.2f}".format(value))
+            self.text.ChangeValue("{:.2f}".format(value))
 
         if send_event:
             evt = EditableSliderEvent()
@@ -93,8 +93,8 @@ class EditableSlider(wx.Panel):
     def OnLoseFocus(self, event):
         if event.GetEventObject() == self.text:
             self.timer.Stop()
-            self._update_slider(float(self.text.GetValue()), True, True, True)
+            self._update_slider(self.text.GetValue(), True, True, True)
 
     def OnTimer(self, event):
-        self._update_slider(float(self.text.GetValue()), True, True, True)
+        self._update_slider(self.text.GetValue(), True, True, True)
         self.timer.Stop()
