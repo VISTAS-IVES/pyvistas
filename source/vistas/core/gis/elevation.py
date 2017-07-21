@@ -218,6 +218,9 @@ class ElevationService:
         new_plugin.calculate_stats()
         return new_plugin
 
+    def tiles(self, extent, zoom):
+        return mercantile.tiles(*extent.project(Proj(init='EPSG:4326')), [zoom])
+
     def create_data_dem(self, extent, zoom, merge=False):
 
         self._zoom = zoom
