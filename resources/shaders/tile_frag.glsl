@@ -13,6 +13,8 @@ const vec3 ambientLight = vec3(.0, .0, .0);
 
 void main() {
 
+	//finalColor = vec4(1.0);
+
     mat3 normalMatrix = transpose(inverse(mat3(modelViewMatrix)));
     vec3 normal = normalize(normalMatrix * fragNormal);
 
