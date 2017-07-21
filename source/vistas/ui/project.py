@@ -403,7 +403,7 @@ class FlythroughNode(ProjectNode):
         self._flythrough = value
         self.dirty = True
 
-    def serialize(self):
+    def serialize(self, path=None):
         data = super().serialize()
 
         keyframes = []
