@@ -54,11 +54,12 @@ class ElevationService:
         self._zoom = 15
         return self._zoom
 
-    def get_grid(self, x, y):
+    def get_grid(self, x, y, z=None):
+        z = self.zoom if z is None else z
         if x != self.x or y != self.y:
             self.x = x
             self.y = y
-            img = Image.open(self._get_tile_path(self.zoom, x, y))
+            img = Image.open(self._get_tile_path(z, x, y))
             grid = numpy.array(img.getdata(), dtype=numpy.float32).reshape(256, 256, 3)
             img.close()
 
@@ -219,7 +220,7 @@ class ElevationService:
         return new_plugin
 
     def tiles(self, extent, zoom):
-        return mercantile.tiles(*extent.project(Proj(init='EPSG:4326')), [zoom])
+        return mercantile.tiles(*extent.project(Proj(init='EPSG:4326')).as_list(), [zoom])
 
     def create_data_dem(self, extent, zoom, merge=False):
 

@@ -1,6 +1,3 @@
-import math
-from ctypes import sizeof, c_float
-
 import numpy
 import shapely.geometry as geometry
 from OpenGL.GL import *
@@ -8,10 +5,9 @@ from pyrr import Vector3, Vector4
 from pyrr.vector3 import generate_normals
 from rasterio import features
 from rasterio import transform
-
+from pyproj import Proj
 from vistas.core.gis.elevation import ElevationService
-from vistas.core.graphics.bounds import BoundingBox
-from vistas.core.graphics.mesh import Mesh, MeshShaderProgram
+from vistas.core.graphics.tile import TileMesh, TileRenderable
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.option import Option, OptionGroup
 from vistas.core.plugins.visualization import VisualizationPlugin3D
@@ -87,7 +83,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
 
         if self.tiles and self._scene is not None:
             for tile in self.tiles:
-                self._scene.remove_object(tile)
+                self._scene.add_object(tile)
 
     def refresh(self):
 
@@ -100,5 +96,19 @@ class EnvisionVisualization(VisualizationPlugin3D):
     def _create_terrain_mesh(self):
         if self.data is not None:
 
-            pass
+            e = ElevationService()
+            e._zoom = 10
+            tiles = e.tiles(self.data.extent, 10)
+
+            e.get_tiles(self.data.extent.project(Proj(init='EPSG:4326')), None)
+
+            t = list(tiles)[0]
+            t_data = e.get_grid(t.x, t.y, 10).T
+            tile = TileRenderable(30)
+            tile.tile.set_tile_data(t_data)
+            tile.bounding_box = tile.tile.bounding_box
+
+            self.tiles.append(tile)
+            self.scene.add_object(tile)
+
             self._needs_tiles = False

@@ -4,13 +4,19 @@ import numpy
 from OpenGL.GL import *
 from pyrr.vector3 import generate_normals
 
-from vistas.core.graphics.renderable import Renderable
+from vistas.core.graphics.bounds import BoundingBox
 from vistas.core.graphics.mesh import Mesh
+from vistas.core.graphics.renderable import Renderable
 from vistas.core.graphics.shader import ShaderProgram
 from vistas.core.paths import get_resources_directory
 
 
 class TileShaderProgram(ShaderProgram):
+    """
+    A simple shader program that is applied across all tiles. Subclasses of this should be constructed to implement
+    specific shader effects.
+    Usage: TileShaderProgram.get()
+    """
 
     _tile_shader = None
 
@@ -39,24 +45,26 @@ class TileShaderProgram(ShaderProgram):
 
 
 class TileMesh(Mesh):
+    """ Base tile mesh, contains all VAO/VBO objects """
 
-    def __init__(self):
+    def __init__(self, cellsize=30):
         indices = 131068    # (256-1) * 256 * 2 + ((256 - 1) * 2 - 2), which is the number of indices
         vertices = 256**2
         super().__init__(indices, vertices, True)
         self.shader = TileShaderProgram.get()
+        self.cellsize = cellsize
 
     def set_tile_data(self, data):
-
-        cellsize = 10
 
         # Setup vertices
         height, width = data.shape
         indices = numpy.indices(data.shape)
         heightfield = numpy.zeros((height, width, 3))
-        heightfield[:, :, 0] = indices[0] * cellsize
-        heightfield[:, :, 2] = indices[1] * cellsize
+        heightfield[:, :, 0] = indices[0] * self.cellsize
+        heightfield[:, :, 2] = indices[1] * self.cellsize
         heightfield[:, :, 1] = data
+
+        self.bounding_box = BoundingBox(0, -10, 0, 256 * self.cellsize, 10, 256 * self.cellsize)
 
         # Setup indices
         index_array = []
@@ -71,7 +79,7 @@ class TileMesh(Mesh):
 
         # Setup normals
         verts = heightfield.reshape(-1, heightfield.shape[-1])
-        faces = numpy.array([indices[i:i + 3] for i in range(len(indices) - 2)])
+        faces = numpy.array([index_array[i:i + 3] for i in range(len(index_array) - 2)])
         norm = numpy.zeros(verts.shape, dtype=verts.dtype)
         tris = verts[faces]
         n = generate_normals(tris[::, 2], tris[::, 0], tris[::, 1])
@@ -95,9 +103,12 @@ class TileMesh(Mesh):
 
 
 class TileRenderable(Renderable):
-    def __init__(self, tile=None):
+    """ Rendering interface for Tiles. """
+
+    def __init__(self, cellsize=30):
         super().__init__()
-        self.tile = TileMesh() if tile is None else tile
+        self.tile = TileMesh(cellsize)
+        self.bounding_box = self.tile.bounding_box
 
     def render(self, camera):
         self.tile.shader.current_tile = self.tile
