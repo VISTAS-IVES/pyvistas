@@ -59,6 +59,17 @@ class CameraInteractor:
         self._angle_y = 0
         self.refresh_position()
 
+    def sync(self, other):
+        self.camera.matrix = other.camera.matrix
+        self.default_matrix = other.default_matrix
+        self._distance = other._distance
+        self._forward = other._forward
+        self._strafe = other._strafe
+        self._shift_x = other._shift_x
+        self._shift_y = other._shift_y
+        self._angle_x = other._angle_x
+        self._angle_y = other._angle_y
+
 
 class SphereInteractor(CameraInteractor):
 

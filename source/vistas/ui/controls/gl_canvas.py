@@ -43,7 +43,9 @@ class GLCanvas(wx.glcanvas.GLCanvas):
 
     def Sync(self):
         if self.can_sync and CameraObservable.get().is_sync:
-            wx.PostEvent(self.GetParent().GetParent(), CameraSyncEvent(matrix=self.camera_interactor.camera.matrix))
+            event = CameraSyncEvent(interactor=self.camera_interactor)
+            event.SetEventObject(self)
+            wx.PostEvent(self.GetParent().GetParent(), event)
 
     def OnPaint(self, event):
         if not GLCanvas.initialized:

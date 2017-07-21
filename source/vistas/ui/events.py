@@ -68,5 +68,5 @@ CameraSyncEventBase, EVT_CAMERA_SYNC = wx.lib.newevent.NewEvent()
 
 class CameraSyncEvent(CameraSyncEventBase):
 
-    def __init__(self, matrix=None):
-        super().__init__(matrix=matrix)
+    def __init__(self, interactor=None):
+        super().__init__(interactor=interactor)

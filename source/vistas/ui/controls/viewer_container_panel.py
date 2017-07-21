@@ -189,7 +189,8 @@ class ViewerContainerPanel(wx.Panel):
             canvas = event.GetEventObject()
             for panel in self.GetAllViewerPanels():
                 if canvas is not panel.gl_canvas:
-                    panel.gl_canvas.camera_interactor.camera.matrix = event.matrix
+                    interactor = panel.gl_canvas.camera_interactor
+                    interactor.sync(event.interactor)
 
     def SyncAllCameras(self, do_sync, save_state):
         observable = CameraObservable.get()
