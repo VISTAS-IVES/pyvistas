@@ -100,6 +100,10 @@ class Shapefile(FeatureDataPlugin):
     def variables(self):
         return list(self.metadata['schema']['properties'].keys())
 
+    @property
+    def has_stats(self):
+        return os.path.exists(self.path.replace('.shp', '.json'))
+
     def calculate_stats(self):
         variables = self.variables
         if self.stats.is_stale:
