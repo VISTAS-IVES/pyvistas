@@ -56,13 +56,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
         ]
 
     def set_data(self, data: DataPlugin, role):
-
         self.data = data
-
-        if self.data:
-
-            print(self.data.extent.as_list())
-
         self._needs_tiles = True
 
     def get_data(self, role):
@@ -98,17 +92,31 @@ class EnvisionVisualization(VisualizationPlugin3D):
 
             e = ElevationService()
             e._zoom = 10
-            tiles = e.tiles(self.data.extent, 10)
+            wgs84 = self.data.extent.project(Proj(init='EPSG:4326'))
+            tiles = list(e.tiles(wgs84, 10))
+            e.get_tiles(wgs84)
+            ul = tiles[0]
+            br = tiles[-1]
+            width = br.x - ul.x + 1
+            height = br.y - ul.y + 1
+            cellsize = 30
+            idx = 0
+            x = 0
+            for i in range(width):
+                y = 0
+                for j in range(height):
+                    t = tiles[idx]
+                    idx += 1
+                    t_data = e.get_grid(t.x, t.y, 10).T
 
-            e.get_tiles(self.data.extent.project(Proj(init='EPSG:4326')), None)
+                    tile = TileRenderable(cellsize)
+                    tile.tile.set_tile_data(t_data)
+                    tile.bounding_box = tile.tile.bounding_box
 
-            t = list(tiles)[0]
-            t_data = e.get_grid(t.x, t.y, 10).T
-            tile = TileRenderable(30)
-            tile.tile.set_tile_data(t_data)
-            tile.bounding_box = tile.tile.bounding_box
-
-            self.tiles.append(tile)
-            self.scene.add_object(tile)
+                    self.tiles.append(tile)
+                    self.scene.add_object(tile)
+                    tile.position = Vector3([x, 0, y])
+                    y += 253 * cellsize
+                x += 255 * cellsize
 
             self._needs_tiles = False

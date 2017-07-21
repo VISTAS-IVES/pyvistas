@@ -13,6 +13,7 @@ out vec3 fragNormal;
 void main() {
     vec4 eyePosition = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * eyePosition;
+    
     fragPosition = eyePosition.xyz;
     fragNormal = normal;
 }

@@ -72,7 +72,6 @@ class ElevationService:
         return os.path.join(get_userconfig_path(), 'Tiles', 'AWS', str(z), str(x), "{}.png".format(y))
 
     def get_tiles(self, extent, task=None):
-
         async def fetch_tile(client, url, tile_path):
             async with client.get(url) as r:
                 tile_im = Image.open(BytesIO(await r.read()))
@@ -220,7 +219,7 @@ class ElevationService:
         return new_plugin
 
     def tiles(self, extent, zoom):
-        return mercantile.tiles(*extent.project(Proj(init='EPSG:4326')).as_list(), [zoom])
+        return mercantile.tiles(*extent.as_list(), [zoom])
 
     def create_data_dem(self, extent, zoom, merge=False):
 
