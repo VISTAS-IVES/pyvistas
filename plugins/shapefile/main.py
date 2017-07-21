@@ -66,7 +66,7 @@ class Shapefile(FeatureDataPlugin):
                 with open(self._extent_path, 'w') as f_extent:
                     json.dump({
                         'xmin': xmin,
-                        'ymin': ymax,
+                        'ymin': ymin,
                         'xmax': xmax,
                         'ymax': ymax
                     }, f_extent)
