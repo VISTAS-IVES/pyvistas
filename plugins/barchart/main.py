@@ -50,7 +50,7 @@ class GraphVisualization(VisualizationPlugin2D):
             for i in range(num_categories - current_categories):
                 self.categories_group.items.append(Option(self, Option.INT, 'Value', 0))
                 self.categories_group.items.append(Option(self, Option.TEXT, 'Label', ''))
-                self.categories_group.items.append(Option(self, Option.COLOR, 'Color', RGBColor.random()))
+                self.categories_group.items.append(Option(self, Option.COLOR, 'Color', RGBColor.random(1)))
                 self.categories_group.items.append(Option(self, Option.SPACER))
         elif num_categories < current_categories:
             current_options = self.categories_group.flat_list
@@ -165,10 +165,11 @@ class GraphVisualization(VisualizationPlugin2D):
                 label.set_color(label_color)
 
             # attach a text label within each bar displaying the count
-            for rect in bars:
+            for i, rect in enumerate(bars):
                 count = rect.get_height()
+                bar_label_color = (0, 0, 0) if sum([x * 255 for x in colors[i]]) > 384 else (1, 1, 1)
                 ax.text(rect.get_x() + rect.get_width() / 2., 0.5 * count, '%d' % int(count), ha='center', va='bottom',
-                        color=label_color)
+                        color=bar_label_color)
 
             return self.fig_to_pil(fig).resize((width, height))
 
