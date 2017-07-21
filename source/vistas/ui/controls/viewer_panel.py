@@ -119,6 +119,8 @@ class ViewerPanel(wx.Panel, Observer):
         self.gl_canvas.camera.wireframe = False
         self.gl_canvas.SetFocus()
 
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy)
+
         self.legend_window = LegendWindow(self, wx.ID_ANY)
 
         self.RefreshScenes()
@@ -126,6 +128,10 @@ class ViewerPanel(wx.Panel, Observer):
         observable = CameraObservable.get()
         observable.add_observer(self)
         self.reset_interactor = observable.is_sync
+
+    def OnDestroy(self, event):
+        CameraObservable.get().remove_observer(self)
+        event.Skip()
 
     def SetNeighbor(self, neighbor, direction):
         if direction == self.NORTH:

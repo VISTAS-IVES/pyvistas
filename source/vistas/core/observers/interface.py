@@ -9,7 +9,7 @@ class Observable:
     def add_observer(self, observer: Observer):
         self.observers.append(observer)
 
-    def delete_observer(self, observer: Observer):
+    def remove_observer(self, observer: Observer):
         if observer in self.observers:
             self.observers.remove(observer)
 
