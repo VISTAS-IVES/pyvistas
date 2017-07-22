@@ -89,9 +89,11 @@ class OptionsPanel(wx.ScrolledWindow):
                 parent_sizer.Add(radio)
 
         elif opt_type == Option.CHOICE:
-            label = wx.StaticText(self, wx.ID_ANY, option.name)
-            choice = wx.Choice(self)
+            panel = wx.Panel(self)
+            label = wx.StaticText(panel, wx.ID_ANY, option.name)
+            choice = wx.Choice(panel)
             sizer = wx.BoxSizer(wx.VERTICAL)
+            panel.SetSizer(sizer)
 
             for label_text in option.labels:
                 choice.Append(label_text)
@@ -105,8 +107,10 @@ class OptionsPanel(wx.ScrolledWindow):
             self._options[choice] = option
 
             sizer.Add(label, 0)
-            sizer.Add(choice, 0, wx.EXPAND)
-            parent_sizer.Add(sizer, 0, wx.EXPAND | wx.BOTTOM, 5)
+            sizer.Add(choice, 0)
+            parent_sizer.Add(panel, 0, wx.EXPAND | wx.BOTTOM, 5)
+
+            sizer.FitInside(choice)
 
         elif opt_type == Option.SLIDER:
             label = wx.StaticText(self, wx.ID_ANY, option.name)
