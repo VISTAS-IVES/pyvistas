@@ -91,7 +91,7 @@ class OptionsPanel(wx.ScrolledWindow):
         elif opt_type == Option.CHOICE:
             label = wx.StaticText(self, wx.ID_ANY, option.name)
             choice = wx.Choice(self)
-            sizer = wx.BoxSizer(wx.HORIZONTAL)
+            sizer = wx.BoxSizer(wx.VERTICAL)
 
             for label_text in option.labels:
                 choice.Append(label_text)
@@ -104,8 +104,8 @@ class OptionsPanel(wx.ScrolledWindow):
             choice.Bind(wx.EVT_CHOICE, self.OnChoice)
             self._options[choice] = option
 
-            sizer.Add(label, 0, wx.RIGHT, 10)
-            sizer.Add(choice, 1)
+            sizer.Add(label, 0)
+            sizer.Add(choice, 0, wx.EXPAND)
             parent_sizer.Add(sizer, 0, wx.EXPAND | wx.BOTTOM, 5)
 
         elif opt_type == Option.SLIDER:

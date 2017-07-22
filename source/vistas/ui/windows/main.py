@@ -150,7 +150,7 @@ class MainWindow(wx.Frame):
         self.viewer_container_panel = ViewerContainerPanel(self.right_panel, wx.ID_ANY)
         self.timeline_panel = TimelinePanel(self.right_panel, wx.ID_ANY)
 
-        self.main_splitter.SplitVertically(self.left_panel, self.right_panel, 250)
+        self.main_splitter.SplitVertically(self.left_panel, self.right_panel, 300)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(main_sizer)
