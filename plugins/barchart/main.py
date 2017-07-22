@@ -155,7 +155,7 @@ class GraphVisualization(VisualizationPlugin2D):
             ax = fig.add_subplot(1, 1, 1, facecolor=background_color)
             ax.margins(1 / width, 1 / height)
 
-            bars = ax.bar(indices, values, label='Men', color='r')
+            bars = ax.bar(indices, values, color='r')
 
             for b in indices:
                 bars[b].set_color(colors[b])            # Set unique colors here
@@ -172,11 +172,17 @@ class GraphVisualization(VisualizationPlugin2D):
             for label in ax.get_xticklabels() + ax.get_yticklabels():
                 label.set_color(label_color)
 
+            max_value = max(values)
+
             # attach a text label within each bar displaying the count
             for i, rect in enumerate(bars):
                 count = rect.get_height()
-                bar_label_color = (0, 0, 0) if sum([x * 255 for x in colors[i]]) > 384 else (1, 1, 1)
-                ax.text(rect.get_x() + rect.get_width() / 2., 0.5 * count, '%d' % int(count), ha='center', va='bottom',
+                above = count < max_value / 2
+                label_height = count + 5 if above else count * 0.5
+                va = 'bottom' if above else 'center'
+                bg_color = background_color if above else colors[i]
+                bar_label_color = (0, 0, 0) if sum([x * 255 for x in bg_color]) > 384 else (1, 1, 1)
+                ax.text(rect.get_x() + rect.get_width() / 2., label_height, '%d' % int(count), ha='center', va=va,
                         color=bar_label_color)
 
             return self.fig_to_pil(fig).resize((width, height))
