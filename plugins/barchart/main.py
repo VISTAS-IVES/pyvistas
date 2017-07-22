@@ -1,3 +1,4 @@
+import random
 from io import BytesIO
 
 import numpy
@@ -46,16 +47,23 @@ class GraphVisualization(VisualizationPlugin2D):
         num_categories = self.num_categories.value
         current_categories = int(len(self.categories_group.flat_list) / 3)
 
+        # move random past current colors
+        random.seed(100)
+        for i in range(current_categories):
+            RGBColor.random()
+
         if num_categories > current_categories:
             for i in range(num_categories - current_categories):
                 self.categories_group.items.append(Option(self, Option.INT, 'Value', 0))
                 self.categories_group.items.append(Option(self, Option.TEXT, 'Label', ''))
-                self.categories_group.items.append(Option(self, Option.COLOR, 'Color', RGBColor.random(1)))
+                self.categories_group.items.append(Option(self, Option.COLOR, 'Color', RGBColor.random()))
                 self.categories_group.items.append(Option(self, Option.SPACER))
         elif num_categories < current_categories:
             current_options = self.categories_group.flat_list
             self.categories_group = OptionGroup('Categories')
             self.categories_group.items = current_options[:num_categories*4]
+
+        random.seed()
 
         options.items.append(self.categories_group)
         return options

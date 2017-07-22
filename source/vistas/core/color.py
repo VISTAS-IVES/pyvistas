@@ -1,4 +1,4 @@
-from random import Random
+import random
 
 
 class Color:
@@ -17,9 +17,8 @@ class Color:
             return self.as_hsv()
 
     @classmethod
-    def random(cls, seed=None):
-        rdm = Random(seed)
-        return cls(rdm.random(), rdm.random(), rdm.random())
+    def random(cls):
+        return cls(random.random(), random.random(), random.random())
 
 
 class RGBColor(Color):
