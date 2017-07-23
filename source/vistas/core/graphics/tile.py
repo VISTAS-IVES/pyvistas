@@ -1,6 +1,8 @@
 import asyncio
 import os
 import sys
+from ctypes import c_float, c_uint, sizeof
+import math
 
 import mercantile
 import numpy
@@ -14,6 +16,7 @@ from vistas.core.graphics.bounds import BoundingBox
 from vistas.core.graphics.mesh import Mesh
 from vistas.core.graphics.renderable import Renderable
 from vistas.core.graphics.shader import ShaderProgram
+from vistas.core.graphics.utils import map_buffer
 from vistas.core.paths import get_resources_directory
 from vistas.core.task import Task
 from vistas.core.threading import Thread
@@ -65,7 +68,39 @@ class TileMesh(Mesh):
         self.mtile = tile
         self.cellsize = cellsize
 
-    def set_buffers(self, vertices, indices, normals):
+    def set_buffers(self, vertices, indices, normals, neighbor_meshes):
+
+        row_count = self.grid_size * 3
+        total_count = self.grid_size * row_count
+        row = [[], [], [], []]
+        for i in range(0, row_count, 3):
+            row[0].append(math.floor(i + 1))  # top
+            row[1].append(math.floor(i / 3 * row_count + 1))  # left
+            row[2].append(math.floor(i + 1 + total_count - row_count))  # bottom
+            row[3].append(math.floor((i / 3 + 1) * row_count - 2))  # right
+
+        for neighbor in neighbor_meshes:
+
+            if neighbor.mtile.x < self.mtile.x:     # top
+                index = 0
+            elif neighbor.mtile.x > self.mtile.x:   # bottom
+                index = 2
+            elif neighbor.mtile.y < self.mtile.y:   # right
+                index = 1
+            elif neighbor.mtile.y > self.mtile.y:   # left
+                index = 2
+            else:
+                continue    # not a neighbor...
+
+            # Grab neighbor vertices as they exist in OpenGL buffers
+            glBindBuffer(GL_ARRAY_BUFFER, neighbor.vertex_buffer)
+            neighbor_vertices = map_buffer(GL_ARRAY_BUFFER, numpy.float32, GL_READ_ONLY, vertices.nbytes)
+            glUnmapBuffer(GL_ARRAY_BUFFER)
+            glBindBuffer(GL_ARRAY_BUFFER, 0)
+
+            indices_to_change = row[index]
+            neighbor_indices = row[(index + 2) % 4]
+            vertices[indices_to_change] = neighbor_vertices[neighbor_indices]
 
         # Now allocate everything
         vert_buf = self.acquire_vertex_array()
@@ -98,23 +133,21 @@ class TileRenderThread(Thread):
 
         e = ElevationService()
         e.zoom = self.grid.zoom
-        wgs84 = self.grid.extent.project(Proj(init='EPSG:4326'))
-        self.grid.tiles = list(e.tiles(wgs84))
-        e.get_tiles(wgs84)
-        self.grid._ul = self.grid.tiles[0]
-        self.grid._br = self.grid.tiles[-1]
+        self.task.status = Task.RUNNING
+        self.task.description = 'Collecting elevation data...'
+        e.get_tiles(self.grid.wgs84, self.task)
         cellsize = self.grid.cellsize
         grid_size = 256
 
+        self.task.description = 'Generating Terrain Mesh'
         self.task.target = len(self.grid.tiles)
-        self.task.status = Task.RUNNING
         for t in self.grid.tiles:
             data = e.get_grid(t.x, t.y).T
 
             # Setup vertices
             height, width = data.shape
             indices = numpy.indices(data.shape)
-            heightfield = numpy.zeros((height, width, 3))
+            heightfield = numpy.zeros((height, width, 3), dtype=numpy.float32)
             heightfield[:, :, 0] = indices[0] * cellsize
             heightfield[:, :, 2] = indices[1] * cellsize
             heightfield[:, :, 1] = data
@@ -137,11 +170,11 @@ class TileRenderThread(Thread):
             ).reshape(heightfield.shape)
 
             indices = numpy.array(index_array)
-            self.sync_with_main(self.grid.add_tile, (t, heightfield, indices, normals), block=True)
+            self.sync_with_main(self.grid.add_tile, (t, heightfield.ravel(), indices.ravel(), normals.ravel()),
+                                block=True)
             self.task.inc_progress()
 
         self.sync_with_main(self.grid.refresh_bounding_box)
-        self.sync_with_main(self.grid.resolve_seams, block=True)
         self.grid._can_render = True
         self.sync_with_main(post_redisplay, kwargs={'reset': True})
 
@@ -152,17 +185,20 @@ class TileRenderThread(Thread):
 class TileGridRenderable(Renderable):
     """ Rendering interface for a collection of TileMesh's """
 
-    def __init__(self, extent=None):
+    def __init__(self, extent):
         super().__init__()
         self._extent = extent
-        self._wgs84 = extent.project(Proj(init='EPSG:4326'))
-        self.tiles = []
-        self._ul = None
-        self._br = None
+        self.zoom = 10
+        self.wgs84 = extent.project(Proj(init='EPSG:4326'))
+        self.tiles = list(mercantile.tiles(*self.wgs84.as_list(), [self.zoom]))
+        self._ul = self.tiles[0]
+        self._br = self.tiles[-1]
+
+
         self._meshes = []
         self._can_render = False
         self.cellsize = 30
-        self.zoom = 10
+
         self.bounding_box = BoundingBox()
         self.shader = TileShaderProgram.get()
         TileRenderThread(self).start()
@@ -178,18 +214,49 @@ class TileGridRenderable(Renderable):
 
     def add_tile(self, t, vertices, indices, normals):
         tile = TileMesh(t, self.cellsize)
-        tile.set_buffers(vertices, indices, normals)
-        self._meshes.append(tile)
 
-    def resolve_seams(self):
-        """ Resolves seems to eliminate weird looking edges """
-        pass
+        # resolve seams before allocating buffers
+        neighbors = [
+            mercantile.Tile(t.x - 1, t.y, t.z),     # left
+            mercantile.Tile(t.x, t.y + 1, t.z),     # bottom
+            mercantile.Tile(t.x + 1, t.y, t.z),     # right
+            mercantile.Tile(t.x, t.y - 1, t.z)      # top
+        ]
+        neighbor_meshes = [x for x in self._meshes if x.mtile in neighbors]
+        tile.set_buffers(vertices, indices, normals, neighbor_meshes)
+        self._meshes.append(tile)
 
     def refresh_bounding_box(self):
         width = (self._br.x - self._ul.x + 1) * 256 * self.cellsize
         height = (self._br.y - self._ul.y + 1) * 256 * self.cellsize
 
         self.bounding_box = BoundingBox(0, -10, 0, width, 10, height)
+
+    @property
+    def mercator_bounds(self):
+        ul_bounds = mercantile.xy_bounds(self._ul)
+        br_bounds = mercantile.xy_bounds(self._br)
+        return mercantile.Bbox(ul_bounds.left, br_bounds.bottom, br_bounds.right, ul_bounds.top)
+
+    @property
+    def geographic_bounds(self):
+        ul_bounds = mercantile.bounds(self._ul)
+        br_bounds = mercantile.bounds(self._br)
+        return mercantile.LngLatBbox(ul_bounds.west, br_bounds.south, br_bounds.east, ul_bounds.north)
+
+    def to_scene_coords(self, coords):  # Assumed to be in mercator
+        bounds = self.mercator_bounds
+        scene_coords = []
+        for x, y in coords:
+            u = (x - bounds.left) / (bounds.right - bounds.left)
+            v = 1 - (y - bounds.bottom) / (bounds.top - bounds.bottom)
+            scene_coords.append((u * 256 * self.cellsize, v * 256 * self.cellsize))
+        return scene_coords
+
+    def relative_position_from_geographic(self, lng, lat):
+        bounds = self.geographic_bounds
+        bbox = self.bounding_box
+        pass
 
     def render(self, camera):
         if self._can_render:

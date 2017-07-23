@@ -1,9 +1,9 @@
 import numpy
 import shapely.geometry as geometry
+from pyproj import Proj, transform
 from OpenGL.GL import *
-from rasterio import features
-from rasterio import transform
 from vistas.core.graphics.tile import TileGridRenderable
+from vistas.core.graphics.features import FeatureCollectionRenderable
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.option import Option, OptionGroup
 from vistas.core.plugins.visualization import VisualizationPlugin3D
@@ -88,4 +88,13 @@ class EnvisionVisualization(VisualizationPlugin3D):
         if self.data is not None:
             self.tile_renderable = TileGridRenderable(self.data.extent)
             self.scene.add_object(self.tile_renderable)
+
+            print(self.tile_renderable.geographic_bounds)
+            print(self.tile_renderable.mercator_bounds)
+
+            #feature_renderable = FeatureCollectionRenderable(self.data.get_features(), self.data.extent)
+            #coords = feature_renderable.mercator_coords
+            #print(self.tile_renderable.to_scene_coords(next(coords)))
+
+
             self._needs_tiles = False
