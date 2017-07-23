@@ -6,7 +6,6 @@ import math
 
 import mercantile
 import numpy
-import mercantile
 from OpenGL.GL import *
 from pyproj import Proj
 from pyrr import Vector3, Matrix44
