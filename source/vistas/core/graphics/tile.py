@@ -1,6 +1,7 @@
 import os
 
 import numpy
+import mercantile
 from OpenGL.GL import *
 from pyrr.vector3 import generate_normals
 
@@ -47,14 +48,15 @@ class TileShaderProgram(ShaderProgram):
 class TileMesh(Mesh):
     """ Base tile mesh, contains all VAO/VBO objects """
 
-    def __init__(self, cellsize=30):
+    def __init__(self, tile: mercantile.Tile, cellsize=30):
         indices = 131068    # (256-1) * 256 * 2 + ((256 - 1) * 2 - 2), which is the number of indices
         vertices = 256**2
         super().__init__(indices, vertices, True)
+        self.mtile = tile
         self.shader = TileShaderProgram.get()
         self.cellsize = cellsize
 
-    def set_tile_data(self, data):
+    def set_tile_data(self, data, xpos, zpos):
 
         # Setup vertices
         height, width = data.shape
@@ -120,3 +122,52 @@ class TileRenderable(Renderable):
         self.tile.shader.current_tile = None
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
+
+
+class TileGridRenderable(Renderable):
+    """ Rendering interface for a group of TileMesh's """
+
+    def __init__(self):
+        super().__init__()
+        self._tiles = []
+        self.bounding_box = None
+        self.shader = TileShaderProgram.get()
+
+    @property
+    def tiles(self):
+        return self._tiles
+
+    @tiles.setter
+    def tiles(self, tiles):
+        self._tiles = tiles
+        self._resolve_seams()
+        self.refresh_bounding_box()
+
+    def add_tile(self, tile):
+        self._tiles.append(tile)
+
+    def _resolve_seams(self):
+        """ Resolves seems to eliminate weird looking edges """
+
+        pass
+
+    def refresh_bounding_box(self):
+        bbox = self.tiles[0].bounding_box
+        for obj in self.tiles[1:]:
+            bbox.min_x = min(obj.bounds.min_x, bbox.min_x)
+            bbox.max_x = max(obj.bounds.max_x, bbox.max_x)
+            bbox.min_y = min(obj.bounds.min_y, bbox.min_y)
+            bbox.max_y = max(obj.bounds.max_y, bbox.max_y)
+            bbox.min_z = min(obj.bounds.min_z, bbox.min_z)
+            bbox.max_z = max(obj.bounds.max_z, bbox.max_z)
+        self.bounding_box = bbox
+
+    def render(self, camera):
+        for tile in self._tiles:
+            self.shader.current_tile = tile
+            self.shader.pre_render(camera)
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tile.index_buffer)
+            glDrawElements(tile.mode, tile.num_indices, GL_UNSIGNED_INT, None)
+            self.shader.post_render(camera)
+            self.shader.current_tile = None
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)

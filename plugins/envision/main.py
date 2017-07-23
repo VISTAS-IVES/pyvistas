@@ -13,6 +13,11 @@ from vistas.core.plugins.option import Option, OptionGroup
 from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.ui.utils import *
 
+# Todo - revise shader to use a single light position
+# Todo - resolve seems from for tile
+# Todo - implement a TileGridRenderable which takes a list of TileMesh's and executes a render call across all of them
+# Todo - edit tile.py to require x,y,z grid vertices to be supplied, so that resolving seems can be handled internally
+# within a larger TileGridRenderable
 
 class EnvisionVisualization(VisualizationPlugin3D):
 
