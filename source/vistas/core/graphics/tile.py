@@ -3,7 +3,7 @@ import os
 import numpy
 import mercantile
 from OpenGL.GL import *
-from pyrr.vector3 import generate_normals
+from pyrr.vector3 import generate_vertex_normals
 
 from vistas.core.graphics.bounds import BoundingBox
 from vistas.core.graphics.mesh import Mesh
@@ -48,15 +48,18 @@ class TileShaderProgram(ShaderProgram):
 class TileMesh(Mesh):
     """ Base tile mesh, contains all VAO/VBO objects """
 
-    def __init__(self, tile: mercantile.Tile, cellsize=30):
-        indices = 131068    # (256-1) * 256 * 2 + ((256 - 1) * 2 - 2), which is the number of indices
-        vertices = 256**2
-        super().__init__(indices, vertices, True)
-        self.mtile = tile
+    #def __init__(self, tile: mercantile.Tile, cellsize=30):
+    def __init__(self, cellsize=30):
+
+        self.grid_size = 256
+        vertices = self.grid_size ** 2
+        indices = 6 * (self.grid_size - 1) ** 2
+        super().__init__(indices, vertices, True, mode=Mesh.TRIANGLES)
+        #self.mtile = tile
         self.shader = TileShaderProgram.get()
         self.cellsize = cellsize
 
-    def set_tile_data(self, data, xpos, zpos):
+    def set_tile_data(self, data, xpos=None, zpos=None):
 
         # Setup vertices
         height, width = data.shape
@@ -70,25 +73,20 @@ class TileMesh(Mesh):
 
         # Setup indices
         index_array = []
-        for i in range(height - 1):
-            if i > 0:
-                index_array.append(i * width)
-            for j in range(width):
-                index_array.append(i * width + j)
-                index_array.append((i + 1) * width + j)
-            if i < height - 2:
-                index_array.append((i + 1) * width + (width - 1))
+        for i in range(self.grid_size - 1):
+            for j in range(self.grid_size - 1):
+                a = i + self.grid_size * j
+                b = i + self.grid_size * (j + 1)
+                c = (i + 1) + self.grid_size * (j + 1)
+                d = (i + 1) + self.grid_size * j
+                index_array += [a, b, d]
+                index_array += [b, c, d]
 
         # Setup normals
-        verts = heightfield.reshape(-1, heightfield.shape[-1])
-        faces = numpy.array([index_array[i:i + 3] for i in range(len(index_array) - 2)])
-        norm = numpy.zeros(verts.shape, dtype=verts.dtype)
-        tris = verts[faces]
-        n = generate_normals(tris[::, 2], tris[::, 0], tris[::, 1])
-        norm[faces[:, 0]] += n
-        norm[faces[:, 1]] += n
-        norm[faces[:, 2]] += n
-        normals = norm.reshape(heightfield.shape)
+        normals = generate_vertex_normals(
+            heightfield.reshape(-1, heightfield.shape[-1]),                             # vertices
+            numpy.array([index_array[i:i + 3] for i in range(len(index_array) - 2)])    # faces
+        ).reshape(heightfield.shape)
 
         # Now allocate everything
         vert_buf = self.acquire_vertex_array()

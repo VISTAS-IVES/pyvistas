@@ -121,7 +121,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
                     self.tiles.append(tile)
                     self.scene.add_object(tile)
                     tile.position = Vector3([x, 0, y])
-                    y += 253 * cellsize
+                    y += 255 * cellsize
                 x += 255 * cellsize
 
             self._needs_tiles = False
