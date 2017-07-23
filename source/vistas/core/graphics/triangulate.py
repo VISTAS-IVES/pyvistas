@@ -5,7 +5,7 @@ from functools import partial
 def test():
     import fiona
     import time
-    p = r'C:\Users\taylor.mutch\Documents\pyvistas_testdata\graysharbor_pyvistas\GraysHarbor_orig\IDU.shp'
+    p = r'C:\Users\taylor\Documents\pyvistas_testdata\graysharbor_dem\IDU.shp'
     start = time.time()
     with fiona.open(p, 'r') as shp:
         shapes = [s for s in shp]
