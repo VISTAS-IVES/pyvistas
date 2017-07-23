@@ -296,6 +296,8 @@ class MainWindow(wx.Frame):
 
     def OnRedisplay(self, event):
         for viewer in self.viewer_container_panel.GetAllViewerPanels():
+            if event.reset:
+                viewer.gl_canvas.camera_interactor.reset_position()
             viewer.gl_canvas.Refresh()
 
         for win in FlythroughDialog.active_dialogs:

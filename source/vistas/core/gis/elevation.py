@@ -54,8 +54,12 @@ class ElevationService:
         self._zoom = 15
         return self._zoom
 
+    @zoom.setter
+    def zoom(self, zoom):
+        self._zoom = int(zoom)
+
     def get_grid(self, x, y, z=None):
-        z = self.zoom if z is None else z
+        z = z if z else self.zoom
         if x != self.x or y != self.y:
             self.x = x
             self.y = y
@@ -218,8 +222,8 @@ class ElevationService:
         new_plugin.calculate_stats()
         return new_plugin
 
-    def tiles(self, extent, zoom):
-        return mercantile.tiles(*extent.as_list(), [zoom])
+    def tiles(self, extent, zoom=None):
+        return mercantile.tiles(*extent.as_list(), [zoom if zoom else self.zoom])
 
     def create_data_dem(self, extent, zoom, merge=False):
 

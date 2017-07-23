@@ -1,13 +1,9 @@
 import numpy
 import shapely.geometry as geometry
 from OpenGL.GL import *
-from pyrr import Vector3, Vector4
-from pyrr.vector3 import generate_normals
 from rasterio import features
 from rasterio import transform
-from pyproj import Proj
-from vistas.core.gis.elevation import ElevationService
-from vistas.core.graphics.tile import TileMesh, TileRenderable
+from vistas.core.graphics.tile import TileGridRenderable
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.option import Option, OptionGroup
 from vistas.core.plugins.visualization import VisualizationPlugin3D
@@ -15,9 +11,7 @@ from vistas.ui.utils import *
 
 # Todo - revise shader to use a single light position
 # Todo - resolve seems from for tile
-# Todo - implement a TileGridRenderable which takes a list of TileMesh's and executes a render call across all of them
-# Todo - edit tile.py to require x,y,z grid vertices to be supplied, so that resolving seems can be handled internally
-# within a larger TileGridRenderable
+
 
 class EnvisionVisualization(VisualizationPlugin3D):
 
@@ -31,7 +25,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
     def __init__(self):
         super().__init__()
 
-        self.tiles = []
+        self.tile_renderable = None
         self.data = None
 
         self._needs_tiles = False
@@ -74,15 +68,13 @@ class EnvisionVisualization(VisualizationPlugin3D):
     @scene.setter
     def scene(self, scene):
         if self._scene is not None:
-            if self.tiles:
-                for tile in self.tiles:
-                    self._scene.remove_object(tile)
+            if self.tile_renderable:
+                self._scene.remove_object(self.tile_renderable)
 
         self._scene = scene
 
-        if self.tiles and self._scene is not None:
-            for tile in self.tiles:
-                self._scene.add_object(tile)
+        if self.tile_renderable and self._scene is not None:
+            self._scene.add_object(self.tile_renderable)
 
     def refresh(self):
 
@@ -94,34 +86,6 @@ class EnvisionVisualization(VisualizationPlugin3D):
 
     def _create_terrain_mesh(self):
         if self.data is not None:
-
-            e = ElevationService()
-            e._zoom = 10
-            wgs84 = self.data.extent.project(Proj(init='EPSG:4326'))
-            tiles = list(e.tiles(wgs84, 10))
-            e.get_tiles(wgs84)
-            ul = tiles[0]
-            br = tiles[-1]
-            width = br.x - ul.x + 1
-            height = br.y - ul.y + 1
-            cellsize = 30
-            idx = 0
-            x = 0
-            for i in range(width):
-                y = 0
-                for j in range(height):
-                    t = tiles[idx]
-                    idx += 1
-                    t_data = e.get_grid(t.x, t.y, 10).T
-
-                    tile = TileRenderable(cellsize)
-                    tile.tile.set_tile_data(t_data)
-                    tile.bounding_box = tile.tile.bounding_box
-
-                    self.tiles.append(tile)
-                    self.scene.add_object(tile)
-                    tile.position = Vector3([x, 0, y])
-                    y += 255 * cellsize
-                x += 255 * cellsize
-
+            self.tile_renderable = TileGridRenderable(self.data.extent)
+            self.scene.add_object(self.tile_renderable)
             self._needs_tiles = False
