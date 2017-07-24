@@ -3,14 +3,13 @@ import shapely.geometry as geometry
 from pyproj import Proj, transform
 from OpenGL.GL import *
 from vistas.core.graphics.tile import TileGridRenderable
-from vistas.core.graphics.features import FeatureCollectionRenderable
+from vistas.core.graphics.features import FeatureCollection
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.option import Option, OptionGroup
 from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.ui.utils import *
 
 # Todo - revise shader to use a single light position
-# Todo - resolve seems from for tile
 
 
 class EnvisionVisualization(VisualizationPlugin3D):
@@ -26,6 +25,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
         super().__init__()
 
         self.tile_renderable = None
+        self.feature_collection = None
         self.data = None
 
         self._needs_tiles = False
@@ -82,19 +82,20 @@ class EnvisionVisualization(VisualizationPlugin3D):
             self._create_terrain_mesh()
             self._needs_tiles = False
 
+        if self.feature_collection is not None:
+            if self.feature_collection.can_render:
+                print('Woo! We got some cool stuff')
+                self.feature_collection.transfer_to_scene(self.scene)
+
         post_redisplay()
 
     def _create_terrain_mesh(self):
         if self.data is not None:
-            self.tile_renderable = TileGridRenderable(self.data.extent)
+            self.tile_renderable = TileGridRenderable(self.data.extent, True)
             self.scene.add_object(self.tile_renderable)
-
-            print(self.tile_renderable.geographic_bounds)
-            print(self.tile_renderable.mercator_bounds)
-
-            #feature_renderable = FeatureCollectionRenderable(self.data.get_features(), self.data.extent)
-            #coords = feature_renderable.mercator_coords
-            #print(self.tile_renderable.to_scene_coords(next(coords)))
-
+            self.feature_collection = FeatureCollection(self.data.get_features(), self.data.extent,
+                                                        self.tile_renderable.mercator_bounds, self.tile_renderable.cellsize)
+            #triangles = self.feature_collection.mercator_triangles
+            #print(next(triangles))
 
             self._needs_tiles = False

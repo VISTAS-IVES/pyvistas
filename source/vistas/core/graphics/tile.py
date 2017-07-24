@@ -185,7 +185,7 @@ class TileRenderThread(Thread):
 class TileGridRenderable(Renderable):
     """ Rendering interface for a collection of TileMesh's """
 
-    def __init__(self, extent):
+    def __init__(self, extent, render=False):
         super().__init__()
         self._extent = extent
         self.zoom = 10
@@ -201,7 +201,8 @@ class TileGridRenderable(Renderable):
 
         self.bounding_box = BoundingBox()
         self.shader = TileShaderProgram.get()
-        TileRenderThread(self).start()
+        if render:
+            TileRenderThread(self).start()
 
     @property
     def extent(self):
@@ -243,20 +244,6 @@ class TileGridRenderable(Renderable):
         ul_bounds = mercantile.bounds(self._ul)
         br_bounds = mercantile.bounds(self._br)
         return mercantile.LngLatBbox(ul_bounds.west, br_bounds.south, br_bounds.east, ul_bounds.north)
-
-    def to_scene_coords(self, coords):  # Assumed to be in mercator
-        bounds = self.mercator_bounds
-        scene_coords = []
-        for x, y in coords:
-            u = (x - bounds.left) / (bounds.right - bounds.left)
-            v = 1 - (y - bounds.bottom) / (bounds.top - bounds.bottom)
-            scene_coords.append((u * 256 * self.cellsize, v * 256 * self.cellsize))
-        return scene_coords
-
-    def relative_position_from_geographic(self, lng, lat):
-        bounds = self.geographic_bounds
-        bbox = self.bounding_box
-        pass
 
     def render(self, camera):
         if self._can_render:
