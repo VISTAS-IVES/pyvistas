@@ -6,7 +6,7 @@ import numpy
 import shapely.geometry as geometry
 from OpenGL.GL import *
 from pyrr import Vector3, Vector4
-from pyrr.vector3 import generate_normals
+from pyrr.vector3 import generate_vertex_normals
 from rasterio import features
 from rasterio import transform
 
@@ -390,7 +390,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             factor = 1.0
             height, width = height_data.shape
 
-            num_indices = (height - 1) * width * 2 + ((height - 1) * 2 - 2)
+            num_indices = 6 * (width - 1) * (height - 1)
             num_vertices = width * height
 
             max_height = math.sqrt(width * height * cellsize) / 2
@@ -408,7 +408,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
             self.heightfield = heightfield
 
-            mesh = Mesh(num_indices, num_vertices, True, True, True, mode=Mesh.TRIANGLE_STRIP)
+            mesh = Mesh(num_indices, num_vertices, True, True, True, mode=Mesh.TRIANGLES)
 
             shader = TerrainAndColorShaderProgram(mesh)
             shader.attach_shader(self.get_shader_path('vert.glsl'), GL_VERTEX_SHADER)
@@ -417,19 +417,22 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
             # Compute indices for vertices
             index_array = []
-            for i in range(height - 1):
-                if i > 0:
-                    index_array.append(i * width)
-                for j in range(width):
-                    index_array.append(i * width + j)
-                    index_array.append((i + 1) * width + j)
-                if i < height - 2:
-                    index_array.append((i + 1) * width + (width - 1))
+            for j in range(height - 1):
+                for i in range(width - 1):
+                    a = i + width * j
+                    b = i + width * (j + 1)
+                    c = (i + 1) + width * (j + 1)
+                    d = (i + 1) + width * j
+                    index_array += [a, b, d]
+                    index_array += [b, c, d]
 
             assert(len(index_array) == num_indices)
 
             # Compute normals and keep them for using in vector_renderable
-            normals = self._compute_normals(heightfield, index_array)
+            normals = generate_vertex_normals(
+                heightfield.reshape(-1, heightfield.shape[-1]),
+                numpy.array([index_array[i:i + 3] for i in range(len(index_array) - 2)])
+            ).reshape(heightfield.shape)
             self.normals = normals
 
             # Set mesh vertex array to heightfield
@@ -467,18 +470,6 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             if self.mesh_renderable is not None:
                 self._scene.remove_object(self.mesh_renderable)
                 self.mesh_renderable = None
-
-    @staticmethod
-    def _compute_normals(heightfield, indices):
-        verts = heightfield.reshape(-1, heightfield.shape[-1])
-        faces = numpy.array([indices[i:i + 3] for i in range(len(indices) - 2)])
-        norm = numpy.zeros(verts.shape, dtype=verts.dtype)
-        tris = verts[faces]
-        n = generate_normals(tris[::, 2], tris[::, 0], tris[::, 1])
-        norm[faces[:, 0]] += n
-        norm[faces[:, 1]] += n
-        norm[faces[:, 2]] += n
-        return norm.reshape(heightfield.shape)
 
     def _update_terrain_color(self):
 
