@@ -182,10 +182,10 @@ class TileRenderThread(Thread):
         self.sync_with_main(post_redisplay)
 
 
-class TileGridRenderable(Renderable):
+class TileLayerRenderable(Renderable):
     """ Rendering interface for a collection of TileMesh's """
 
-    def __init__(self, extent, render=False):
+    def __init__(self, extent):
         super().__init__()
         self._extent = extent
         self.zoom = 10
@@ -194,15 +194,13 @@ class TileGridRenderable(Renderable):
         self._ul = self.tiles[0]
         self._br = self.tiles[-1]
 
-
         self._meshes = []
         self._can_render = False
         self.cellsize = 30
 
         self.bounding_box = BoundingBox()
         self.shader = TileShaderProgram.get()
-        if render:
-            TileRenderThread(self).start()
+        TileRenderThread(self).start()
 
     @property
     def extent(self):

@@ -1,11 +1,6 @@
-import numpy
-import shapely.geometry as geometry
-from pyproj import Proj, transform
-from OpenGL.GL import *
-from vistas.core.graphics.tile import TileGridRenderable
 from vistas.core.graphics.features import FeatureCollection
+from vistas.core.graphics.tile import TileLayerRenderable
 from vistas.core.plugins.data import DataPlugin
-from vistas.core.plugins.option import Option, OptionGroup
 from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.ui.utils import *
 
@@ -28,21 +23,8 @@ class EnvisionVisualization(VisualizationPlugin3D):
         self.feature_collection = None
         self.data = None
 
-        self._needs_tiles = False
+        self._needs_mesh = False
         self._scene = None
-        self._zoom = Option(self, Option.SLIDER, "Zoom Level", 10, 5, 12, 1)
-
-    def update_option(self, option=None):
-        if option.plugin is not self:
-            return
-
-        print("Changed zoom")
-
-
-    def get_options(self):
-        options = OptionGroup()
-        options.items.append(self._zoom)
-        return options
 
     @property
     def can_visualize(self):
@@ -56,7 +38,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
 
     def set_data(self, data: DataPlugin, role):
         self.data = data
-        self._needs_tiles = True
+        self._needs_mesh = True
 
     def get_data(self, role):
         return self.data
@@ -77,25 +59,14 @@ class EnvisionVisualization(VisualizationPlugin3D):
             self._scene.add_object(self.tile_renderable)
 
     def refresh(self):
-
-        if self._needs_tiles:
+        if self._needs_mesh:
             self._create_terrain_mesh()
-            self._needs_tiles = False
-
-        if self.feature_collection is not None:
-            if self.feature_collection.can_render:
-                print('Woo! We got some cool stuff')
-                self.feature_collection.transfer_to_scene(self.scene)
-
+            self._needs_mesh = False
         post_redisplay()
 
     def _create_terrain_mesh(self):
         if self.data is not None:
-            self.tile_renderable = TileGridRenderable(self.data.extent, True)
+            self.tile_renderable = TileLayerRenderable(self.data.extent)
             self.scene.add_object(self.tile_renderable)
-            self.feature_collection = FeatureCollection(self.data.get_features(), self.data.extent,
-                                                        self.tile_renderable.mercator_bounds, self.tile_renderable.cellsize)
-            #triangles = self.feature_collection.mercator_triangles
-            #print(next(triangles))
-
-            self._needs_tiles = False
+            self.feature_collection = FeatureCollection(self.data, self.tile_renderable.cellsize)
+            self.feature_collection.render(self.scene)
