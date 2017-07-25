@@ -3,12 +3,14 @@ FeatureCollection - renders out features based on their shape type.
 """
 
 import os
+
 import mercantile
 import numpy
+import shapely.geometry as geometry
 from OpenGL.GL import *
 from pyproj import Proj, transform
-import shapely.geometry as geometry
 from shapely.ops import triangulate
+
 from vistas.core.gis.elevation import ElevationService
 from vistas.core.graphics.bounds import BoundingBox
 from vistas.core.graphics.mesh import Mesh
@@ -17,7 +19,7 @@ from vistas.core.graphics.shader import ShaderProgram
 from vistas.core.paths import get_resources_directory
 from vistas.core.task import Task
 from vistas.core.threading import Thread
-from vistas.ui.utils import post_redisplay, post_message
+from vistas.ui.utils import post_redisplay
 
 
 class FeatureShaderProgram(ShaderProgram):
@@ -146,7 +148,7 @@ class FeatureCollection:
         e = ElevationService()
         meshes = []
         for feature in self.plugin.get_features():
-            triangles = triangulate(geometry.shape(feature['geometry']).simplify(self.tolerance))
+            triangles = triangulate(geometry.shape(feature['geometry'])) #.simplify(self.tolerance))
             vertices = []
             for tri in triangles:
                 tri_coords = tri.exterior.coords

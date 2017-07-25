@@ -142,6 +142,5 @@ class Shapefile(FeatureDataPlugin):
 
     def get_features(self, date=None):
         with fiona.open(self.path, 'r') as shp:
-            #features = [f for f in shp]
-            features = [next(shp) for i in range(500)]
+            features = [f for f in shp]
         return features
