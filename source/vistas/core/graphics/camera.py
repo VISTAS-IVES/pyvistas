@@ -184,4 +184,11 @@ class Camera(Observer):
 
         glViewport(0, 0, width, height)
 
-        self.proj_matrix = Matrix44.perspective_projection(80.0, width / height, 1, 100000)
+        # Determine current znear, zfar
+        bbox = self.scene.bounding_box
+        mat = self.matrix
+        c = -1 * (mat * bbox.center)
+        znear = max(1.0, c.z - bbox.diameter / 2.0)
+        zfar = c.z + bbox.diameter
+
+        self.proj_matrix = Matrix44.perspective_projection(80.0, width / height, znear, zfar)
