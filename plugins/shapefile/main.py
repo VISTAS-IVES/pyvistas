@@ -1,6 +1,7 @@
 import os
 import json
 import fiona
+from osgeo import ogr
 from pyproj import Proj
 
 from vistas.core.gis.extent import Extent
@@ -53,7 +54,6 @@ class Shapefile(FeatureDataPlugin):
                     return min(x), min(y), max(x), max(y)
 
                 xmin, ymin, xmax, ymax = [None] * 4
-
                 for f in shp:
                     if xmin is None:
                         xmin, ymin, xmax, ymax = bbox(f)
@@ -79,6 +79,12 @@ class Shapefile(FeatureDataPlugin):
                                              extent_data['ymax']
 
         self._extent = Extent(xmin, ymin, xmax, ymax, projection)
+        driver = ogr.GetDriverByName('ESRI Shapefile')
+        src = driver.Open(self.path, 0)
+        if src is None:
+            print("OGR Failed...")
+        else:
+            self._num_features = src.GetLayer().GetFeatureCount()
 
     @property
     def data_name(self):
@@ -136,5 +142,6 @@ class Shapefile(FeatureDataPlugin):
 
     def get_features(self, date=None):
         with fiona.open(self.path, 'r') as shp:
-            features = [f for f in shp]
+            #features = [f for f in shp]
+            features = [next(shp) for i in range(500)]
         return features

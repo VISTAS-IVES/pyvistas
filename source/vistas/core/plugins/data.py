@@ -148,6 +148,11 @@ class FeatureDataPlugin(DataPlugin):
 
     data_type = DataPlugin.FEATURE
 
+    def get_num_features(self):
+        """ Returns the number of features in a feature collection. """
+
+        raise NotImplemented
+
     def get_features(self, date=None):
         """ Returns an array of shapely features for the given time """
 

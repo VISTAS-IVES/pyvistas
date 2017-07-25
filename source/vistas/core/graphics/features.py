@@ -17,7 +17,7 @@ from vistas.core.graphics.shader import ShaderProgram
 from vistas.core.paths import get_resources_directory
 from vistas.core.task import Task
 from vistas.core.threading import Thread
-from vistas.ui.utils import post_redisplay
+from vistas.ui.utils import post_redisplay, post_message
 
 
 class FeatureShaderProgram(ShaderProgram):
@@ -69,20 +69,8 @@ class FeatureCollectionRenderThread(Thread):
 
     def run(self):
 
-        # First build all the polygon meshes. This takes a long time...
-        self.task.description = 'Building polygons...'
-        self.task.status = Task.INDETERMINATE
-        meshes = self.collection.generate_meshes()  # Todo - look for optimizations
-
-        self.task.target = len(meshes)
         self.task.status = Task.RUNNING
-
-        verts = meshes[0]
-        indices = numpy.arange(verts.size, dtype='uint8')
-        for vertices in meshes[1:]:
-            verts = numpy.append(verts, vertices, axis=0)
-            indices = numpy.append(indices, numpy.arange(indices.size, indices.size + vertices.size))
-            self.task.inc_progress()
+        verts, indices = self.collection.generate_meshes(self.task)  # Todo - look for optimizations
         self.sync_with_main(self.collection.add_features_to_scene,
                             (verts, indices, self.scene), block=True)
 
@@ -107,10 +95,10 @@ class FeatureRenderable(Renderable):
 class FeatureCollection:
     """ An interface for handling large feature collections """
 
-    def __init__(self, feature_plugin, cellsize=30, zoom=10, tolerance=1):
+    def __init__(self, plugin, cellsize=30, zoom=10, tolerance=1):
         self.renderable = None
-        self.feature_plugin = feature_plugin
-        self.extent = feature_plugin.extent
+        self.plugin = plugin
+        self.extent = plugin.extent
         self.cellsize = cellsize
         self.tolerance = tolerance  # geometry simplification tolerance
 
@@ -140,25 +128,24 @@ class FeatureCollection:
         br_bounds = mercantile.xy_bounds(self._br)
         return mercantile.Bbox(ul_bounds.left, br_bounds.bottom, br_bounds.right, ul_bounds.top)
 
-    def grid_coords(self, coords):  # Assumed to be in mercator
-        bounds = self.mercator_bounds
-        grid_coords = []
-        for x, y in coords:
-            u = (x - bounds.left) / (bounds.right - bounds.left)
-            v = 1 - (y - bounds.bottom) / (bounds.top - bounds.bottom)
-            grid_coords.append((u * 256 * self.cellsize, v * 256 * self.cellsize))
-        return grid_coords
-
-    def generate_meshes(self):
+    def generate_meshes(self, task=None):
         """ Generates polygon mesh vertices for a feature collection """
-        # Todo - store start/stop indices to we can retreive vertex data later?
-        # Todo - explore optimization opportunities
+
+        vfile = self.plugin.path.replace('.shp', '.ttt')
+        npz_path = vfile + '.npz'
+        if os.path.exists(npz_path):
+            nfile = numpy.load(npz_path)
+            verts, indices = nfile['verts'], nfile['indices']
+            return verts, indices
+
+        task.progress = 0
+        task.target = self.plugin.get_num_features() * 2
 
         mercator = self.extent.project(Proj(init='EPSG:3857')).projection
         mbounds = self.mercator_bounds
         e = ElevationService()
         meshes = []
-        for feature in self.feature_plugin.get_features():
+        for feature in self.plugin.get_features():
             triangles = triangulate(geometry.shape(feature['geometry']).simplify(self.tolerance))
             vertices = []
             for tri in triangles:
@@ -174,9 +161,6 @@ class FeatureCollection:
                     v = (1 - (my - mbounds.bottom) / (mbounds.top - mbounds.bottom))
 
                     # Determine which tile we landed in and get the height at that value
-                    # Todo - could we instead register a cache of textures and sample from those instead?
-                    # That might not work since we have limited cache size. Would have to create a buffer
-                    # specific to that tile and use it here properly somehow... The below works as a crude starting place
                     lng, lat = transform(self.extent.projection, self.wgs84.projection, x, y)
                     t = mercantile.tile(lng, lat, self.zoom)
                     tbounds = mercantile.xy_bounds(t)
@@ -191,4 +175,19 @@ class FeatureCollection:
                     scene_coords += [u, height, v]
                 vertices += scene_coords
             meshes.append(numpy.array(vertices, dtype=numpy.float32).reshape(-1, 3))
-        return meshes
+
+            if task:
+                task.inc_progress()
+
+        # Concatenate vertices and build indices
+        verts = meshes[0]
+        indices = numpy.arange(verts.size, dtype='uint8')
+        for vertices in meshes[1:]:
+            verts = numpy.append(verts, vertices, axis=0)
+            indices = numpy.append(indices, numpy.arange(indices.size, indices.size + vertices.size))
+            if task:
+                task.inc_progress()
+
+        # cache the vertices and indices
+        numpy.savez(vfile, verts=verts, indices=indices)
+        return verts, indices
