@@ -1,6 +1,8 @@
 import copy
 import math
 from itertools import product
+
+from mercantile import tiles
 from pyproj import Proj, transform
 
 
@@ -60,6 +62,9 @@ class Extent:
 
     def is_geographic(self):
         return self.projection.is_latlong()
+
+    def tiles(self, zoom):
+        return tiles(*self.project(Proj(init='EPSG:4326')).as_list(), [zoom])
 
     def project(self, target_projection, edge_points=9):
         """

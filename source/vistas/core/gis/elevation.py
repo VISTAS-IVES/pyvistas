@@ -8,11 +8,12 @@ import numpy
 from PIL import Image
 from pyproj import Proj, transform
 
-from vistas.core.gis.file_writer import RasterWriter
 from vistas.core.gis.extent import Extent
+from vistas.core.gis.file_writer import RasterWriter
 from vistas.core.paths import get_userconfig_path
 from vistas.core.plugins.data import FeatureDataPlugin
 from vistas.core.plugins.interface import Plugin
+from vistas.core.utils import asyncio_guard
 
 
 class ElevationService:
@@ -75,6 +76,7 @@ class ElevationService:
     def _get_tile_path(z, x, y):
         return os.path.join(get_userconfig_path(), 'Tiles', 'AWS', str(z), str(x), "{}.png".format(y))
 
+    @asyncio_guard
     def get_tiles(self, extent, task=None):
         async def fetch_tile(client, url, tile_path):
             async with client.get(url) as r:
@@ -222,9 +224,6 @@ class ElevationService:
         new_plugin.calculate_stats()
         return new_plugin
 
-    def tiles(self, extent, zoom=None):
-        return mercantile.tiles(*extent.as_list(), [zoom if zoom else self.zoom])
-
     def create_data_dem(self, extent, zoom, merge=False):
 
         self._zoom = zoom
@@ -238,7 +237,7 @@ class ElevationService:
         xmin, ymin = ll_bbox.west, ll_bbox.south
         xmax, ymax = ur_bbox.east, ur_bbox.north
         dem_extent = Extent(xmin, ymin, xmax, ymax, projection=Proj(init='EPSG:4326'))
-        tiles = mercantile.tiles(*wgs84.as_list(), [self.zoom])
+        tiles = extent.tiles(self.zoom)
         if merge:
             shape = ((ll_tile.y - ur_tile.y + 1) * 256, (ur_tile.x - ll_tile.x + 1) * 256)
             data = numpy.zeros(shape, dtype=numpy.float32)
