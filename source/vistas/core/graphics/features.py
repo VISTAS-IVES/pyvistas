@@ -97,12 +97,11 @@ class FeatureRenderable(Renderable):
 class FeatureCollection:
     """ An interface for handling large feature collections """
 
-    def __init__(self, plugin, cellsize=30, zoom=10, tolerance=1):
+    def __init__(self, plugin, cellsize=30, zoom=10):
         self.renderable = None
         self.plugin = plugin
         self.extent = plugin.extent
         self.cellsize = cellsize
-        self.tolerance = tolerance  # geometry simplification tolerance
 
         self.zoom = zoom
         self.wgs84 = self.extent.project(Proj(init='EPSG:4326'))
@@ -141,54 +140,36 @@ class FeatureCollection:
             return verts, indices
 
         task.progress = 0
-        task.target = self.plugin.get_num_features() * 2
+        task.target = self.plugin.get_num_features()
 
         mercator = self.extent.project(Proj(init='EPSG:3857')).projection
         mbounds = self.mercator_bounds
         e = ElevationService()
-        meshes = []
+        verts = None
         for feature in self.plugin.get_features():
-            triangles = triangulate(geometry.shape(feature['geometry'])) #.simplify(self.tolerance))
-            vertices = []
-            for tri in triangles:
-                tri_coords = tri.exterior.coords
-                scene_coords = []
-                for x, y in tri_coords[:-1]:    # last coord is a repeat, OpenGL finishes the triangle for us
+            triangles = triangulate(geometry.shape(feature['geometry']))
+            vertices = numpy.array([t.exterior.coords[:-1] for t in triangles], dtype=numpy.float32)
+            xs, ys = transform(self.extent.projection, mercator, vertices[:, :, 0], vertices[:, :, 1])
+            us = ((xs - mbounds.left) / (mbounds.right - mbounds.left))
+            vs = (1 - (ys - mbounds.bottom) / (mbounds.top - mbounds.bottom))
 
-                    # project triangle coordinates to mercator
-                    mx, my = transform(self.extent.projection, mercator, x, y)
+            # Move to world space
+            us *= (self._br.x - self._ul.x + 1) * 256 * self.cellsize
+            vs *= (self._br.y - self._ul.y + 1) * 256 * self.cellsize
 
-                    # now convert mercator to scene coordinates
-                    u = ((mx - mbounds.left) / (mbounds.right - mbounds.left))
-                    v = (1 - (my - mbounds.bottom) / (mbounds.top - mbounds.bottom))
+            us = us.ravel()
+            vs = vs.ravel()
 
-                    # Determine which tile we landed in and get the height at that value
-                    lng, lat = transform(self.extent.projection, self.wgs84.projection, x, y)
-                    t = mercantile.tile(lng, lat, self.zoom)
-                    tbounds = mercantile.xy_bounds(t)
-                    sx = int(numpy.floor((mx - tbounds.left) / (tbounds.right - tbounds.left) * 256))
-                    sy = int(numpy.floor((1 - (my - tbounds.bottom) / (tbounds.top - tbounds.bottom)) * 256))
-                    height = e.get_grid(t.x, t.y, self.zoom)[sy, sx]
-
-                    # Translate to proper tile position
-                    u *= (self._br.x - self._ul.x + 1) * 256 * self.cellsize
-                    v *= (self._br.y - self._ul.y + 1) * 256 * self.cellsize
-
-                    scene_coords += [u, height, v]
-                vertices += scene_coords
-            meshes.append(numpy.array(vertices, dtype=numpy.float32).reshape(-1, 3))
+            if verts is not None:
+                new_verts = numpy.dstack((us, numpy.zeros(us.shape, dtype=numpy.float32), vs))[0]
+                verts = numpy.append(verts, new_verts, axis=0)
+            else:
+                verts = numpy.dstack((us, numpy.zeros(us.shape, dtype=numpy.float32), vs))[0]
 
             if task:
                 task.inc_progress()
 
-        # Concatenate vertices and build indices
-        verts = meshes[0]
-        indices = numpy.arange(verts.size, dtype='uint8')
-        for vertices in meshes[1:]:
-            verts = numpy.append(verts, vertices, axis=0)
-            indices = numpy.append(indices, numpy.arange(indices.size, indices.size + vertices.size))
-            if task:
-                task.inc_progress()
+        indices = numpy.arange(verts.shape[0])
 
         # cache the vertices and indices
         numpy.savez(vfile, verts=verts, indices=indices)
