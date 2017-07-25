@@ -185,7 +185,7 @@ class TileRenderThread(Thread):
 class TileLayerRenderable(Renderable):
     """ Rendering interface for a collection of TileMesh's """
 
-    def __init__(self, extent, render=False):
+    def __init__(self, extent):
         super().__init__()
         self._extent = extent
         self.zoom = 10
@@ -200,8 +200,7 @@ class TileLayerRenderable(Renderable):
 
         self.bounding_box = BoundingBox()
         self.shader = TileShaderProgram.get()
-        if render:
-            TileRenderThread(self).start()
+        TileRenderThread(self).start()
 
     @property
     def extent(self):
