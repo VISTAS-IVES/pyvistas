@@ -430,8 +430,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
             # Compute normals and keep them for using in vector_renderable
             normals = generate_vertex_normals(
-                heightfield.reshape(-1, heightfield.shape[-1]),
-                numpy.array([index_array[i:i + 3] for i in range(len(index_array) - 2)])
+                heightfield.reshape(-1, 3), numpy.array(index_array).reshape(-1, 3)
             ).reshape(heightfield.shape)
             self.normals = normals
 
