@@ -225,6 +225,14 @@ class ElevationService:
         return new_plugin
 
     def create_data_dem(self, extent, zoom, merge=False):
+        """
+        Creates an elevation grid from elevation data in memory.
+        :param extent Extent to build the DEM for.
+        :param zoom The zoom level to render the DEM at.
+        :param merge Indicate whether to return the DEM as a single numpy grid, or as a cache, using mercantile.Tile
+        objects to index into the cache.
+        :return {mercantile.Tile: numpy.ndarray} if merge==False, numpy.ndarray if merge==True
+        """
 
         self._zoom = zoom
         wgs84 = extent.project(Proj(init='EPSG:4326'))
@@ -232,11 +240,6 @@ class ElevationService:
         xmin, ymin, xmax, ymax = wgs84.as_list()
         ll_tile = mercantile.tile(xmin, ymin, self.zoom)
         ur_tile = mercantile.tile(xmax, ymax, self.zoom)
-        ll_bbox = mercantile.bounds(ll_tile)
-        ur_bbox = mercantile.bounds(ur_tile)
-        xmin, ymin = ll_bbox.west, ll_bbox.south
-        xmax, ymax = ur_bbox.east, ur_bbox.north
-        dem_extent = Extent(xmin, ymin, xmax, ymax, projection=Proj(init='EPSG:4326'))
         tiles = extent.tiles(self.zoom)
         if merge:
             shape = ((ll_tile.y - ur_tile.y + 1) * 256, (ur_tile.x - ll_tile.x + 1) * 256)
@@ -245,6 +248,6 @@ class ElevationService:
                 w = (tile.x - ll_tile.x) * 256
                 h = (tile.y - ur_tile.y) * 256
                 data[h: h + 256, w: w + 256] = self.get_grid(tile.x, tile.y)
-            return data, dem_extent
+            return data
         else:
-            return (self.get_grid(t.x, t.y) for t in tiles), dem_extent
+            return {t: self.get_grid(t.x, t.y) for t in tiles}

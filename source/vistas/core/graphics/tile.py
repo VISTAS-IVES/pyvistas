@@ -126,10 +126,6 @@ class TileRenderThread(Thread):
         self.task = Task("Generating Terrain Mesh")
 
     def run(self):
-        if sys.platform == 'win32':
-            asyncio.set_event_loop(asyncio.ProactorEventLoop())
-        else:
-            asyncio.set_event_loop(asyncio.SelectorEventLoop())
 
         e = ElevationService()
         e.zoom = self.grid.zoom
@@ -141,8 +137,10 @@ class TileRenderThread(Thread):
 
         self.task.description = 'Generating Terrain Mesh'
         self.task.target = len(self.grid.tiles)
+        grids = e.create_data_dem(self.grid.extent, self.grid.zoom)
+
         for t in self.grid.tiles:
-            data = e.get_grid(t.x, t.y).T
+            data = grids[t].T
 
             # Setup vertices
             height, width = data.shape
@@ -163,13 +161,13 @@ class TileRenderThread(Thread):
                     index_array += [a, b, d]
                     index_array += [b, c, d]
 
+            indices = numpy.array(index_array)
+
             # Setup normals
             normals = generate_vertex_normals(
-                heightfield.reshape(-1, heightfield.shape[-1]),                             # vertices
-                numpy.array([index_array[i:i + 3] for i in range(len(index_array) - 2)])    # faces
+                heightfield.reshape(-1, 3),                     # vertices
+                indices.reshape(-1, 3)         # faces
             ).reshape(heightfield.shape)
-
-            indices = numpy.array(index_array)
             self.sync_with_main(self.grid.add_tile, (t, heightfield.ravel(), indices.ravel(), normals.ravel()),
                                 block=True)
             self.task.inc_progress()
