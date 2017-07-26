@@ -4,7 +4,7 @@ from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.ui.utils import *
 
-# Todo - revise shader to use a single light position
+# Todo - revise tile shader to use a single light position
 
 
 class EnvisionVisualization(VisualizationPlugin3D):
@@ -66,7 +66,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
 
     def _create_terrain_mesh(self):
         if self.data is not None:
-            zoom = 11
+            zoom = 10
             self.tile_renderable = TileLayerRenderable(self.data.extent, zoom=zoom)
             self.scene.add_object(self.tile_renderable)
             self.feature_collection = FeatureCollection(self.data, self.tile_renderable.cellsize, zoom=zoom)

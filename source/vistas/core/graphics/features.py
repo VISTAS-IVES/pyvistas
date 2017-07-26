@@ -169,12 +169,7 @@ class FeatureCollection:
         else:
             task.progress = 0
             task.target = self.plugin.get_num_features()
-
-            # Get data DEM to sample elevation from.
-            # NOTE: DEM created here is dependent on initial zoom level
-            e = ElevationService()
-            dem, _ = e.create_data_dem(self.extent, self.zoom, merge=True)
-            dheight, dwidth = dem.shape
+            task.name = 'Vectorizing feature collection'
 
             verts = None
             for feature in self.plugin.get_features():
@@ -192,19 +187,13 @@ class FeatureCollection:
                 else:
                     vertices = numpy.array([t.exterior.coords[:-1] for t in triangles], dtype=numpy.float32)
                 xs, ys = transform(self.extent.projection, mercator, vertices[:, :, 0], vertices[:, :, 1])
-                us = numpy.floor(((xs - mbounds.left) / (mbounds.right - mbounds.left)) * dwidth).astype(int)
-                vs = numpy.floor((1 - (ys - mbounds.bottom) / (mbounds.top - mbounds.bottom)) * dheight).astype(int)
-
-                # Index into DEM to retrieve heights for each vertex
-                heights = dem[vs, us].ravel()
-
                 xs = xs.ravel()
                 ys = ys.ravel()
 
                 if verts is not None:
-                    verts = numpy.append(verts, numpy.dstack((xs, heights, ys))[0], axis=0)
+                    verts = numpy.append(verts, numpy.dstack((xs, numpy.zero_like(xs), ys))[0], axis=0)
                 else:
-                    verts = numpy.dstack((xs, heights, ys))[0]
+                    verts = numpy.dstack((xs, numpy.zero_like(xs), ys))[0]
 
                 if task:
                     task.inc_progress()
@@ -220,6 +209,16 @@ class FeatureCollection:
         # Scale vertices according to current mercator_bounds
         verts[:, 0] = (verts[:, 0] - mbounds.left) / (mbounds.right - mbounds.left)
         verts[:, 2] = (1 - (verts[:, 2] - mbounds.bottom) / (mbounds.top - mbounds.bottom))
+
+        # Get data DEM to sample elevation from.
+        e = ElevationService()
+        dem = e.create_data_dem(self.extent, self.zoom, merge=True)
+        dheight, dwidth = dem.shape
+
+        # Index into current DEM and assign heights
+        us = numpy.floor(verts[:, 0] * dwidth).astype(int)
+        vs = numpy.floor(verts[:, 2] * dheight).astype(int)
+        verts[:, 1] = dem[vs, us].ravel()
 
         # Scale vertices based on tile size
         verts[:, 0] *= (self._br.x - self._ul.x + 1) * 256 * self.cellsize
