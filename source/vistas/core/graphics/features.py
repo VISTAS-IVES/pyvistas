@@ -102,7 +102,7 @@ class FeatureRenderable(Renderable):
 
 
 class FeatureCollection:
-    """ An interface for handling large feature collections """
+    """ An interface for handling feature collections """
 
     def __init__(self, plugin, cellsize=30, zoom=10):
         self.renderable = None
@@ -110,7 +110,19 @@ class FeatureCollection:
         self.extent = plugin.extent
         self.cellsize = cellsize
 
-        self.zoom = zoom
+        self._ul = None
+        self._br = None
+        self.bounding_box = None
+        self._zoom = None
+        self.zoom = zoom    # update bounds
+
+    @property
+    def zoom(self):
+        return self._zoom
+
+    @zoom.setter
+    def zoom(self, zoom):
+        self._zoom = zoom
         tiles = list(self.extent.tiles(self.zoom))
         self._ul = tiles[0]
         self._br = tiles[-1]
@@ -119,12 +131,18 @@ class FeatureCollection:
             0, -10, 0,
             (self._br.x - self._ul.x + 1) * 256 * self.cellsize, 10, (self._br.y - self._ul.y + 1) * 256 * self.cellsize
         )
+        if self.renderable:
+            self.renderable.bounding_box = self.bounding_box
 
     def render(self, scene):
         """ Renders the feature collection into a given scene. """
         FeatureCollectionRenderThread(self, scene).start()
 
     def add_features_to_scene(self, vertices, indices, scene):
+        if scene.has_object(self.renderable):
+            scene.remove_object(self.renderable)
+            self.renderable = None
+
         self.renderable = FeatureRenderable(vertices, indices)
         self.renderable.bounding_box = self.bounding_box
         scene.add_object(self.renderable)
@@ -140,64 +158,71 @@ class FeatureCollection:
         # Todo - capture start-stop indices so coloring can happen on individual polygons via glBufferSubData access
         # This could be done by having a cache of indices, which can then be used properly with glBufferSubData
 
+        mercator = self.extent.project(Proj(init='EPSG:3857')).projection
+        mbounds = self.mercator_bounds
         vfile = self.plugin.path.replace('.shp', '.ttt')
         npz_path = vfile + '.npz'
         if use_cache and os.path.exists(npz_path):
             nfile = numpy.load(npz_path)
             verts, indices = nfile['verts'], nfile['indices']
-            return verts, indices
 
-        task.progress = 0
-        task.target = self.plugin.get_num_features()
+        else:
+            task.progress = 0
+            task.target = self.plugin.get_num_features()
 
-        mercator = self.extent.project(Proj(init='EPSG:3857')).projection
-        mbounds = self.mercator_bounds
-        e = ElevationService()
+            # Get data DEM to sample elevation from.
+            # NOTE: DEM created here is dependent on initial zoom level
+            e = ElevationService()
+            dem, _ = e.create_data_dem(self.extent, self.zoom, merge=True)
+            dheight, dwidth = dem.shape
 
-        # Get data DEM to sample elevation from
-        dem, _ = e.create_data_dem(self.extent, self.zoom, merge=True)
-        dheight, dwidth = dem.shape
-
-        verts = None
-        for feature in self.plugin.get_features():
-            shape = geometry.shape(feature['geometry'])
-            triangles = triangulate(shape)
-            if not len(triangles):
-                # Check if the geometry simply only has 4 or less coordinates
-                num_coords = len(shape.exterior.coords)
-                if num_coords == 4:
-                    vertices = numpy.array([shape.exterior.coords[:-1]], dtype=numpy.float32)
-                elif num_coords == 3:
-                    vertices = numpy.array([shape.exterior.coords], dtype=numpy.float32)
+            verts = None
+            for feature in self.plugin.get_features():
+                shape = geometry.shape(feature['geometry'])
+                triangles = triangulate(shape)
+                if not len(triangles):
+                    # Check if the geometry simply only has 4 or less coordinates
+                    num_coords = len(shape.exterior.coords)
+                    if num_coords == 4:
+                        vertices = numpy.array([shape.exterior.coords[:-1]], dtype=numpy.float32)
+                    elif num_coords == 3:
+                        vertices = numpy.array([shape.exterior.coords], dtype=numpy.float32)
+                    else:
+                        continue    # Can't draw less than two vertices as polygon
                 else:
-                    continue    # Can't draw less than two vertices as polygon
-            else:
-                vertices = numpy.array([t.exterior.coords[:-1] for t in triangles], dtype=numpy.float32)
-            xs, ys = transform(self.extent.projection, mercator, vertices[:, :, 0], vertices[:, :, 1])
-            us = ((xs - mbounds.left) / (mbounds.right - mbounds.left))
-            vs = (1 - (ys - mbounds.bottom) / (mbounds.top - mbounds.bottom))
+                    vertices = numpy.array([t.exterior.coords[:-1] for t in triangles], dtype=numpy.float32)
+                xs, ys = transform(self.extent.projection, mercator, vertices[:, :, 0], vertices[:, :, 1])
+                us = numpy.floor(((xs - mbounds.left) / (mbounds.right - mbounds.left)) * dwidth).astype(int)
+                vs = numpy.floor((1 - (ys - mbounds.bottom) / (mbounds.top - mbounds.bottom)) * dheight).astype(int)
 
-            # Index into DEM to retrieve heights for each vertex
-            heights = dem[numpy.floor(vs * dheight).astype(int), numpy.floor(us * dwidth).astype(int)].ravel()
+                # Index into DEM to retrieve heights for each vertex
+                heights = dem[vs, us].ravel()
 
-            # Move to world space
-            us *= (self._br.x - self._ul.x + 1) * 256 * self.cellsize
-            vs *= (self._br.y - self._ul.y + 1) * 256 * self.cellsize
+                xs = xs.ravel()
+                ys = ys.ravel()
 
-            us = us.ravel()
-            vs = vs.ravel()
+                if verts is not None:
+                    verts = numpy.append(verts, numpy.dstack((xs, heights, ys))[0], axis=0)
+                else:
+                    verts = numpy.dstack((xs, heights, ys))[0]
 
-            if verts is not None:
-                new_verts = numpy.dstack((us, heights, vs))[0]
-                verts = numpy.append(verts, new_verts, axis=0)
-            else:
-                verts = numpy.dstack((us, heights, vs))[0]
+                if task:
+                    task.inc_progress()
 
-            if task:
-                task.inc_progress()
+            indices = numpy.arange(verts.shape[0])
 
-        indices = numpy.arange(verts.shape[0])
+            # cache the unprojected vertices and indices
+            numpy.savez(vfile, verts=verts, indices=indices)
 
-        # cache the vertices and indices
-        numpy.savez(vfile, verts=verts, indices=indices)
+        # Translate vertices to scene coordinates
+        # Delaying this until here allows us to transform the coordinates for any zoom level
+
+        # Scale vertices according to current mercator_bounds
+        verts[:, 0] = (verts[:, 0] - mbounds.left) / (mbounds.right - mbounds.left)
+        verts[:, 2] = (1 - (verts[:, 2] - mbounds.bottom) / (mbounds.top - mbounds.bottom))
+
+        # Scale vertices based on tile size
+        verts[:, 0] *= (self._br.x - self._ul.x + 1) * 256 * self.cellsize
+        verts[:, 2] *= (self._br.y - self._ul.y + 1) * 256 * self.cellsize
+
         return verts, indices
