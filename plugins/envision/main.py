@@ -66,7 +66,8 @@ class EnvisionVisualization(VisualizationPlugin3D):
 
     def _create_terrain_mesh(self):
         if self.data is not None:
-            self.tile_renderable = TileLayerRenderable(self.data.extent)
+            zoom = 9
+            self.tile_renderable = TileLayerRenderable(self.data.extent, zoom=zoom)
             self.scene.add_object(self.tile_renderable)
-            self.feature_collection = FeatureCollection(self.data, self.tile_renderable.cellsize)
+            self.feature_collection = FeatureCollection(self.data, self.tile_renderable.cellsize, zoom=zoom)
             self.feature_collection.render(self.scene)

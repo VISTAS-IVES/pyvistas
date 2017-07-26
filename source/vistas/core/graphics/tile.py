@@ -185,10 +185,10 @@ class TileRenderThread(Thread):
 class TileLayerRenderable(Renderable):
     """ Rendering interface for a collection of TileMesh's """
 
-    def __init__(self, extent):
+    def __init__(self, extent, zoom=10):
         super().__init__()
         self._extent = extent
-        self.zoom = 10
+        self.zoom = zoom
         self.wgs84 = extent.project(Proj(init='EPSG:4326'))
         self.tiles = list(mercantile.tiles(*self.wgs84.as_list(), [self.zoom]))
         self._ul = self.tiles[0]

@@ -77,7 +77,7 @@ class FeatureCollectionRenderThread(Thread):
     def run(self):
 
         self.task.status = Task.RUNNING
-        verts, indices = self.collection.generate_meshes(self.task, use_cache=False)
+        verts, indices = self.collection.generate_meshes(self.task)
         # Todo - initialize the color array with a gray color, allow it to be accessed later on
 
         self.sync_with_main(self.collection.add_features_to_scene,
@@ -160,18 +160,25 @@ class FeatureCollection:
 
         verts = None
         for feature in self.plugin.get_features():
-            triangles = triangulate(geometry.shape(feature['geometry']))
-            vertices = numpy.array([t.exterior.coords[:-1] for t in triangles], dtype=numpy.float32)
+            shape = geometry.shape(feature['geometry'])
+            triangles = triangulate(shape)
+            if not len(triangles):
+                # Check if the geometry simply only has 4 or less coordinates
+                num_coords = len(shape.exterior.coords)
+                if num_coords == 4:
+                    vertices = numpy.array([shape.exterior.coords[:-1]], dtype=numpy.float32)
+                elif num_coords == 3:
+                    vertices = numpy.array([shape.exterior.coords], dtype=numpy.float32)
+                else:
+                    continue    # Can't draw less than two vertices as polygon
+            else:
+                vertices = numpy.array([t.exterior.coords[:-1] for t in triangles], dtype=numpy.float32)
             xs, ys = transform(self.extent.projection, mercator, vertices[:, :, 0], vertices[:, :, 1])
             us = ((xs - mbounds.left) / (mbounds.right - mbounds.left))
             vs = (1 - (ys - mbounds.bottom) / (mbounds.top - mbounds.bottom))
 
             # Index into DEM to retrieve heights for each vertex
-            try:
-                heights = dem[numpy.floor(vs * dheight).astype(int), numpy.floor(us * dwidth).astype(int)].ravel()
-
-            except IndexError:  # Todo - why does this index error happen?
-                heights = numpy.zeros(us.shape, dtype=numpy.float32).ravel()
+            heights = dem[numpy.floor(vs * dheight).astype(int), numpy.floor(us * dwidth).astype(int)].ravel()
 
             # Move to world space
             us *= (self._br.x - self._ul.x + 1) * 256 * self.cellsize
