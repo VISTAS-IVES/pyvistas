@@ -7,6 +7,7 @@ from logging.config import dictConfig
 
 import wx
 
+from vistas.core.encoders.video import DownloadFFMpegThread
 from vistas.core.utils import get_platform
 from vistas.ui.controllers.app import AppController
 from vistas.ui.windows.exception_dialog import ExceptionDialog
@@ -89,6 +90,9 @@ class App(wx.App):
             asyncio.set_event_loop(asyncio.SelectorEventLoop())
 
         self.app_controller = AppController()
+
+        # Download FFmpeg
+        DownloadFFMpegThread().start()
 
         App.init = True
 

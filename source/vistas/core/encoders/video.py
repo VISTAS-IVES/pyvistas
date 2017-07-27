@@ -1,19 +1,22 @@
 import os
+from PIL import Image
 
 import imageio
 import numpy
-from PIL import Image
+import requests
+from imageio.core.util import appdata_dir
 from imageio.plugins.ffmpeg import FNAME_PER_PLATFORM, get_platform
+from os.path import normcase
 
 from vistas.core.encoders.interface import VideoEncoder
-from vistas.core.paths import get_resources_directory
+from vistas.core.task import Task
+from vistas.core.threading import Thread
+from vistas.core.utils import get_config_dir
 
-ffmpeg_exe = os.path.abspath(os.path.join(get_resources_directory(), 'ffmpeg', FNAME_PER_PLATFORM[get_platform()]))
-os.environ.setdefault('IMAGEIO_FFMPEG_EXE', ffmpeg_exe)
+FFMPEG_ROOT_URL = 'https://github.com/imageio/imageio-binaries/raw/master/ffmpeg/'
 
 
 class ImageIOVideoEncoder(VideoEncoder):
-
     def __init__(self):
         self._fps = 30
         self.writer = None
@@ -30,6 +33,11 @@ class ImageIOVideoEncoder(VideoEncoder):
         self._fps = int(fps) if fps > 1 else 1
 
     def open(self, path, width, height):
+
+        task = Task("Downloading Assets", "Downloading ffmpeg assets for video")
+        task.status = task.INDETERMINATE
+        imageio.plugins.ffmpeg.download()  # Ensures we have the ffmpeg dependencies loaded, only loads one time
+        task.status = task.COMPLETE
 
         self.width = width
         self.height = height
@@ -58,3 +66,35 @@ class ImageIOVideoEncoder(VideoEncoder):
 
     def is_ok(self):
         return not self.writer.closed
+
+
+class DownloadFFMpegThread(Thread):
+    def run(self):
+        file = FNAME_PER_PLATFORM[get_platform()]
+        path = os.path.join(appdata_dir('imageio'), 'ffmpeg', file)
+
+        if os.path.exists(path):
+            return
+
+        task = Task("Downloading FFmpeg")
+        task.status = task.RUNNING
+
+        try:
+            ffmpeg_dir = os.path.dirname(path)
+            if not os.path.exists(ffmpeg_dir):
+                os.makedirs(ffmpeg_dir)
+
+            with requests.get(normcase(FFMPEG_ROOT_URL + file), stream=True) as r:
+                if r.headers.get('content-length'):
+                    task.target = int(r.headers['content-length'])
+                else:
+                    task.status = task.INDETERMINATE
+
+                with open(path, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=None):
+                        f.write(chunk)
+                        task.inc_progress(len(chunk))
+        finally:
+            task.status = task.COMPLETE
+
+
