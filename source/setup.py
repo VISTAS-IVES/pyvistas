@@ -13,7 +13,7 @@ if 'TK_LIBRARY' not in os.environ:
 build_options = dict(
     packages=[
         'asyncio', 'OpenGL', 'tkinter', 'numpy', 'pyproj', 'vistas', 'netCDF4', 'netcdftime', 'fiona', 'rasterio',
-        'requests'
+        'requests', 'idna'
     ],
     excludes=[],
     include_files=[('../plugins', 'plugins'), ('../resources', 'resources')],
