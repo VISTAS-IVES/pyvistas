@@ -303,10 +303,14 @@ class VisualizationNode(ProjectNode):
                     'role_id': i
                 })
 
+        options = self.visualization.get_options()
+        if options is not None:
+            options = options.serialize()
+
         data.update({
             'plugin': self.visualization.id,
             'data': data_info,
-            'options': self.visualization.get_options().serialize()
+            'options': options
         })
 
         return data
@@ -339,15 +343,16 @@ class VisualizationNode(ProjectNode):
 
         # Load option values
         options = data['options']
-        for option in plugin.get_options().flat_list:
-            for option_data in options:
-                if option_data['name'] == option.name and option_data['option_type'] == option.option_type:
-                    value = option_data['value']
-                    if option.option_type is option.COLOR:
-                        option.value = RGBColor(*value)
-                    else:
-                        option.value = value
-                    break
+        if options is not None:
+            for option in plugin.get_options().flat_list:
+                for option_data in options:
+                    if option_data['name'] == option.name and option_data['option_type'] == option.option_type:
+                        value = option_data['value']
+                        if option.option_type is option.COLOR:
+                            option.value = RGBColor(*value)
+                        else:
+                            option.value = value
+                        break
 
         # Let plugin data and options take effect
         if isinstance(plugin, VisualizationPlugin3D):
