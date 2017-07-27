@@ -1,4 +1,3 @@
-import ntpath
 import os
 from PIL import Image
 
@@ -7,12 +6,10 @@ import numpy
 import requests
 from imageio.core.util import appdata_dir
 from imageio.plugins.ffmpeg import FNAME_PER_PLATFORM, get_platform
-from os.path import normcase
 
 from vistas.core.encoders.interface import VideoEncoder
 from vistas.core.task import Task
 from vistas.core.threading import Thread
-from vistas.core.utils import get_config_dir
 
 FFMPEG_ROOT_URL = 'https://github.com/imageio/imageio-binaries/raw/master/ffmpeg/'
 
