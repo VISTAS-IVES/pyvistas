@@ -34,12 +34,6 @@ class ImageIOVideoEncoder(VideoEncoder):
         self._fps = int(fps) if fps > 1 else 1
 
     def open(self, path, width, height):
-
-        task = Task("Downloading Assets", "Downloading ffmpeg assets for video")
-        task.status = task.INDETERMINATE
-        imageio.plugins.ffmpeg.download()  # Ensures we have the ffmpeg dependencies loaded, only loads one time
-        task.status = task.COMPLETE
-
         self.width = width
         self.height = height
 
