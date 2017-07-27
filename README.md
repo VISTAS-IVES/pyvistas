@@ -6,8 +6,10 @@ development, and to make plugin development easier.
 
 ## Install ##
 
-VISTAS is currently available for Windows, with a macOS version in the works. A binary download will be added soon,
-after further testing of the initial Python version.
+VISTAS is currently available for Windows, with a macOS version in the works.
+
+* [Download VISTAS 1.13.0 for Windows](https://github.com/VISTAS-IVES/pyvistas/releases/download/1.13.0/VISTAS_1_13.exe)
+* [Download non-installer VISTAS 1.13.0 for Windows](https://github.com/VISTAS-IVES/pyvistas/releases/download/1.13.0/VISTAS_NOINSTALL_1_13_0.zip)
 
 ## Contributors ##
 
