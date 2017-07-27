@@ -1,7 +1,7 @@
 !include MUI.nsh
 !define MUI_ICON "..\resources\images\VISTAS.ico"
 
-OutFile "VISTAS_1_13.exe"
+OutFile "VISTAS_1_13_1.exe"
 InstallDir $PROGRAMFILES64\VISTAS
 Name VISTAS
 
