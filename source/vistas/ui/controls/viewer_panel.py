@@ -1,5 +1,6 @@
 import wx
-from wx.glcanvas import WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, WX_GL_CORE_PROFILE
+from wx.glcanvas import WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, WX_GL_CORE_PROFILE, WX_GL_MAJOR_VERSION 
+from wx.glcanvas import WX_GL_MINOR_VERSION
 
 from vistas.core.graphics.camera import Camera
 from vistas.core.observers.camera import CameraObservable
@@ -64,9 +65,10 @@ class ViewerPanel(wx.Panel, Observer):
 
         self.camera = Camera()
 
-        attrib_list = [WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16]
-        if get_platform() == 'macos':
-            attrib_list += [WX_GL_CORE_PROFILE]
+        attrib_list = [
+            WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16, WX_GL_CORE_PROFILE, 
+            WX_GL_MAJOR_VERSION, 3, WX_GL_MINOR_VERSION, 3
+        ]
 
         self.gl_canvas = GLCanvas(
             self, wx.ID_ANY, self.camera, attrib_list=attrib_list, can_sync=True
