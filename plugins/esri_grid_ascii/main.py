@@ -80,14 +80,9 @@ class ESRIGridAscii(RasterDataPlugin):
         prj_file = self.path.replace('.asc', '.prj')
         if os.path.exists(prj_file):
             with open(prj_file, 'r') as f:
-
-                text = f.read()
-                if 'PROJCS' in text or 'GEOGCS' in text:            # Convert to Proj4 if WKT
-                    ref = SpatialReference()
-                    ref.ImportFromWkt(text)
-                    text = ref.ExportToProj4()
-
-                projection = Proj(text)
+                ref = SpatialReference()
+                ref.ImportFromWkt(f.read())
+                projection = Proj(ref.ExportToProj4())
 
         self._extent = Extent(
             self._header['xllcorner'],
