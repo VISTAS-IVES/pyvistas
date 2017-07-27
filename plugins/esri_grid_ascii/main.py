@@ -82,7 +82,7 @@ class ESRIGridAscii(RasterDataPlugin):
             with open(prj_file, 'r') as f:
 
                 text = f.read()
-                if 'PROJCS' in text:            # Convert to Proj4 if WKT
+                if 'PROJCS' in text or 'GEOGCS' in text:            # Convert to Proj4 if WKT
                     ref = SpatialReference()
                     ref.ImportFromWkt(text)
                     text = ref.ExportToProj4()
