@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from osgeo.osr import SpatialReference
 
 import numpy
 
@@ -25,5 +26,7 @@ class RasterWriter:
         numpy.savetxt(path, data, header=header, comments='')
 
         # save projection info to adjacent file
+        ref = SpatialReference()
+        ref.ImportFromProj4(extent.projection.srs)
         with open(path.replace('asc', 'prj'), 'w') as f:
-            f.write(extent.projection.srs)
+            f.write(ref.ExportToWkt())
