@@ -168,7 +168,7 @@ class ExportItem:
 
     def refresh_cache(self):
 
-        if self.item_type is self.TIMESTAMP:
+        if self.item_type == self.TIMESTAMP:
             self.compute_bbox()                 # Timestamp label changes based on current time
 
         snapshot = Image.new("RGBA", self.size, (0, 0, 0, 0))
@@ -336,7 +336,7 @@ class ExportFramesTask(Thread):
                 self.task.description = "Exporting frame {} of {}.".format(self.task.progress, self.task.target)
 
                 for item in self.exporter.items:
-                    if item.item_type is ExportItem.SCENE and item.flythrough is not None:
+                    if item.item_type == ExportItem.SCENE and item.flythrough is not None:
                         local_fly_fps = item.flythrough.fps / self.exporter.flythrough_fps
                         item.flythrough.update_camera_to_keyframe(
                             (local_fly_fps * frame * item.flythrough.num_keyframes) / self.exporter.video_frames
