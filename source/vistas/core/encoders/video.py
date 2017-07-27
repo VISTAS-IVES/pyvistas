@@ -1,3 +1,4 @@
+import ntpath
 import os
 from PIL import Image
 
@@ -84,7 +85,7 @@ class DownloadFFMpegThread(Thread):
             if not os.path.exists(ffmpeg_dir):
                 os.makedirs(ffmpeg_dir)
 
-            with requests.get(normcase(FFMPEG_ROOT_URL + file), stream=True) as r:
+            with requests.get(FFMPEG_ROOT_URL + file, stream=True) as r:
                 if r.headers.get('content-length'):
                     task.target = int(r.headers['content-length'])
                 else:
