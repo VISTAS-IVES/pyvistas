@@ -233,7 +233,6 @@ class DataNode(ProjectNode):
         abs_path = data['absolute_path']
         rel_path = os.path.join(path, data['relative_path'])
 
-        needs_stats = False
         if os.path.exists(rel_path):
             data_path = rel_path
         elif os.path.exists(abs_path):
@@ -249,13 +248,11 @@ class DataNode(ProjectNode):
 
             if md.ShowModal() == wx.ID_YES and fd.ShowModal() == wx.ID_OK:
                 data_path = fd.GetPath()
-                needs_stats = True
             else:
                 raise OSError("Could not repair data path.")
 
         plugin.set_path(data_path)
-        if needs_stats:
-            plugin.calculate_stats()
+        plugin.calculate_stats()
 
         return cls(plugin, data.get('label'), data.get('parent'), data.get('id'))
 
@@ -527,11 +524,10 @@ class Project:
 
         self.name = data['name']
         self.data_root = FolderNode.load(data['data_root'], os.path.dirname(path))
+        controller.RefreshTimeline()
+        Timeline.app().load_filter(data.get('timeline_filter', None))
         self.visualization_root = FolderNode.load(data['visualization_root'])
         self.exporter = Exporter.load(data.get('exporter', None), self)
-        controller.UpdateTimeline(self.data_root)
-        Timeline.app().load_filter(data.get('timeline_filter', None))
-
         self.is_dirty = False
 
     def migrate(self, data):
