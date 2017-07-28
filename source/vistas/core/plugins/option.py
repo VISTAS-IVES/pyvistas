@@ -46,7 +46,7 @@ class Option:
     @value.setter
     def value(self, value):
         self._value = value
-        if self.option_type in [self.INT, self.FLOAT, self.SLIDER]:
+        if self.option_type in (self.INT, self.FLOAT, self.SLIDER):
             if self._value < self.min_value:
                 self._value = self.min_value
             elif self._value > self.max_value:
@@ -72,9 +72,13 @@ class Option:
         result.pop('plugin')                    # Discard plugin info
         result['value'] = result.pop('_value')
 
-        if self.option_type is self.COLOR:
+        if self.option_type == self.COLOR:
             result['value'] = result['value'].rgb.rgba_list
             result['default'] = result['default'].rgb.rgba_list
+
+        if self.option_type in (self.FLOAT, self.SLIDER):
+            for key in ('value', 'default', 'min_value', 'max_value'):
+                result[key] = float(result[key])
 
         return result
 
