@@ -212,7 +212,10 @@ class MainWindow(wx.Frame):
 
     def LoadState(self, state):
         if state.get('display_index') is not None:
-            display_area = wx.Display(state['display_index']).GetClientArea()
+            try:
+                display_area = wx.Display(state['display_index']).GetClientArea()
+            except:
+                display_area = wx.Display(0).GetClientArea()
         else:
             display_area = wx.Display(0).GetClientArea()
 
