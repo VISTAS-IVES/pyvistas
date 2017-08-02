@@ -27,64 +27,21 @@ class Shapefile(FeatureDataPlugin):
     def load_data(self):
 
         self._name = self.path.split(os.sep)[-1].split('.')[0]
-        self._extent_path = self.path.replace('.shp', '.extent')
-        self._extent_cached = os.path.exists(self._extent_path)
 
         with fiona.open(self.path, 'r') as shp:
             self.metadata = shp.meta
             projection = Proj(init=self.metadata['crs']['init'])
 
-            if not self._extent_cached:         # Dense collections can take a while, so we cache the extent to .extent
-
-                # Determine extent
-                def explode(coords):
-                    """ Borrowed from sgilles - https://gis.stackexchange.com/questions/90553/fiona-get-each-feature-extent-bounds
-                    Explode a GeoJSON geometry's coordinates object and yield coordinate tuples.
-                    As long as the input is conforming, the type of the geometry doesn't matter."""
-                    for e in coords:
-                        if isinstance(e, (float, int)):
-                            yield coords
-                            break
-                        else:
-                            for inner_coords in explode(e):
-                                yield inner_coords
-
-                def bbox(feature):
-                    x, y = zip(*list(explode(feature['geometry']['coordinates'])))
-                    return min(x), min(y), max(x), max(y)
-
-                xmin, ymin, xmax, ymax = [None] * 4
-                for f in shp:
-                    if xmin is None:
-                        xmin, ymin, xmax, ymax = bbox(f)
-                    else:
-                        _xmin, _ymin, _xmax, _ymax = bbox(f)
-                        xmin, ymin, xmax, ymax = \
-                            min([xmin, _xmin]), min([ymin, _ymin]), max([xmax, _xmax]), max([ymax, _ymax])
-
-                # write out extent file
-                with open(self._extent_path, 'w') as f_extent:
-                    json.dump({
-                        'xmin': xmin,
-                        'ymin': ymin,
-                        'xmax': xmax,
-                        'ymax': ymax
-                    }, f_extent)
-                self._extent_cached = True
-
-            else:
-                with open(self._extent_path, 'r') as f_extent:
-                    extent_data = json.load(f_extent)
-                    xmin, ymin, xmax, ymax = extent_data['xmin'], extent_data['ymin'], extent_data['xmax'],\
-                                             extent_data['ymax']
-
-        self._extent = Extent(xmin, ymin, xmax, ymax, projection)
         driver = ogr.GetDriverByName('ESRI Shapefile')
         src = driver.Open(self.path, 0)
+
         if src is None:
             print("OGR Failed...")
         else:
-            self._num_features = src.GetLayer().GetFeatureCount()
+            layer = src.GetLayer()
+            self._num_features = layer.GetFeatureCount()
+            xmin, xmax, ymin, ymax = layer.GetExtent()
+            self._extent = Extent(xmin, ymin, xmax, ymax, projection)
 
     @property
     def data_name(self):
@@ -142,5 +99,5 @@ class Shapefile(FeatureDataPlugin):
 
     def get_features(self, date=None):
         with fiona.open(self.path, 'r') as shp:
-            features = [f for f in shp]
-        return features
+            for f in shp:
+                yield f

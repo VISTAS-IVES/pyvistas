@@ -3,19 +3,22 @@ FeatureCollection - renders out features based on their shape type.
 """
 
 import os
+from functools import partial
 
 import mercantile
 import numpy
+import pyproj
 import shapely.geometry as geometry
+import triangle
 from OpenGL.GL import *
-from pyproj import Proj, transform
-from shapely.ops import triangulate
+from shapely.ops import transform
 
 from vistas.core.gis.elevation import ElevationService
 from vistas.core.graphics.bounds import BoundingBox
 from vistas.core.graphics.mesh import Mesh
 from vistas.core.graphics.renderable import Renderable
 from vistas.core.graphics.shader import ShaderProgram
+from vistas.core.graphics.tile import TILE_SIZE
 from vistas.core.paths import get_resources_directory
 from vistas.core.task import Task
 from vistas.core.threading import Thread
@@ -72,7 +75,7 @@ class FeatureCollectionRenderThread(Thread):
         super().__init__()
         self.collection = collection
         self.scene = scene
-        self.task = Task("Rendering Feature Collection")
+        self.task = Task("Rendering feature collection")
 
     def run(self):
 
@@ -129,7 +132,7 @@ class FeatureCollection:
 
         self.bounding_box = BoundingBox(
             0, -10, 0,
-            (self._br.x - self._ul.x + 1) * 256 * self.cellsize, 10, (self._br.y - self._ul.y + 1) * 256 * self.cellsize
+            (self._br.x - self._ul.x + 1) * TILE_SIZE * self.cellsize, 10, (self._br.y - self._ul.y + 1) * TILE_SIZE * self.cellsize
         )
         if self.renderable:
             self.renderable.bounding_box = self.bounding_box
@@ -158,50 +161,59 @@ class FeatureCollection:
         # Todo - capture start-stop indices so coloring can happen on individual polygons via glBufferSubData access
         # This could be done by having a cache of indices, which can then be used properly with glBufferSubData
 
-        mercator = self.extent.project(Proj(init='EPSG:3857')).projection
+        mercator = pyproj.Proj(init='EPSG:3857')
         mbounds = self.mercator_bounds
-        vfile = self.plugin.path.replace('.shp', '.ttt')
-        npz_path = vfile + '.npz'
+        cache = self.plugin.path.replace('.shp', '.ttt')
+        npz_path = cache + '.npz'
+
+        # Check if a cache for this collection exists
         if use_cache and os.path.exists(npz_path):
             nfile = numpy.load(npz_path)
-            verts, indices = nfile['verts'], nfile['indices']
+            verts = nfile['verts']
 
+        # Build it out
         else:
             task.progress = 0
-            task.target = self.plugin.get_num_features()
-            task.name = 'Vectorizing feature collection'
+            task.target = self.plugin.get_num_features() * 2
 
-            verts = None
+            project = partial(pyproj.transform, self.extent.projection, mercator)   # Our projection method
+
+            polys = []
             for feature in self.plugin.get_features():
-                shape = geometry.shape(feature['geometry'])
-                triangles = triangulate(shape)
-                if not len(triangles):
-                    # Check if the geometry simply only has 4 or less coordinates
-                    num_coords = len(shape.exterior.coords)
-                    if num_coords == 4:
-                        vertices = numpy.array([shape.exterior.coords[:-1]], dtype=numpy.float32)
-                    elif num_coords == 3:
-                        vertices = numpy.array([shape.exterior.coords], dtype=numpy.float32)
-                    else:
-                        continue    # Can't draw less than two vertices as polygon
-                else:
-                    vertices = numpy.array([t.exterior.coords[:-1] for t in triangles], dtype=numpy.float32)
-                xs, ys = transform(self.extent.projection, mercator, vertices[:, :, 0], vertices[:, :, 1])
-                xs = xs.ravel()
-                ys = ys.ravel()
-
-                if verts is not None:
-                    verts = numpy.append(verts, numpy.dstack((xs, numpy.zero_like(xs), ys))[0], axis=0)
-                else:
-                    verts = numpy.dstack((xs, numpy.zero_like(xs), ys))[0]
+                shape = transform(project, geometry.shape(feature['geometry']))
 
                 if task:
                     task.inc_progress()
 
-            indices = numpy.arange(verts.shape[0])
+                if isinstance(shape, geometry.Polygon):
+                    polys.append(list(shape.exterior.coords)[:-1])
+                elif isinstance(shape, geometry.MultiPolygon):
+                    for p in shape:
+                        polys.append(list(p.exterior.coords)[:-1])
+                else:
+                    continue    # Can't render non-polygons
 
-            # cache the unprojected vertices and indices
-            numpy.savez(vfile, verts=verts, indices=indices)
+            # Now triangulate all the polygons
+            tris = []
+            starts = [0]
+            for p in polys:
+                triangulation = triangle.triangulate(dict(vertices=numpy.array(p)))
+                t = triangulation.get('vertices')[triangulation.get('triangles')].reshape(-1, 2)
+                starts.append(starts[-1] + t.size - 1)
+                tris.append(t)
+
+                if task:
+                    task.inc_progress()
+            triangles = numpy.concatenate(tris)
+
+            # Make room for elevation info
+            xs = triangles[:, 0]
+            ys = triangles[:, 1]
+            verts = numpy.dstack((xs, numpy.zeros_like(xs), ys))[0]
+
+            # cache the vertices
+            if use_cache:
+                numpy.savez(cache, verts=verts)
 
         # Translate vertices to scene coordinates
         # Delaying this until here allows us to transform the coordinates for any zoom level
@@ -221,7 +233,10 @@ class FeatureCollection:
         verts[:, 1] = dem[vs, us].ravel()
 
         # Scale vertices based on tile size
-        verts[:, 0] *= (self._br.x - self._ul.x + 1) * 256 * self.cellsize
-        verts[:, 2] *= (self._br.y - self._ul.y + 1) * 256 * self.cellsize
+        verts[:, 0] *= (self._br.x - self._ul.x + 1) * TILE_SIZE * self.cellsize
+        verts[:, 2] *= (self._br.y - self._ul.y + 1) * TILE_SIZE * self.cellsize
+
+        # Vertex indices are assumed to be unique
+        indices = numpy.arange(verts.shape[0])
 
         return verts, indices

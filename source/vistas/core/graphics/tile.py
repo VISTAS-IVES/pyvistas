@@ -1,7 +1,4 @@
-import asyncio
 import os
-import sys
-from ctypes import c_float, c_uint, sizeof
 import math
 
 import mercantile
@@ -21,6 +18,9 @@ from vistas.core.paths import get_resources_directory
 from vistas.core.task import Task
 from vistas.core.threading import Thread
 from vistas.ui.utils import post_redisplay
+
+
+TILE_SIZE = 256
 
 
 class TileShaderProgram(ShaderProgram):
@@ -60,18 +60,16 @@ class TileMesh(Mesh):
     """ Base tile mesh, contains all VAO/VBO objects """
 
     def __init__(self, tile: mercantile.Tile, cellsize=30):
-
-        self.grid_size = 256
-        vertices = self.grid_size ** 2
-        indices = 6 * (self.grid_size - 1) ** 2
+        vertices = TILE_SIZE ** 2
+        indices = 6 * (TILE_SIZE - 1) ** 2
         super().__init__(indices, vertices, True, mode=Mesh.TRIANGLES)
         self.mtile = tile
         self.cellsize = cellsize
 
     def set_buffers(self, vertices, indices, normals, neighbor_meshes):
 
-        row_count = self.grid_size * 3
-        total_count = self.grid_size * row_count
+        row_count = TILE_SIZE * 3
+        total_count = TILE_SIZE * row_count
         row = [[], [], [], []]
         for i in range(0, row_count, 3):
             row[0].append(math.floor(i + 1))  # top
@@ -115,7 +113,7 @@ class TileMesh(Mesh):
         index_buf[:] = indices.ravel()
         self.release_index_array()
 
-        self.bounding_box = BoundingBox(0, -10, 0, 256 * self.cellsize, 10, 256 * self.cellsize)
+        self.bounding_box = BoundingBox(0, -10, 0, TILE_SIZE * self.cellsize, 10, TILE_SIZE * self.cellsize)
 
 
 class TileRenderThread(Thread):
@@ -133,7 +131,6 @@ class TileRenderThread(Thread):
         self.task.description = 'Collecting elevation data...'
         e.get_tiles(self.grid.wgs84, self.task)
         cellsize = self.grid.cellsize
-        grid_size = 256
 
         self.task.description = 'Generating Terrain Mesh'
         self.task.target = len(self.grid.tiles)
@@ -152,12 +149,12 @@ class TileRenderThread(Thread):
 
             # Setup indices
             index_array = []
-            for i in range(grid_size - 1):
-                for j in range(grid_size - 1):
-                    a = i + grid_size * j
-                    b = i + grid_size * (j + 1)
-                    c = (i + 1) + grid_size * (j + 1)
-                    d = (i + 1) + grid_size * j
+            for i in range(TILE_SIZE - 1):
+                for j in range(TILE_SIZE - 1):
+                    a = i + TILE_SIZE * j
+                    b = i + TILE_SIZE * (j + 1)
+                    c = (i + 1) + TILE_SIZE * (j + 1)
+                    d = (i + 1) + TILE_SIZE * j
                     index_array += [a, b, d]
                     index_array += [b, c, d]
 
@@ -224,8 +221,8 @@ class TileLayerRenderable(Renderable):
         self._meshes.append(tile)
 
     def refresh_bounding_box(self):
-        width = (self._br.x - self._ul.x + 1) * 256 * self.cellsize
-        height = (self._br.y - self._ul.y + 1) * 256 * self.cellsize
+        width = (self._br.x - self._ul.x + 1) * TILE_SIZE * self.cellsize
+        height = (self._br.y - self._ul.y + 1) * TILE_SIZE * self.cellsize
 
         self.bounding_box = BoundingBox(0, -10, 0, width, 10, height)
 
