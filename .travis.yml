@@ -1,0 +1,24 @@
+os: osx
+osx_image: xcode8.1
+
+language: generic
+
+env:
+  global:
+    - GDAL_DRIVER_PATH=/usr/local/lib/gdalplugins
+    - LDFLAGS=-L/usr/local/opt/gdal2/lib
+    - CPPFLAGS=-I/usr/local/opt/gdal2/include
+    - PATH=$PATH:/usr/local/opt/gdal2/bin
+
+before_install:
+  - "brew install python3"
+  - "python3 -m venv $HOME/env"
+  - "source $HOME/env/bin/activate"
+  - "travis_wait 30 brew install osgeo/osgeo4mac/gdal2"
+
+install:
+  - "pip install -r requirements.txt"
+  - "pip install pytest"
+
+script:
+  "py.test ."
