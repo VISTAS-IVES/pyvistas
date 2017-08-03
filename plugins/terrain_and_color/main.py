@@ -18,7 +18,7 @@ from vistas.core.graphics.texture import Texture
 from vistas.core.graphics.utils import map_buffer
 from vistas.core.graphics.vector_field_renderable import VectorFieldRenderable
 from vistas.core.histogram import Histogram
-from vistas.core.legend import Legend
+from vistas.core.legend import StretchedLegend
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.option import Option, OptionGroup
 from vistas.core.plugins.visualization import VisualizationPlugin3D
@@ -614,9 +614,9 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         return self.attribute_data is not None
 
     def get_legend(self, width, height):
-        return Legend.stretched(
-            width, height, self._min_value.value, self._max_value.value, self._min_color.value, self._max_color.value
-        )
+        legend = StretchedLegend(self._min_value.value, self._max_value.value, self._min_color.value,
+                                 self._max_color.value)
+        return legend.render(width, height)
 
 
 class TerrainRenderable(MeshRenderable):

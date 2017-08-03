@@ -71,3 +71,42 @@ class Legend:
                 y_offset += line_height
 
         return result
+
+    def get_color(self, value):
+        """ Returns the color associated with the given legend. Implemented by subclasses """
+
+        raise NotImplemented    # implemented by subclasses
+
+
+class StretchedLegend(Legend):
+
+    def __init__(self, low_value, high_value, low_color, high_color):
+        self.low_value = low_value
+        self.high_value = high_value
+        self.low_color = low_color
+        self.high_color = high_color
+
+    def render(self, width, height):
+        return self.stretched(width, height, self.low_value, self.high_value, self.low_color, self.high_color)
+
+    def get_color(self, value):
+        """ Returns the color between low and high """
+
+        return interpolate_color((self.low_value, self.high_value), self.low_color, self.high_color, value)
+
+
+class CategoricalLegend(Legend):
+
+    def __init__(self, categories):
+        self.categories = categories
+
+    def render(self, width, height):
+        return self.categorical(width, height, self.categories)
+
+    def get_color(self, value):     # value should be a label/string in this case
+
+        for color, label in self.categories:
+            if label == value:
+                return color
+
+        return None

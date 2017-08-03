@@ -81,6 +81,13 @@ class Mesh:
             glEnableVertexAttribArray(1)
             glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, None)
 
+        if self.has_color_array:
+            size = 4 if self.use_rgba else 3
+
+            glBindBuffer(GL_ARRAY_BUFFER, self.color_buffer)   # location 3 = 'color'
+            glEnableVertexAttribArray(3)
+            glVertexAttribPointer(3, size, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * size, None)
+
         if self.has_texture_coords:
             glBindBuffer(GL_ARRAY_BUFFER, self.texcoords_buffer)   # location 2 = 'uv', i.e. texcoords
             glEnableVertexAttribArray(2)

@@ -13,6 +13,7 @@ import triangle
 from OpenGL.GL import *
 from shapely.ops import transform
 
+from vistas.core.color import RGBColor
 from vistas.core.gis.elevation import ElevationService
 from vistas.core.graphics.bounds import BoundingBox
 from vistas.core.graphics.mesh import Mesh
@@ -34,9 +35,14 @@ class FeatureShaderProgram(ShaderProgram):
         self.attach_shader(os.path.join(get_resources_directory(), 'shaders', 'feature_vert.glsl'), GL_VERTEX_SHADER)
         self.attach_shader(os.path.join(get_resources_directory(), 'shaders', 'feature_frag.glsl'), GL_FRAGMENT_SHADER)
         self.link_program()
+        self.alpha = 1.0
 
     def pre_render(self, camera):
         super().pre_render(camera)
+
+        # Set shader uniforms for features
+        self.uniform1f('alpha', self.alpha)
+
         glBindVertexArray(self.feature.vertex_array_object)
 
     def post_render(self, camera):
@@ -47,26 +53,14 @@ class FeatureShaderProgram(ShaderProgram):
 class FeatureMesh(Mesh):
 
     def __init__(self, vertices, indices):
-        super().__init__(len(indices), len(vertices), mode=Mesh.TRIANGLES)
+        super().__init__(len(indices), len(vertices), has_color_array=True, mode=Mesh.TRIANGLES)
 
-        # Allocate buffers for this mesh
-        vert_buf = self.acquire_vertex_array()
-        vert_buf[:] = vertices.ravel()
-        self.release_vertex_array()
-
-        index_buf = self.acquire_index_array()
-        index_buf[:] = indices.ravel()
-        self.release_index_array()
-        # Todo - initialize color array with gray color
-
-        self.bounding_box = BoundingBox(0, vertices[:, 1].min(), 0,
-                                        vertices[:, 0].max(), vertices[:, 1].max(), vertices[:, 2].max())  # Todo - determine bounding box
+        color_buf = self.acquire_color_array()
+        color_buf[:] = numpy.ones_like(vertices.ravel()) * 0.5  # init the color buffer with grey
+        self.release_color_array()
 
         self.shader = FeatureShaderProgram()
         self.shader.feature = self
-
-    def color_feature(self):
-        pass    # Todo - color a polygon
 
 
 class FeatureCollectionRenderThread(Thread):
@@ -80,28 +74,43 @@ class FeatureCollectionRenderThread(Thread):
     def run(self):
 
         self.task.status = Task.RUNNING
-        verts, indices = self.collection.generate_meshes(self.task)
-        # Todo - initialize the color array with a gray color, allow it to be accessed later on
+        if self.collection.needs_vertices:
+            self.task.name = 'Generating meshes'
+            verts, indices = self.collection.generate_meshes(self.task)
+            self.sync_with_main(self.collection.add_features_to_scene, (verts, indices, self.scene), block=True)
+            self.collection.needs_vertices = False
 
-        self.sync_with_main(self.collection.add_features_to_scene,
-                            (verts, indices, self.scene), block=True)
+        if self.collection.needs_color:
+            self.task.name = 'Coloring meshes'
+            colors = self.collection.generate_colors(self.task)
+            self.sync_with_main(self.collection.color_features, (colors, None), block=True)
+            self.collection.needs_color = False
 
-        self.sync_with_main(post_redisplay, kwargs={'reset': True}, block=True)
+        self.sync_with_main(post_redisplay)
         self.task.status = Task.COMPLETE
 
 
 class FeatureRenderable(Renderable):
     def __init__(self, vertices, indices):
         super().__init__()
-        self.feature_mesh = FeatureMesh(vertices, indices)
-        self.bounding_box = self.feature_mesh.bounding_box
+        self.mesh = FeatureMesh(vertices, indices)
+        self.bounding_box = self.mesh.bounding_box
 
     def render(self, camera):
-        self.feature_mesh.shader.pre_render(camera)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.feature_mesh.index_buffer)
-        glDrawElements(self.feature_mesh.mode, self.feature_mesh.num_indices, GL_UNSIGNED_INT, None)
-        self.feature_mesh.shader.post_render(camera)
+        self.mesh.shader.pre_render(camera)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.mesh.index_buffer)
+        glDrawElements(self.mesh.mode, self.mesh.num_indices, GL_UNSIGNED_INT, None)
+        self.mesh.shader.post_render(camera)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
+
+    def set_transparency(self, alpha):
+        """ Set the transparency of the feature layer. """
+
+        if alpha > 1.0:
+            alpha = 1.0
+        elif alpha < 0.0:
+            alpha = 0.0
+        self.mesh.shader.alpha = alpha
 
 
 class FeatureCollection:
@@ -119,6 +128,14 @@ class FeatureCollection:
         self._zoom = None
         self.zoom = zoom    # update bounds
 
+        self._color_func = None
+
+        self._cache = self.plugin.path.replace('.shp', '.ttt')
+        self._npz_path = self._cache + '.npz'
+
+        self.needs_vertices = True
+        self.needs_color = True
+
     @property
     def zoom(self):
         return self._zoom
@@ -126,6 +143,7 @@ class FeatureCollection:
     @zoom.setter
     def zoom(self, zoom):
         self._zoom = zoom
+        self.needs_vertices = True
         tiles = list(self.extent.tiles(self.zoom))
         self._ul = tiles[0]
         self._br = tiles[-1]
@@ -139,72 +157,87 @@ class FeatureCollection:
 
     def render(self, scene):
         """ Renders the feature collection into a given scene. """
+
         FeatureCollectionRenderThread(self, scene).start()
 
     def add_features_to_scene(self, vertices, indices, scene):
-        if scene.has_object(self.renderable):
-            scene.remove_object(self.renderable)
-            self.renderable = None
+        """ Render callback to add the the feature collection's renderable to the specified scene. """
 
-        self.renderable = FeatureRenderable(vertices, indices)
+        if self.renderable is None:
+            self.renderable = FeatureRenderable(vertices, indices)
+            scene.add_object(self.renderable)
+
+        # Allocate buffers for this mesh
+        mesh = self.renderable.mesh
+        vert_buf = mesh.acquire_vertex_array()
+        vert_buf[:] = vertices.ravel()
+        mesh.release_vertex_array()
+
+        index_buf = mesh.acquire_index_array()
+        index_buf[:] = indices.ravel()
+        mesh.release_index_array()
+
         self.renderable.bounding_box = self.bounding_box
-        scene.add_object(self.renderable)
+
+    def color_features(self, colors, _=None):
+        """ Coloring callback to set the colors of the feature collection. """
+
+        if self.renderable is not None:
+            color_buf = self.renderable.mesh.acquire_color_array()
+            color_buf[:] = colors.ravel()
+            self.renderable.mesh.release_color_array()
 
     @property
     def mercator_bounds(self):
+        """ The zxy tile (mercator) bounds of the feature collection. """
+
         ul_bounds = mercantile.xy_bounds(self._ul)
         br_bounds = mercantile.xy_bounds(self._br)
         return mercantile.Bbox(ul_bounds.left, br_bounds.bottom, br_bounds.right, ul_bounds.top)
 
     def generate_meshes(self, task=None, use_cache=True):
         """ Generates polygon mesh vertices for a feature collection """
-        # Todo - capture start-stop indices so coloring can happen on individual polygons via glBufferSubData access
-        # This could be done by having a cache of indices, which can then be used properly with glBufferSubData
 
         mercator = pyproj.Proj(init='EPSG:3857')
         mbounds = self.mercator_bounds
-        cache = self.plugin.path.replace('.shp', '.ttt')
-        npz_path = cache + '.npz'
 
         # Check if a cache for this collection exists
-        if use_cache and os.path.exists(npz_path):
-            nfile = numpy.load(npz_path)
+        if use_cache and os.path.exists(self._npz_path):
+            nfile = numpy.load(self._npz_path)
             verts = nfile['verts']
 
         # Build it out
         else:
             task.progress = 0
-            task.target = self.plugin.get_num_features() * 2
+            task.target = self.plugin.get_num_features()
 
             project = partial(pyproj.transform, self.extent.projection, mercator)   # Our projection method
 
-            polys = []
-            for feature in self.plugin.get_features():
+            tris = []
+            offsets = []
+            offset = 0
+            for i, feature in enumerate(self.plugin.get_features()):
                 shape = transform(project, geometry.shape(feature['geometry']))
-
                 if task:
                     task.inc_progress()
 
                 if isinstance(shape, geometry.Polygon):
-                    polys.append(list(shape.exterior.coords)[:-1])
+                    polys = [list(shape.exterior.coords)[:-1]]
                 elif isinstance(shape, geometry.MultiPolygon):
-                    for p in shape:
-                        polys.append(list(p.exterior.coords)[:-1])
+                    polys = [list(p.exterior.coords)[:-1] for p in shape]
                 else:
-                    continue    # Can't render non-polygons
+                    raise ValueError("Can't render non polygons!")
 
-            # Now triangulate all the polygons
-            tris = []
-            starts = [0]
-            for p in polys:
-                triangulation = triangle.triangulate(dict(vertices=numpy.array(p)))
-                t = triangulation.get('vertices')[triangulation.get('triangles')].reshape(-1, 2)
-                starts.append(starts[-1] + t.size - 1)
-                tris.append(t)
+                for p in polys:
+                    triangulation = triangle.triangulate(dict(vertices=numpy.array(p)))
+                    t = triangulation.get('vertices')[triangulation.get('triangles')].reshape(-1, 2)
+                    offset += t.size
+                    tris.append(t)
 
-                if task:
-                    task.inc_progress()
+                offsets.append(offset)
+
             triangles = numpy.concatenate(tris)
+            offsets = numpy.array(offsets)
 
             # Make room for elevation info
             xs = triangles[:, 0]
@@ -213,11 +246,9 @@ class FeatureCollection:
 
             # cache the vertices
             if use_cache:
-                numpy.savez(cache, verts=verts)
+                numpy.savez(self._cache, verts=verts, offsets=offsets)
 
         # Translate vertices to scene coordinates
-        # Delaying this until here allows us to transform the coordinates for any zoom level
-
         # Scale vertices according to current mercator_bounds
         verts[:, 0] = (verts[:, 0] - mbounds.left) / (mbounds.right - mbounds.left)
         verts[:, 2] = (1 - (verts[:, 2] - mbounds.bottom) / (mbounds.top - mbounds.bottom))
@@ -240,3 +271,49 @@ class FeatureCollection:
         indices = numpy.arange(verts.shape[0])
 
         return verts, indices
+
+    @staticmethod
+    def default_color_function(feature):
+        return RGBColor(0.5, 0.5, 0.5)
+
+    def set_color_function(self, func, needs_color=True):
+        self._color_func = func
+        self.needs_color = needs_color
+
+    def generate_colors(self, task=None):
+        """ Generates a color buffer for the feature collection """
+
+        # Color indices are stored in the cache
+        data = numpy.load(self._npz_path)
+        offsets = data['offsets']
+
+        color_func = self._color_func
+        if not color_func:
+            color_func = self.default_color_function
+        colors = []
+
+        if task:
+            task.progress = 0
+            task.target = self.plugin.get_num_features()
+
+        # use color_func here
+        for i, feature in enumerate(self.plugin.get_features()):
+
+            if i == 0:
+                left = 0
+            else:
+                left = offsets[i - 1]
+            right = offsets[i]
+
+            if task:
+                task.inc_progress()
+
+            num_vertices = (right - left) // 2
+            color = numpy.array(color_func(feature).rgb.rgb_list, dtype=numpy.float32)
+            for v in range(num_vertices):
+                colors.append(color)
+
+        colors = numpy.stack(colors)
+
+        return colors
+

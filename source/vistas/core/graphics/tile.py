@@ -30,14 +30,6 @@ class TileShaderProgram(ShaderProgram):
     Usage: TileShaderProgram.get()
     """
 
-    _tile_shader = None
-
-    @classmethod
-    def get(cls):
-        if cls._tile_shader is None:
-            cls._tile_shader = TileShaderProgram()
-        return cls._tile_shader
-
     def __init__(self):
         super().__init__()
         self.current_tile = None
@@ -170,9 +162,6 @@ class TileRenderThread(Thread):
             self.task.inc_progress()
 
         self.sync_with_main(self.grid.refresh_bounding_box)
-        self.grid._can_render = True
-        self.sync_with_main(post_redisplay, kwargs={'reset': True})
-
         self.task.status = Task.COMPLETE
         self.sync_with_main(post_redisplay)
 
@@ -182,29 +171,34 @@ class TileLayerRenderable(Renderable):
 
     def __init__(self, extent, zoom=10):
         super().__init__()
-        self._extent = extent
-        self.zoom = zoom
+        self.extent = extent
         self.wgs84 = extent.project(Proj(init='EPSG:4326'))
-        self.tiles = list(mercantile.tiles(*self.wgs84.as_list(), [self.zoom]))
-        self._ul = self.tiles[0]
-        self._br = self.tiles[-1]
-
+        self.tiles = []
+        self._ul = None
+        self._br = None
+        self._zoom = None
         self._meshes = []
-        self._can_render = False
-        self.cellsize = 30
+
+        self.zoom = zoom    # Update things appropriately
+        self.cellsize = 30          # this might be more appropriately be a meters/px calculation
 
         self.bounding_box = BoundingBox()
-        self.shader = TileShaderProgram.get()
+        self.shader = TileShaderProgram()
         TileRenderThread(self).start()
 
     @property
-    def extent(self):
-        return self._extent
+    def zoom(self):
+        return self._zoom
 
-    @extent.setter
-    def extent(self, extent):
-        self._extent = extent
-        # Todo - reset? Clear house? We should probably look at the tiles that we need and see what needs to be removed
+    @zoom.setter
+    def zoom(self, zoom):
+        if zoom != self._zoom:
+            self._zoom = zoom
+            self.tiles = list(mercantile.tiles(*self.wgs84.as_list(), [self.zoom]))
+            self._ul = self.tiles[0]
+            self._br = self.tiles[-1]
+            del self._meshes[:]
+            TileRenderThread(self).start()
 
     def add_tile(self, t, vertices, indices, normals):
         tile = TileMesh(t, self.cellsize)
@@ -239,18 +233,17 @@ class TileLayerRenderable(Renderable):
         return mercantile.LngLatBbox(ul_bounds.west, br_bounds.south, br_bounds.east, ul_bounds.north)
 
     def render(self, camera):
-        if self._can_render:
-            for tile in self._meshes:
-                camera.push_matrix()
-                camera.matrix *= Matrix44.from_translation(
-                    Vector3([(tile.mtile.x - self._ul.x) * 255 * tile.cellsize, 0,
-                             (tile.mtile.y - self._ul.y) * 255 * tile.cellsize])
-                    )
-                self.shader.current_tile = tile
-                self.shader.pre_render(camera)
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tile.index_buffer)
-                glDrawElements(tile.mode, tile.num_indices, GL_UNSIGNED_INT, None)
-                self.shader.post_render(camera)
-                self.shader.current_tile = None
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
-                camera.pop_matrix()
+        for tile in self._meshes:
+            camera.push_matrix()
+            camera.matrix *= Matrix44.from_translation(
+                Vector3([(tile.mtile.x - self._ul.x) * (TILE_SIZE - 1) * tile.cellsize, 0,
+                         (tile.mtile.y - self._ul.y) * (TILE_SIZE - 1) * tile.cellsize])
+                )
+            self.shader.current_tile = tile
+            self.shader.pre_render(camera)
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tile.index_buffer)
+            glDrawElements(tile.mode, tile.num_indices, GL_UNSIGNED_INT, None)
+            self.shader.post_render(camera)
+            self.shader.current_tile = None
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
+            camera.pop_matrix()
