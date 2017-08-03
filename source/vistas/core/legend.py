@@ -58,15 +58,16 @@ class Legend:
 
         result = Image.new("RGBA", (width, height))
         draw = ImageDraw.Draw(result)
-        midpoint = width / 4
+        midpoint = width // 4
 
         if categories:
-            line_height = height / len(categories)
+            line_height = height // len(categories)
             y_offset = 0
             font, text_offset = Legend._compute_font([x[1] for x in categories], midpoint * 2)
 
             for color, label in categories:
-                draw.rectangle([0, y_offset, midpoint, y_offset + line_height], fill=color.rgb.rgba_list)
+                c = tuple([int(255 * x) for x in color.rgb.rgba_list])
+                draw.rectangle([0, y_offset, midpoint, y_offset + line_height], fill=c)
                 draw.text((midpoint, y_offset + text_offset), label, font=font)
                 y_offset += line_height
 

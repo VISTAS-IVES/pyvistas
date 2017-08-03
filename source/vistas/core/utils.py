@@ -9,6 +9,10 @@ import os
 
 import wx
 
+import os
+
+import wx
+
 
 def get_platform():
     """ Utility function for determining the current operating system. """
@@ -75,18 +79,3 @@ class DatetimeDecoder(json.JSONDecoder):
             # Oops... better put this back together.
             d['__type__'] = type
             return d
-
-
-def asyncio_guard(func):
-    """ Wraps a function to ensure an event loop has been set for the current thread """
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            asyncio.get_event_loop()
-        except:
-            if sys.platform == 'win32':
-                asyncio.set_event_loop(asyncio.ProactorEventLoop())
-            else:
-                asyncio.set_event_loop(asyncio.SelectorEventLoop())
-        return func(*args, **kwargs)
-    return wrapper

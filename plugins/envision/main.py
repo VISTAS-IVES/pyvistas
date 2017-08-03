@@ -1,3 +1,5 @@
+from xml.etree import ElementTree
+
 from vistas.core.color import RGBColor
 from vistas.core.graphics.features import FeatureCollection
 from vistas.core.graphics.tile import TileLayerRenderable
@@ -32,15 +34,18 @@ class EnvisionVisualization(VisualizationPlugin3D):
         self._needs_mesh = False
 
         # Options
+        self._attributes = Option(self, Option.CHOICE, 'Attributes', 0)
         self._zoom = Option(self, Option.SLIDER, 'Zoom Level', 9, 5, 11, 1)
         self._transparency = Option(self, Option.SLIDER, 'Transparency', 0.75, 0.0, 1.0, 0.1)
-        self._attributes = Option(self, Option.CHOICE, 'Attributes', 0)
+        self._height = Option(self, Option.SLIDER, 'Height Multiplier', 1.0, 0.01, 5.0, 0.01)
+        self._offset = Option(self, Option.FLOAT, 'Height Offset', 500, 0.0, 1000)
         self._options = OptionGroup()
-        self._options.items = [self._zoom, self._transparency, self._attributes]
+        self._options.items = [self._attributes, self._zoom, self._transparency, self._height, self._offset]
 
         # Coloring
         self.current_attribute = None
         self.legend = None
+        self.envision_style = None
 
     def get_options(self):
         return self._options
@@ -49,55 +54,71 @@ class EnvisionVisualization(VisualizationPlugin3D):
         if option.plugin is not self:
             return
 
+        gl_options_enabled = self.tile_layer is not None and self.feature_collection is not None
+
         # Update zoom layer for map
-        if option.name == self._zoom.name:
+        if option.name == self._zoom.name and gl_options_enabled:
             zoom = int(self._zoom.value)
+            if zoom != self.tile_layer.zoom:
+                self.tile_layer.zoom = zoom
+                self.tile_layer.render(self._scene)
 
-            if self.tile_layer is not None:
-                if zoom != self.tile_layer.zoom:
-                    self.tile_layer.zoom = zoom
-                    self.tile_layer.render(self._scene)
-
-            if self.feature_collection is not None:
-                if zoom != self.feature_collection.zoom:
-                    self.feature_collection.zoom = zoom
-                    self.feature_collection.render(self._scene)
+            if zoom != self.feature_collection.zoom:
+                self.feature_collection.zoom = zoom
+                self.feature_collection.render(self._scene)
 
         elif option.name == self._transparency.name:
             if self.feature_collection is not None:
-                self.feature_collection.renderable.set_transparency(self._transparency.value)
+                self.feature_collection.renderable.transparency = self._transparency.value
 
         elif option.name == self._attributes.name:
             if self._attributes.selected != self.current_attribute:
                 self.current_attribute = self._attributes.selected
                 self.update_colors()
 
+        elif option.name == self._height.name and gl_options_enabled:
+            multiplier = self._height.value
+            self.tile_layer.height_multiplier = multiplier
+            self.feature_collection.renderable.height_multiplier = multiplier
+
+        elif option.name == self._offset.name and gl_options_enabled:
+            offset = self._offset.value
+            self.feature_collection.renderable.height_offset = offset
+
         self.refresh()
 
     def update_colors(self):
 
         # Here we determine what type and how we are going to render the viz. Then we're going to send a render request
-        stats = self.data.variable_stats(self.current_attribute)
         sample_feature = next(self.data.get_features())
-
         props = sample_feature.get('properties')
-        value = props.get(self.current_attribute)
 
-        # Todo - get color labels from Envision XML
+        if self.envision_style is not None:
+            value = props.get(self.envision_style[self.current_attribute].get('column'))
 
-        if isinstance(value, (int, float)):
-            min_value = stats.min_value
-            max_value = stats.max_value
-            min_color = RGBColor(0, 0, 1)
-            max_color = RGBColor(1, 0, 0)
-            self.legend = StretchedLegend(min_value, max_value, min_color, max_color)
+            if value is not None:
+                self.legend = CategoricalLegend(self.envision_style[self.current_attribute].get('categories'))
 
-        elif isinstance(value, str):
-            categories = [(RGBColor.random(), label) for label in stats.misc['unique_values']]
-            self.legend = CategoricalLegend(categories)
+            else:   # Nothing to be done, color it grey
+                self.legend = None
 
-        else:                   # Nothing to be done, color it grey
-            self.legend = None
+        else:   # Envision styling is not active
+            stats = self.data.variable_stats(self.current_attribute)
+            value = props.get(self.current_attribute)
+
+            if isinstance(value, (int, float)):
+                min_value = stats.min_value
+                max_value = stats.max_value
+                min_color = RGBColor(0, 0, 1)
+                max_color = RGBColor(1, 0, 0)
+                self.legend = StretchedLegend(min_value, max_value, min_color, max_color)
+
+            elif isinstance(value, str):
+                categories = [(RGBColor.random(), label) for label in stats.misc['unique_values']]
+                self.legend = CategoricalLegend(categories)
+
+            else:
+                self.legend = None
 
         self.feature_collection.needs_color = True
         self.feature_collection.render(self._scene)
@@ -107,6 +128,9 @@ class EnvisionVisualization(VisualizationPlugin3D):
             return self.legend.render(width, height)
         else:
             return None
+
+    def has_legend(self):
+        return self.legend is not None
 
     @property
     def can_visualize(self):
@@ -118,16 +142,85 @@ class EnvisionVisualization(VisualizationPlugin3D):
             (DataPlugin.FEATURE, 'Shapefile')
         ]
 
+    def parse_envision_style(self):
+        document = ElementTree.parse(self.data.path.replace('.shp', '.xml'))
+        root = document.getroot()
+
+        # Parse the envision xml style one time into a dictionary
+        data = {}
+        for submenu in root:
+            for field in submenu:
+                field_data = dict(field.items())
+                col = field_data.get('col')
+                label = field_data.get('label')
+                field_data = {'column': col, 'label': label}
+                for piece in field:
+                    if piece.tag != 'attributes':
+                        continue
+                    attr_data = [dict(attr.items()) for attr in piece]
+                    field_data.update({'legend': attr_data})
+                data[label] = field_data
+        self.envision_style = data
+
+        # Make colors by category or by stretched
+        empties = []
+        for column in self.envision_style:
+            legend = self.envision_style[column].get('legend')
+
+            if not len(legend):         # Sometimes we are unlucky
+                empties.append(column)
+                continue
+
+            if 'minVal' in legend[0]:
+                categories = []
+                minmax = []
+                for data in legend:
+                    color = RGBColor(*[int(x) / 255 for x in data.get('color')[1:-1].split(',')])
+                    label = data.get('label')
+                    categories.append((color, label))
+                    minmax.append((float(data.get('minVal')), float(data.get('maxVal'))))
+                self.envision_style[column]['categories'] = categories
+                self.envision_style[column]['minmax'] = minmax
+
+            else:
+                categories = []
+                for data in legend:
+                    color = RGBColor(*[int(x) / 255 for x in data.get('color')[1:-1].split(',')])
+                    label = data.get('label')
+                    categories.append((color, label))
+                self.envision_style[column]['categories'] = categories
+        for column in empties:
+            self.envision_style.pop(column)
+
+        # Remove variables from style that are not in the shapefile
+        variables = self.data.variables
+        keys = list(self.envision_style.keys())
+        for key in keys:
+            column = self.envision_style[key].get('column')
+            if column not in variables:
+                self.envision_style.pop(key)
+
     def set_data(self, data: DataPlugin, role):
         self.data = data
         self._needs_mesh = True
 
         if self.data is not None:
-            self._attributes.labels = list(self.data.variables)
-            self.current_attribute = self._attributes.labels[0]
+            try:
+                self.parse_envision_style()
+                self._attributes.labels = list(self.envision_style.keys())
+                self.current_attribute = self._attributes.labels[0]
+
+            except (ElementTree.ParseError, FileNotFoundError):
+                post_message("XML parsing failed, defaulting to feature schema.", 1)
+
+                # Use shapefile colors instead
+                self._attributes.labels = list(self.data.variables)
+                self.current_attribute = self._attributes.labels[0]
+
         else:
             self._attributes.labels = []
             self.current_attribute = None
+            self.envision_style = None
 
     def get_data(self, role):
         return self.data
@@ -158,12 +251,12 @@ class EnvisionVisualization(VisualizationPlugin3D):
             zoom = int(self._zoom.value)
             self.tile_layer = TileLayerRenderable(self.data.extent, zoom=zoom)
             self.scene.add_object(self.tile_layer)
-            self.feature_collection = FeatureCollection(self.data, self.tile_layer.cellsize, zoom=zoom)
+            self.feature_collection = FeatureCollection(self.data, zoom=zoom)
 
             # Register the color function. This operates on each feature in the collection, and determines how we
             # we want to color the feature
             self.feature_collection.set_color_function(self.color_feature)
-            self.feature_collection.render(self.scene)
+            self.update_colors()
         else:
             self.scene.remove_all_objects()
             self.tile_layer = None
@@ -172,6 +265,35 @@ class EnvisionVisualization(VisualizationPlugin3D):
     def color_feature(self, feature):
         if self.current_attribute is None or self.legend is None:
             return RGBColor(0.5, 0.5, 0.5)
+
+        if self.envision_style is not None:
+            envision_attribute = self.envision_style[self.current_attribute]
+            shp_attribute = envision_attribute.get('column')
+            legend = envision_attribute.get('legend')
+            value = feature.get('properties').get(shp_attribute)
+            minmax = envision_attribute.get('minmax', None)
+            string_value = ''
+
+            if minmax is not None:
+                for i, pair in enumerate(minmax):
+                    if pair[0] <= value <= pair[1]:
+                        string_value = legend[i].get('label')
+                        break
+
+            else:
+                for entry in legend:
+                    try:
+                        val = float(entry.get('value'))
+                    except ValueError:
+                        continue
+                    if val == value:
+                        string_value = entry.get('label')
+                        break
+
+            color = self.legend.get_color(string_value)
+            if color is None:
+                color = RGBColor(0.5, 0.5, 0.5)
+            return color
 
         else:
             value = feature.get('properties').get(self.current_attribute)

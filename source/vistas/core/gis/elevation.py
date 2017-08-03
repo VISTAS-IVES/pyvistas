@@ -8,12 +8,10 @@ import numpy
 from PIL import Image
 from pyproj import Proj, transform
 
-from vistas.core.gis.extent import Extent
 from vistas.core.gis.file_writer import RasterWriter
 from vistas.core.paths import get_userconfig_path
 from vistas.core.plugins.data import FeatureDataPlugin
 from vistas.core.plugins.interface import Plugin
-from vistas.core.utils import asyncio_guard
 
 
 class ElevationService:
@@ -76,19 +74,22 @@ class ElevationService:
     def _get_tile_path(z, x, y):
         return os.path.join(get_userconfig_path(), 'Tiles', 'AWS', str(z), str(x), "{}.png".format(y))
 
-    @asyncio_guard
     def get_tiles(self, extent, task=None):
         async def fetch_tile(client, url, tile_path):
             async with client.get(url) as r:
                 tile_im = Image.open(BytesIO(await r.read()))
-                if not os.path.exists(os.path.dirname(tile_path)):
-                    os.makedirs(os.path.dirname(tile_path))
-                tile_im.save(tile_path)
+
+                if not os.path.exists(tile_path):
+                    if not os.path.exists(os.path.dirname(tile_path)):
+                        os.makedirs(os.path.dirname(tile_path))
+                    tile_im.save(tile_path)
                 if task:
                     task.inc_progress()
 
+        loop = asyncio.get_event_loop()
+
         # Retrieve tiles that we don't currently have
-        with aiohttp.ClientSession() as client:
+        with aiohttp.ClientSession(loop=loop) as client:
             requests = []
             min_x, min_y, max_x, max_y = [None] * 4
             for t in mercantile.tiles(extent.xmin, extent.ymin, extent.xmax, extent.ymax, [self.zoom]):
@@ -141,7 +142,8 @@ class ElevationService:
                             )
             if task:
                 task.target = len(requests)
-            asyncio.get_event_loop().run_until_complete(asyncio.gather(*requests))
+
+            loop.run_until_complete(asyncio.gather(*requests))
 
     def create_dem(self, native_extent, projected_extent, shape, resolution, save_path, task):
 

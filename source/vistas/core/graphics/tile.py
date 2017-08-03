@@ -23,6 +23,10 @@ from vistas.ui.utils import post_redisplay
 TILE_SIZE = 256
 
 
+def calculate_cellsize(zoom):
+    return 6378137.0 * 2 * numpy.pi / (TILE_SIZE * (2 ** zoom))
+
+
 class TileShaderProgram(ShaderProgram):
     """
     A simple shader program that is applied across all tiles. Subclasses of this should be constructed to implement
@@ -37,9 +41,12 @@ class TileShaderProgram(ShaderProgram):
         self.attach_shader(os.path.join(get_resources_directory(), 'shaders', 'tile_frag.glsl'), GL_FRAGMENT_SHADER)
         self.link_program()
 
+        self.height_multiplier = 1.0
+
     def pre_render(self, camera):
         if self.current_tile is not None:
             super().pre_render(camera)
+            self.uniform1f('heightMultiplier', self.height_multiplier)
             glBindVertexArray(self.current_tile.vertex_array_object)
 
     def post_render(self, camera):
@@ -51,7 +58,7 @@ class TileShaderProgram(ShaderProgram):
 class TileMesh(Mesh):
     """ Base tile mesh, contains all VAO/VBO objects """
 
-    def __init__(self, tile: mercantile.Tile, cellsize=30):
+    def __init__(self, tile: mercantile.Tile, cellsize):
         vertices = TILE_SIZE ** 2
         indices = 6 * (TILE_SIZE - 1) ** 2
         super().__init__(indices, vertices, True, mode=Mesh.TRIANGLES)
@@ -117,6 +124,8 @@ class TileRenderThread(Thread):
 
     def run(self):
 
+        self.init_event_loop()
+
         e = ElevationService()
         e.zoom = self.grid.zoom
         self.task.status = Task.RUNNING
@@ -130,6 +139,16 @@ class TileRenderThread(Thread):
 
         for t in self.grid.tiles:
             data = grids[t].T
+
+            # Elevation tiles are assumed to be 256 across. Match the tile grid to the appropriate size we want
+            height, width = data.shape
+
+            if height != TILE_SIZE or width != TILE_SIZE:
+                # Time to sample down
+
+                h_stride = height // TILE_SIZE
+                w_stride = width // TILE_SIZE
+                data = data[::h_stride, ::w_stride]
 
             # Setup vertices
             height, width = data.shape
@@ -178,13 +197,21 @@ class TileLayerRenderable(Renderable):
         self._br = None
         self._zoom = None
         self._meshes = []
+        self.cellsize = None
 
         self.zoom = zoom    # Update things appropriately
-        self.cellsize = 30          # this might be more appropriately be a meters/px calculation
 
         self.bounding_box = BoundingBox()
         self.shader = TileShaderProgram()
         TileRenderThread(self).start()
+
+    @property
+    def height_multiplier(self):
+        return self.shader.height_multiplier
+
+    @height_multiplier.setter
+    def height_multiplier(self, height_multiplier):
+        self.shader.height_multiplier = height_multiplier
 
     @property
     def zoom(self):
@@ -197,6 +224,10 @@ class TileLayerRenderable(Renderable):
             self.tiles = list(mercantile.tiles(*self.wgs84.as_list(), [self.zoom]))
             self._ul = self.tiles[0]
             self._br = self.tiles[-1]
+
+            # recalculate cellsize
+            self.cellsize = calculate_cellsize(self.zoom)
+
             del self._meshes[:]
             TileRenderThread(self).start()
 

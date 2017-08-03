@@ -19,7 +19,7 @@ from vistas.core.graphics.bounds import BoundingBox
 from vistas.core.graphics.mesh import Mesh
 from vistas.core.graphics.renderable import Renderable
 from vistas.core.graphics.shader import ShaderProgram
-from vistas.core.graphics.tile import TILE_SIZE
+from vistas.core.graphics.tile import TILE_SIZE, calculate_cellsize
 from vistas.core.paths import get_resources_directory
 from vistas.core.task import Task
 from vistas.core.threading import Thread
@@ -36,12 +36,16 @@ class FeatureShaderProgram(ShaderProgram):
         self.attach_shader(os.path.join(get_resources_directory(), 'shaders', 'feature_frag.glsl'), GL_FRAGMENT_SHADER)
         self.link_program()
         self.alpha = 1.0
+        self.height_multiplier = 1.0
+        self.height_offset = 500.0
 
     def pre_render(self, camera):
         super().pre_render(camera)
 
         # Set shader uniforms for features
         self.uniform1f('alpha', self.alpha)
+        self.uniform1f('heightMultiplier', self.height_multiplier)
+        self.uniform1f('heightOffset', self.height_offset)
 
         glBindVertexArray(self.feature.vertex_array_object)
 
@@ -72,15 +76,17 @@ class FeatureCollectionRenderThread(Thread):
         self.task = Task("Rendering feature collection")
 
     def run(self):
+        self.init_event_loop()
 
-        self.task.status = Task.RUNNING
         if self.collection.needs_vertices:
+            self.task.status = Task.RUNNING
             self.task.name = 'Generating meshes'
             verts, indices = self.collection.generate_meshes(self.task)
             self.sync_with_main(self.collection.add_features_to_scene, (verts, indices, self.scene), block=True)
             self.collection.needs_vertices = False
 
         if self.collection.needs_color:
+            self.task.status = Task.RUNNING
             self.task.name = 'Coloring meshes'
             colors = self.collection.generate_colors(self.task)
             self.sync_with_main(self.collection.color_features, (colors, None), block=True)
@@ -103,7 +109,12 @@ class FeatureRenderable(Renderable):
         self.mesh.shader.post_render(camera)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
 
-    def set_transparency(self, alpha):
+    @property
+    def transparency(self):
+        return self.mesh.shader.alpha
+
+    @transparency.setter
+    def transparency(self, alpha):
         """ Set the transparency of the feature layer. """
 
         if alpha > 1.0:
@@ -112,20 +123,36 @@ class FeatureRenderable(Renderable):
             alpha = 0.0
         self.mesh.shader.alpha = alpha
 
+    @property
+    def height_multiplier(self):
+        return self.mesh.shader.height_multiplier
+
+    @height_multiplier.setter
+    def height_multiplier(self, multiplier):
+        self.mesh.shader.height_multiplier = multiplier
+
+    @property
+    def height_offset(self):
+        return self.mesh.shader.height_offset
+
+    @height_offset.setter
+    def height_offset(self, offset):
+        self.mesh.shader.height_offset = offset
+
 
 class FeatureCollection:
     """ An interface for handling feature collections """
 
-    def __init__(self, plugin, cellsize=30, zoom=10):
+    def __init__(self, plugin, zoom=10):
         self.renderable = None
         self.plugin = plugin
         self.extent = plugin.extent
-        self.cellsize = cellsize
 
         self._ul = None
         self._br = None
         self.bounding_box = None
         self._zoom = None
+        self.cellsize = None
         self.zoom = zoom    # update bounds
 
         self._color_func = None
@@ -147,6 +174,8 @@ class FeatureCollection:
         tiles = list(self.extent.tiles(self.zoom))
         self._ul = tiles[0]
         self._br = tiles[-1]
+
+        self.cellsize = calculate_cellsize(self.zoom)
 
         self.bounding_box = BoundingBox(
             0, -10, 0,
@@ -195,6 +224,14 @@ class FeatureCollection:
         br_bounds = mercantile.xy_bounds(self._br)
         return mercantile.Bbox(ul_bounds.left, br_bounds.bottom, br_bounds.right, ul_bounds.top)
 
+    @property
+    def geographic_bounds(self):
+        """ The geographic bounds of the underlying tiles of the feature collection. """
+
+        ul_bounds = mercantile.bounds(self._ul)
+        br_bounds = mercantile.bounds(self._br)
+        return mercantile.LngLatBbox(ul_bounds.west, br_bounds.south, br_bounds.east, ul_bounds.north)
+
     def generate_meshes(self, task=None, use_cache=True):
         """ Generates polygon mesh vertices for a feature collection """
 
@@ -203,6 +240,10 @@ class FeatureCollection:
 
         # Check if a cache for this collection exists
         if use_cache and os.path.exists(self._npz_path):
+            if task:
+                task.name = 'Loading meshes from cache'
+                task.status = task.INDETERMINATE
+
             nfile = numpy.load(self._npz_path)
             verts = nfile['verts']
 
@@ -273,7 +314,7 @@ class FeatureCollection:
         return verts, indices
 
     @staticmethod
-    def default_color_function(feature):
+    def _default_color_function(feature):
         return RGBColor(0.5, 0.5, 0.5)
 
     def set_color_function(self, func, needs_color=True):
@@ -284,21 +325,17 @@ class FeatureCollection:
         """ Generates a color buffer for the feature collection """
 
         # Color indices are stored in the cache
-        data = numpy.load(self._npz_path)
-        offsets = data['offsets']
-
+        offsets = numpy.load(self._npz_path)['offsets']
         color_func = self._color_func
         if not color_func:
-            color_func = self.default_color_function
+            color_func = self._default_color_function
         colors = []
 
         if task:
             task.progress = 0
             task.target = self.plugin.get_num_features()
 
-        # use color_func here
         for i, feature in enumerate(self.plugin.get_features()):
-
             if i == 0:
                 left = 0
             else:
