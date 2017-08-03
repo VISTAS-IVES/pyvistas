@@ -214,7 +214,7 @@ class MainWindow(wx.Frame):
         if state.get('display_index') is not None:
             try:
                 display_area = wx.Display(state['display_index']).GetClientArea()
-            except:
+            except AssertionError:
                 display_area = wx.Display(0).GetClientArea()
         else:
             display_area = wx.Display(0).GetClientArea()
