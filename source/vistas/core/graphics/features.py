@@ -1,7 +1,3 @@
-"""
-FeatureCollection - renders out features based on their shape type.
-"""
-
 import os
 from functools import partial
 
@@ -140,8 +136,8 @@ class FeatureRenderable(Renderable):
         self.mesh.shader.height_offset = offset
 
 
-class FeatureCollection:
-    """ An interface for handling feature collections """
+class FeatureLayer:
+    """ An interface for handling feature collection rendering """
 
     def __init__(self, plugin, zoom=10):
         self.renderable = None

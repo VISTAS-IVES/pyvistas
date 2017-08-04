@@ -1,9 +1,7 @@
 import json
 import os
 
-import wx
-
-from vistas.core.utils import get_platform, get_config_dir
+from vistas.core.paths import get_config_dir
 
 
 class Preferences:

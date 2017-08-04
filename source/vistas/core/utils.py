@@ -1,21 +1,11 @@
 import datetime
 import json
-import os
 import platform
-
-import wx
 
 
 def get_platform():
     """ Utility function for determining the current operating system. """
     return 'macos' if platform.uname().system == 'Darwin' else 'windows'
-
-
-def get_config_dir():
-    if get_platform() == 'macos':
-        return os.path.join(wx.StandardPaths.Get().UserLocalDataDir, 'VISTAS')
-    else:
-        return os.path.join(wx.StandardPaths.Get().UserConfigDir, 'VISTAS')
 
 
 class DatetimeEncoder(json.JSONEncoder):

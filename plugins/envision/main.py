@@ -1,7 +1,7 @@
 from xml.etree import ElementTree
 
 from vistas.core.color import RGBColor
-from vistas.core.graphics.features import FeatureCollection
+from vistas.core.graphics.features import FeatureLayer
 from vistas.core.graphics.tile import TileLayerRenderable
 from vistas.core.legend import StretchedLegend, CategoricalLegend
 from vistas.core.plugins.data import DataPlugin
@@ -14,10 +14,10 @@ class EnvisionVisualization(VisualizationPlugin3D):
 
     id = 'envision_tiles_viz'
     name = 'Envision'
-    description = 'Terrain visualization with tiles'
+    description = 'Terrain visualization with features'
     author = 'Conservation Biology Institute'
     version = '1.0'
-    visualization_name = 'Envision (Tiles)'
+    visualization_name = 'Envision'
 
     def __init__(self):
         super().__init__()
@@ -27,7 +27,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
 
         # Renderable objects for this scene
         self.tile_layer = None
-        self.feature_collection = None
+        self.feature_layer = None
         self.data = None
 
         # Flags for rendering
@@ -38,7 +38,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
         self._zoom = Option(self, Option.SLIDER, 'Zoom Level', 9, 5, 11, 1)
         self._transparency = Option(self, Option.SLIDER, 'Transparency', 0.75, 0.0, 1.0, 0.1)
         self._height = Option(self, Option.SLIDER, 'Height Multiplier', 1.0, 0.01, 5.0, 0.01)
-        self._offset = Option(self, Option.FLOAT, 'Height Offset', 500, 0.0, 1000)
+        self._offset = Option(self, Option.FLOAT, 'Height Offset', 500, 0.0, 2000)
         self._options = OptionGroup()
         self._options.items = [self._attributes, self._zoom, self._transparency, self._height, self._offset]
 
@@ -88,7 +88,6 @@ class EnvisionVisualization(VisualizationPlugin3D):
         self.refresh()
 
     def update_colors(self):
-
         # Here we determine what type and how we are going to render the viz. Then we're going to send a render request
         sample_feature = next(self.data.get_features())
         props = sample_feature.get('properties')
@@ -120,8 +119,8 @@ class EnvisionVisualization(VisualizationPlugin3D):
             else:
                 self.legend = None
 
-        self.feature_collection.needs_color = True
-        self.feature_collection.render(self._scene)
+        self.feature_layer.needs_color = True
+        self.feature_layer.render(self._scene)
 
     def get_legend(self, width, height):
         if self.legend is not None:
@@ -162,33 +161,28 @@ class EnvisionVisualization(VisualizationPlugin3D):
                 data[label] = field_data
         self.envision_style = data
 
-        # Make colors by category or by stretched
+        # Make colors by category
         empties = []
         for column in self.envision_style:
             legend = self.envision_style[column].get('legend')
 
-            if not len(legend):         # Sometimes we are unlucky
+            if not legend:              # If legend doesn't exist or the length is 0, discard from the style
                 empties.append(column)
                 continue
 
+            categories = []
+            for data in legend:
+                color = RGBColor(*[int(x) / 255 for x in data.get('color')[1:-1].split(',')])
+                label = data.get('label')
+                categories.append((color, label))
+            self.envision_style[column]['categories'] = categories
+
             if 'minVal' in legend[0]:
-                categories = []
                 minmax = []
                 for data in legend:
-                    color = RGBColor(*[int(x) / 255 for x in data.get('color')[1:-1].split(',')])
-                    label = data.get('label')
-                    categories.append((color, label))
                     minmax.append((float(data.get('minVal')), float(data.get('maxVal'))))
-                self.envision_style[column]['categories'] = categories
                 self.envision_style[column]['minmax'] = minmax
 
-            else:
-                categories = []
-                for data in legend:
-                    color = RGBColor(*[int(x) / 255 for x in data.get('color')[1:-1].split(',')])
-                    label = data.get('label')
-                    categories.append((color, label))
-                self.envision_style[column]['categories'] = categories
         for column in empties:
             self.envision_style.pop(column)
 
@@ -251,16 +245,16 @@ class EnvisionVisualization(VisualizationPlugin3D):
             zoom = int(self._zoom.value)
             self.tile_layer = TileLayerRenderable(self.data.extent, zoom=zoom)
             self.scene.add_object(self.tile_layer)
-            self.feature_collection = FeatureCollection(self.data, zoom=zoom)
+            self.feature_layer = FeatureLayer(self.data, zoom=zoom)
 
             # Register the color function. This operates on each feature in the collection, and determines how we
             # we want to color the feature
-            self.feature_collection.set_color_function(self.color_feature)
+            self.feature_layer.set_color_function(self.color_feature)
             self.update_colors()
         else:
             self.scene.remove_all_objects()
             self.tile_layer = None
-            self.feature_collection = None
+            self.feature_layer = None
 
     def color_feature(self, feature):
         if self.current_attribute is None or self.legend is None:

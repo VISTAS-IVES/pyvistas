@@ -99,5 +99,4 @@ class Shapefile(FeatureDataPlugin):
 
     def get_features(self, date=None):
         with fiona.open(self.path, 'r') as shp:
-            for f in shp:
-                yield f
+            yield from shp

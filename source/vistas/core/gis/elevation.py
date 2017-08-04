@@ -9,7 +9,7 @@ from PIL import Image
 from pyproj import Proj, transform
 
 from vistas.core.gis.file_writer import RasterWriter
-from vistas.core.paths import get_userconfig_path
+from vistas.core.paths import get_config_dir
 from vistas.core.plugins.data import FeatureDataPlugin
 from vistas.core.plugins.interface import Plugin
 
@@ -72,7 +72,7 @@ class ElevationService:
 
     @staticmethod
     def _get_tile_path(z, x, y):
-        return os.path.join(get_userconfig_path(), 'Tiles', 'AWS', str(z), str(x), "{}.png".format(y))
+        return os.path.join(get_config_dir(), 'Tiles', 'AWS', str(z), str(x), "{}.png".format(y))
 
     def get_tiles(self, extent, task=None):
         async def fetch_tile(client, url, tile_path):
