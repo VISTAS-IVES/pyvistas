@@ -76,7 +76,7 @@ class Legend:
     def get_color(self, value):
         """ Returns the color associated with the given legend. Implemented by subclasses """
 
-        raise NotImplemented    # implemented by subclasses
+        raise NotImplementedError
 
 
 class StretchedLegend(Legend):

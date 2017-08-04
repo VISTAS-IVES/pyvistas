@@ -1,6 +1,7 @@
 import asyncio
 import os
 from io import BytesIO
+from typing import Dict, Union
 
 import aiohttp
 import mercantile
@@ -226,7 +227,7 @@ class ElevationService:
         new_plugin.calculate_stats()
         return new_plugin
 
-    def create_data_dem(self, extent, zoom, merge=False):
+    def create_data_dem(self, extent, zoom, merge=False) -> Union[Dict[mercantile.Tile, numpy.ndarray], numpy.ndarray]:
         """
         Creates an elevation grid from elevation data in memory.
         :param extent Extent to build the DEM for.

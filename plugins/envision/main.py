@@ -54,7 +54,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
         if option.plugin is not self:
             return
 
-        gl_options_enabled = self.tile_layer is not None and self.feature_collection is not None
+        gl_options_enabled = self.tile_layer is not None and self.feature_layer is not None
 
         # Update zoom layer for map
         if option.name == self._zoom.name and gl_options_enabled:
@@ -63,13 +63,13 @@ class EnvisionVisualization(VisualizationPlugin3D):
                 self.tile_layer.zoom = zoom
                 self.tile_layer.render(self._scene)
 
-            if zoom != self.feature_collection.zoom:
-                self.feature_collection.zoom = zoom
-                self.feature_collection.render(self._scene)
+            if zoom != self.feature_layer.zoom:
+                self.feature_layer.zoom = zoom
+                self.feature_layer.render(self._scene)
 
         elif option.name == self._transparency.name:
-            if self.feature_collection is not None:
-                self.feature_collection.renderable.transparency = self._transparency.value
+            if self.feature_layer is not None:
+                self.feature_layer.renderable.transparency = self._transparency.value
 
         elif option.name == self._attributes.name:
             if self._attributes.selected != self.current_attribute:
@@ -79,11 +79,11 @@ class EnvisionVisualization(VisualizationPlugin3D):
         elif option.name == self._height.name and gl_options_enabled:
             multiplier = self._height.value
             self.tile_layer.height_multiplier = multiplier
-            self.feature_collection.renderable.height_multiplier = multiplier
+            self.feature_layer.renderable.height_multiplier = multiplier
 
         elif option.name == self._offset.name and gl_options_enabled:
             offset = self._offset.value
-            self.feature_collection.renderable.height_offset = offset
+            self.feature_layer.renderable.height_offset = offset
 
         self.refresh()
 
