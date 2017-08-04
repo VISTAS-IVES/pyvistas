@@ -153,9 +153,11 @@ class AppController(wx.EvtHandler):
         info = wx.adv.AboutDialogInfo()
         info.SetName('VISTAS')
         info.SetVersion(version, 'Version {} (Python)'.format(version))
-        info.SetDescription('VISualization of Terrestrial-Aquatic Systems')
+        info.SetDescription('VISualization of Terrestrial-Aquatic Systems\n\n'
+                            'Elevation tile providers:\nMapzen, U.S. Geological Survey, and U.S. National Oceanic and '
+                            'Atmospheric Administration')
         info.SetCopyright('(c) 2008-2017 Conservation Biology Institute')
-        info.AddDeveloper('Nikolas Stevenson-Molnar (nik.molnar@consbio.org')
+        info.AddDeveloper('Nikolas Stevenson-Molnar (nik.molnar@consbio.org)')
         info.AddDeveloper('Taylor Mutch')
         info.AddDeveloper('Viriya Ratanasangpunth')
         info.AddDeveloper('Lee Zeman')
