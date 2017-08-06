@@ -19,3 +19,5 @@ VISTAS is currently available for Windows, with a macOS version in the works.
 ## Acknowledgements ##
 
 VISTAS development is funded by the National Science Foundation (BIO/DBI 1062572)
+
+Elevation tile providers: Mapzen, U.S. Geological Survey, and U.S. National Oceanic and Atmospheric Administration
