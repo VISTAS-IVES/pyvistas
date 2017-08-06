@@ -15,64 +15,60 @@ class GeoTIFF(RasterDataPlugin):
     description = 'Reads GeoTIFF (.tif) files'
     author = 'Conservation Biology Institute'
     version = '1.0'
-    extensions = [('tif', 'GeoTIFF')]
+    extensions = [('tif', 'GeoTIFF'), ('tiff', 'GeoTIFF')]
+
+    data_name = None
+    shape = None
+    resolution = None
+    extent = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._name = None
-        self._shape = None
-        self._extent = None
-        self._resolution = None
+        self.shape = None
+        self.extent = None
+        self.resolution = None
         self._nodata = None
         self._count = None
+        self._stats_path = None
 
     def load_data(self):
-        self._name = self.path.split(os.sep)[-1].split('.tif')[0]
+        file_name = self.path.split(os.sep)[-1]
+        *name, ext = file_name.split('.')
+        self.data_name = '.'.join(name)
+        self._stats_path = os.path.join(os.path.dirname(self.path), '{}.{}'.format(self.data_name, 'json'))
+
         with rasterio.open(self.path) as src:
             projection = Proj(src.crs)
-            self._shape = src.shape
-            self._resolution = src.res[0]
+            self.shape = src.shape
+            self.resolution = src.res[0]
             xmin, ymin = src.xy(src.height, 0, 'ul')
             xmax, ymax = src.xy(0, src.width, 'ul')
-            self._extent = Extent(xmin, ymin, xmax, ymax, projection)
+            self.extent = Extent(xmin, ymin, xmax, ymax, projection)
             self._nodata = src.nodata
             self._count = src.count
 
-    @property
-    def data_name(self):
-        return self._name
+    @staticmethod
+    def _band(b):
+        return b.split(' ')[-1]
 
     @staticmethod
     def is_valid_file(path):
         return True
 
     def get_data(self, variable, date=None):
-        band = int(variable.split(' ')[-1])
+        band = int(self._band(variable))
         with rasterio.open(self.path, 'r') as src:
-            return src.read(band).T
-
-    @property
-    def shape(self):
-        return self._shape
-
-    @property
-    def resolution(self):
-        return self._resolution
-
-    @property
-    def extent(self):
-        return self._extent
+            return src.read(band)
 
     @property
     def variables(self):
         return ['Band {}'.format(i) for i in range(1, self._count + 1)]
 
     def variable_stats(self, variable):
-        band = variable.split(' ')[-1]
-        stats_path = self.path.replace('.tif', '.json')
-        if os.path.exists(stats_path):
-            with open(stats_path, 'r') as f:
+        band = self._band(variable)
+        if os.path.exists(self._stats_path):
+            with open(self._stats_path, 'r') as f:
                 all_stats = json.load(f)
                 return VariableStats.from_dict(all_stats[band])
         else:
@@ -80,7 +76,7 @@ class GeoTIFF(RasterDataPlugin):
 
     @property
     def has_stats(self):
-        return os.path.exists(self.path.replace('.tif', '.json'))
+        return os.path.exists(self._stats_path)
 
     def calculate_stats(self):
         if self.has_stats:
@@ -90,8 +86,9 @@ class GeoTIFF(RasterDataPlugin):
         with rasterio.open(self.path) as src:
             for band in range(1, self._count + 1):
                 data = src.read(band)
-                masked_data = data[data != self._nodata]
-                stats = VariableStats(float(masked_data.min()), float(masked_data.max()), self._nodata)
+                if self._nodata is not None:
+                    data = data[data != self._nodata]
+                stats = VariableStats(float(data.min()), float(data.max()), self._nodata)
                 all_stats[band] = stats.to_dict
-        with open(self.path.replace('.tif', '.json'), 'w') as f:
+        with open(self._stats_path, 'w') as f:
             json.dump(all_stats, f)
