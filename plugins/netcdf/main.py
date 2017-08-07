@@ -100,9 +100,7 @@ class NetCDF4DataPlugin(RasterDataPlugin):
     def get_data(self, variable, date=None):
         with Dataset(self.path, 'r') as ds:
             data = ds.variables[variable][:][self._temporal_info.timestamps.index(date)]
-            if isinstance(data, numpy.ma.MaskedArray):
-                data = data.data
-        return data.T
+        return data
 
     @property
     def shape(self):
