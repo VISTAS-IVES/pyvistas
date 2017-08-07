@@ -13,7 +13,7 @@ class MeshRenderable(Renderable):
 
         self._mesh = None
         self.textures_map = {}
-        self.bounding_box = None
+        self._bounding_box = None
         self.mesh = Mesh() if mesh is None else mesh
 
     @property
