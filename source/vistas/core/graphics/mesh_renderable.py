@@ -59,12 +59,14 @@ class MeshRenderable(Renderable):
 
         shader.pre_render(camera)
         glUniform4f(shader.get_uniform_location('color'), r, g, b, 1.0)
+        glBindVertexArray(self.mesh.vertex_array_object)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.mesh.index_buffer)
 
         glDrawElements(self.mesh.mode, self.mesh.num_indices, GL_UNSIGNED_INT, None)
 
-        shader.post_render(camera)
+        glBindVertexArray(0)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
+        shader.post_render(camera)
 
     def aqcuire_texture(self, texture):
         self.textures_map[texture.number] = texture
