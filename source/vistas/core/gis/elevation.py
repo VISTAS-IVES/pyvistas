@@ -15,6 +15,14 @@ from vistas.core.plugins.data import FeatureDataPlugin
 from vistas.core.plugins.interface import Plugin
 
 
+TILE_SIZE = 256                 # Our tile representation size, can be changed
+DEFAULT_TILE_SIZE = 256         # ZXY tiles
+
+
+def calculate_cellsize(zoom):
+    return 6378137.0 * 2 * numpy.pi / (TILE_SIZE * (2 ** zoom))
+
+
 class ElevationService:
     """
     An interface for obtaining elevation data from public datasets sorted as a tile service. Can generate a digital
@@ -46,7 +54,7 @@ class ElevationService:
 
         # Calculate self._zoom once and cache
         for i in range(16):
-            if self.resolution > (2 * numpy.pi * 6378137) / (256 * 2 ** i):
+            if self.resolution > calculate_cellsize(i):
                 self._zoom = i - 1 if i != 0 else 0
                 return self._zoom
 
@@ -182,8 +190,8 @@ class ElevationService:
                     p_y -= 1.0
                     y += 1
 
-                u = int(numpy.floor(p_x * self.TILE_SIZE))
-                v = int(numpy.floor(p_y * self.TILE_SIZE))
+                u = int(numpy.floor(p_x * DEFAULT_TILE_SIZE))
+                v = int(numpy.floor(p_y * DEFAULT_TILE_SIZE))
 
                 height_grid[j][i] = self.get_grid(tile.x, tile.y)[v, u]
                 task.inc_progress()
@@ -245,12 +253,12 @@ class ElevationService:
         ur_tile = mercantile.tile(xmax, ymax, self.zoom)
         tiles = extent.tiles(self.zoom)
         if merge:
-            shape = ((ll_tile.y - ur_tile.y + 1) * 256, (ur_tile.x - ll_tile.x + 1) * 256)
+            shape = ((ll_tile.y - ur_tile.y + 1) * DEFAULT_TILE_SIZE, (ur_tile.x - ll_tile.x + 1) * DEFAULT_TILE_SIZE)
             data = numpy.zeros(shape, dtype=numpy.float32)
             for tile in tiles:
-                w = (tile.x - ll_tile.x) * 256
-                h = (tile.y - ur_tile.y) * 256
-                data[h: h + 256, w: w + 256] = self.get_grid(tile.x, tile.y)
+                w = (tile.x - ll_tile.x) * DEFAULT_TILE_SIZE
+                h = (tile.y - ur_tile.y) * DEFAULT_TILE_SIZE
+                data[h: h + DEFAULT_TILE_SIZE, w: w + DEFAULT_TILE_SIZE] = self.get_grid(tile.x, tile.y)
             return data
         else:
             return {t: self.get_grid(t.x, t.y) for t in tiles}

@@ -10,12 +10,11 @@ from OpenGL.GL import *
 from shapely.ops import transform
 
 from vistas.core.color import RGBColor
-from vistas.core.gis.elevation import ElevationService
+from vistas.core.gis.elevation import ElevationService, TILE_SIZE, calculate_cellsize
 from vistas.core.graphics.bounds import BoundingBox
 from vistas.core.graphics.mesh import Mesh
 from vistas.core.graphics.renderable import Renderable
 from vistas.core.graphics.shader import ShaderProgram
-from vistas.core.graphics.tile import TILE_SIZE, calculate_cellsize
 from vistas.core.paths import get_resources_directory
 from vistas.core.task import Task
 from vistas.core.threading import Thread

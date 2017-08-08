@@ -8,7 +8,7 @@ from pyproj import Proj
 from pyrr import Vector3, Matrix44
 from pyrr.vector3 import generate_vertex_normals
 
-from vistas.core.gis.elevation import ElevationService
+from vistas.core.gis.elevation import ElevationService, calculate_cellsize, TILE_SIZE
 from vistas.core.graphics.bounds import BoundingBox
 from vistas.core.graphics.mesh import Mesh
 from vistas.core.graphics.renderable import Renderable
@@ -18,13 +18,6 @@ from vistas.core.paths import get_resources_directory
 from vistas.core.task import Task
 from vistas.core.threading import Thread
 from vistas.ui.utils import post_redisplay
-
-
-TILE_SIZE = 256
-
-
-def calculate_cellsize(zoom):
-    return 6378137.0 * 2 * numpy.pi / (TILE_SIZE * (2 ** zoom))
 
 
 class TileShaderProgram(ShaderProgram):
