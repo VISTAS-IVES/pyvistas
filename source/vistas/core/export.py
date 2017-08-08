@@ -320,45 +320,50 @@ class ExportFramesTask(Thread):
         timeline.current = self.exporter.animation_start
         self.encoder.open(self.path, *self.exporter.size)
 
-        if self.exporter.is_temporal:
+        delay = 0  # Give the main thread a chance to catch up
+        for frame in range(self.exporter.video_frames):
 
-            delay = 0  # Give the main thread a chance to catch up
+            # Check if we have any reason to stop
+            error = self.task.status == Task.SHOULD_STOP or not self.encoder.is_ok()
+            if self.exporter.is_temporal:
+                error |= not timeline.current <= self.exporter.animation_end
+            if error:
+                post_message("There was an error exporting the animation. Export may be incomplete.", 1)
+                break
 
-            for frame in range(self.exporter.video_frames):
-                error = self.task.status == Task.SHOULD_STOP or not timeline.current <= self.exporter.animation_end or \
-                        not self.encoder.is_ok()
-                if error:
-                    post_message("There was an error exporting the animation. Export may be incomplete.", 1)
-                    break
+            # Update TaskDialog
+            self.task.description = "Exporting frame {} of {}.".format(self.task.progress, self.task.target)
 
-                timeline.current = timeline.time_at_index(int(frame * self.exporter.animation_frames / self.exporter.video_frames))
+            # Update timeline
+            if self.exporter.is_temporal:
+                timeline.current = timeline.time_at_index(
+                    int(frame * self.exporter.animation_frames / self.exporter.video_frames)
+                )
 
-                self.task.description = "Exporting frame {} of {}.".format(self.task.progress, self.task.target)
+            # Update flythroughs
+            for item in self.exporter.items:
+                if item.item_type == ExportItem.SCENE and item.flythrough is not None:
+                    local_fly_fps = item.flythrough.fps / self.exporter.flythrough_fps
+                    item.flythrough.update_camera_to_keyframe(
+                        (local_fly_fps * frame * item.flythrough.num_keyframes) / self.exporter.video_frames
+                    )
 
-                for item in self.exporter.items:
-                    if item.item_type == ExportItem.SCENE and item.flythrough is not None:
-                        local_fly_fps = item.flythrough.fps / self.exporter.flythrough_fps
-                        item.flythrough.update_camera_to_keyframe(
-                            (local_fly_fps * frame * item.flythrough.num_keyframes) / self.exporter.video_frames
-                        )
+            # Determine max time spend in main thread for rendering, and then add that delay
+            t = time.time()
+            self.sync_with_main(self.exporter.refresh_item_caches, block=True, delay=delay)
+            elapsed = time.time() - t
+            if delay == 0:
+                delay = elapsed
 
-                # Determine max time spend in main thread for syncing, and then add that delay
-                t = time.time()
-                self.sync_with_main(self.exporter.refresh_item_caches, block=True, delay=delay)
-                elapsed = time.time() - t
-                if delay == 0:
-                    delay = elapsed
+            # Output items to encoder frame
+            frame_bitmap = Image.new("RGB", self.exporter.size, (0, 0, 0))
+            for item in self.exporter.items:
+                item.draw(frame_bitmap)
+            self.encoder.write_frame(frame_bitmap, 1.0 / self.exporter.video_fps)
+            if timeline.current > timeline.end:
+                break
 
-                frame_bitmap = Image.new("RGB", self.exporter.size, (0, 0, 0))
-                for item in self.exporter.items:
-                    item.draw(frame_bitmap)
-
-                self.encoder.write_frame(frame_bitmap, 1.0 / self.exporter.video_fps)
-
-                if timeline.current > timeline.end:
-                    break
-
-                self.task.inc_progress()
+            self.task.inc_progress()
 
         self.encoder.finalize()
         self.task.status = Task.COMPLETE
