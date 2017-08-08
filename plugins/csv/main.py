@@ -20,8 +20,6 @@ class CSVDataPlugin(ArrayDataPlugin):
         super().__init__(*args, **kwargs)
 
         self._temporal_info = TemporalInfo()
-        self._stats = {}
-        self._num_values = 0
         self._attributes = {}
 
     def load_data(self):
@@ -54,9 +52,6 @@ class CSVDataPlugin(ArrayDataPlugin):
     def time_info(self):
         return self._temporal_info
 
-    def variable_stats(self, variable):
-        return self._stats[variable]
-
     @property
     def variables(self):
         return list(self._attributes)
@@ -80,7 +75,7 @@ class CSVDataPlugin(ArrayDataPlugin):
     def calculate_stats(self):
         for variable in self.variables:
             var_data = self._attributes[variable]
-            self._stats[variable] = VariableStats(var_data.min(), var_data.max())
+            self.stats[variable] = VariableStats(float(var_data.min()), float(var_data.max()))
 
     def get_data(self, variable):
         return self._attributes[variable]

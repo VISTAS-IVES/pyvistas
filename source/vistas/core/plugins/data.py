@@ -1,27 +1,9 @@
+import os
 from vistas.core.gis.extent import Extent
 from vistas.core.plugins.interface import Plugin
+from vistas.core.plugins.stats import PluginStats, VariableStats
 
-
-class VariableStats:
-    """ Variable statistics interface """
-
-    def __init__(self, min_value=None, max_value=None, nodata_value=None, misc=None):
-        self.min_value = min_value
-        self.max_value = max_value
-        self.nodata_value = nodata_value
-        self.misc = misc if misc is not None else dict()
-
-    @property
-    def to_dict(self):
-        inputs = {'min_value': self.min_value, 'max_value': self.max_value, 'nodata_value': self.nodata_value}
-        return {**inputs, **self.misc}
-
-    @classmethod
-    def from_dict(cls, d):
-        min_value = d.pop('min_value')
-        max_value = d.pop('max_value')
-        nodata_value = d.pop('nodata_value')
-        return cls(min_value, max_value, nodata_value, d)
+from typing import Union
 
 
 class TemporalInfo:
@@ -45,12 +27,14 @@ class DataPlugin(Plugin):
 
     def __init__(self):
         self.path = None
+        self.stats = None
 
     def set_path(self, path):
         """ Set the path to the data """
 
         self.path = path
         self.load_data()
+        self.load_stats()
 
     def load_data(self):
         """ Hook implemented by subclasses to load data after a call to `set_path()` """
@@ -68,21 +52,24 @@ class DataPlugin(Plugin):
         raise NotImplemented
 
     @property
-    def extent(self) -> Extent or None:
+    def extent(self) -> Union[Extent, None]:
         """ Returns an extent (bounding box) object for the data, if applicable """
 
         return None
 
     @property
-    def time_info(self) -> TemporalInfo or None:
+    def time_info(self) -> Union[TemporalInfo, None]:
         """ Get time info for the data, if applicable """
 
         return None
 
-    def variable_stats(self, variable) -> VariableStats or None:
-        """ Get the statistics calculated for the variable, if applicable """
+    def variable_stats(self, variable) -> Union[VariableStats, None]:
+        """
+        Get the statistics calculated for the variable, if applicable. Plugins determine whether statistics are
+        calculated for a given variable.
+        """
 
-        return None
+        return self.stats[variable]
 
     @property
     def variables(self):
@@ -93,6 +80,30 @@ class DataPlugin(Plugin):
     @staticmethod
     def is_valid_file(path):
         return False
+
+    @property
+    def stats_path(self):
+        extension = self.path.split(os.sep)[-1].split('.')[-1]
+        stats_path = self.path.replace('.{}'.format(extension), '.json')
+        return stats_path
+
+    def load_stats(self):
+        """ Load pre-calculated statistics for a plugin. """
+
+        if os.path.exists(self.stats_path):
+            self.stats = PluginStats.load(self.stats_path, self.variables)
+        else:
+            self.stats = PluginStats()
+
+    def save_stats(self):
+        """
+        Save pre-calculated statistics for a plugin. Overwrites cache if one exists. Plugin authors can choose not to
+        use this function if statistics need to be calculated on each load.
+        """
+
+        if os.path.exists(self.stats_path):
+            os.remove(self.stats_path)
+        self.stats.save(self.stats_path)
 
     def calculate_stats(self):
         """ Perform statistics for the data. """
@@ -106,7 +117,7 @@ class ArrayDataPlugin(DataPlugin):
     data_type = DataPlugin.ARRAY
 
     def get_data(self, variable):
-        """Returns a numpy array """
+        """ Returns a numpy array """
 
 
 class RasterDataPlugin(DataPlugin):
