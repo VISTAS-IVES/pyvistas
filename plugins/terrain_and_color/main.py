@@ -653,9 +653,9 @@ class TerrainRenderable(MeshRenderable):
             d = (v1 - Vector3()).length
 
             t = -((camera_pos.dot(plane_normal) + d ) / denom)
-
-            terrain_ref = self.plugin.terrain_data.get_data(self.plugin._elevation_attribute.selected)
-            terrain_stats = self.plugin.terrain_data.variable_stats("")
+            terrain_attr = self.plugin._elevation_attribute.selected
+            terrain_ref = self.plugin.terrain_data.get_data(terrain_attr)
+            terrain_stats = self.plugin.terrain_data.variable_stats(terrain_attr)
             res = self.plugin.terrain_data.resolution
             nodata_value = terrain_stats.nodata_value
             width, height = terrain_ref.shape
@@ -707,14 +707,14 @@ class TerrainRenderable(MeshRenderable):
                     result['Height'] = terrain_ref[cell_x, cell_y]
 
                     if self.plugin.flow_dir_data is not None:
-                        flow_dir_ref = self.plugin.flow_dir_data.get_data("")
+                        flow_dir_ref = self.plugin.flow_dir_data.get_data(self.plugin.flow_dir_data.variables[0])
                         direction = flow_dir_ref[cell_x, cell_y]
                         result['Flow Direction (input)'] = direction
                         degrees = 45.0 + 45.0 * direction
                         result['Flow Direction (degrees)'] = degrees if degrees < 360.0 else degrees - 360.0
 
                     if self.plugin.flow_acc_data is not None:
-                        result['Flow Accumulation'] = self.plugin.flow_acc_data.get_data("")[cell_x, cell_y]
+                        result['Flow Accumulation'] = self.plugin.flow_acc_data.get_data(self.plugin.flow_acc_data.variables[0])[cell_x, cell_y]
 
                     self.plugin.selected_point = (cell_x, cell_y)
                     self.plugin._needs_boundaries = True
