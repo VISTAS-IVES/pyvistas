@@ -7,7 +7,8 @@ class Observable:
     observers = []
 
     def add_observer(self, observer: Observer):
-        self.observers.append(observer)
+        if observer not in self.observers:
+            self.observers.append(observer)
 
     def remove_observer(self, observer: Observer):
         if observer in self.observers:
