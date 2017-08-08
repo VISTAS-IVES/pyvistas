@@ -21,7 +21,8 @@ class VariableStats:
         return {**inputs, **self.misc}
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, data):
+        d = data.copy()
         min_value = d.pop('min_value')
         max_value = d.pop('max_value')
         nodata_value = d.pop('nodata_value')
