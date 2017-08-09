@@ -1,14 +1,13 @@
 class Observer:
     def update(self, observable):
-        raise NotImplementedError("Implemented by subclasses")
+        raise NotImplementedError
 
 
 class Observable:
-    observers = []
+    observers = set()
 
     def add_observer(self, observer: Observer):
-        if observer not in self.observers:
-            self.observers.append(observer)
+        self.observers.add(observer)
 
     def remove_observer(self, observer: Observer):
         if observer in self.observers:

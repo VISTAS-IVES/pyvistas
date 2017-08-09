@@ -12,8 +12,7 @@ def observer():
 
         def update(self, observable):
             self.x **= 2
-    obs = TestObserver()
-    yield obs
+    return TestObserver()
 
 
 def test_add_observer(observer):
