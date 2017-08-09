@@ -380,9 +380,6 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             elevation_attribute = self._elevation_attribute.selected
             height_stats = self.terrain_data.variable_stats(elevation_attribute)
             nodata_value = height_stats.nodata_value
-            if nodata_value is None:
-                nodata_value = -9999.0
-
             min_value = height_stats.min_value
             max_value = height_stats.max_value
             cellsize = self.terrain_data.resolution
@@ -406,8 +403,9 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             heightfield[:, :, 0] = indices[0] * cellsize   # x
             heightfield[:, :, 2] = indices[1] * cellsize   # z
             heightfield[:, :, 1] = height_data
-            heightfield[:, :, 1][heightfield[:, :, 1] != nodata_value] *= factor    # Apply factor where needed
-            heightfield[:, :, 1][heightfield[:, :, 1] == nodata_value] = min_value  # Otherwise, set to min value
+            if nodata_value is not None:
+                heightfield[:, :, 1][heightfield[:, :, 1] != nodata_value] *= factor    # Apply factor where needed
+                heightfield[:, :, 1][heightfield[:, :, 1] == nodata_value] = min_value  # Otherwise, set to min value
 
             self.heightfield = heightfield
 
