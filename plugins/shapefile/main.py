@@ -1,5 +1,5 @@
 import os
-import json
+
 import fiona
 from osgeo import ogr
 from pyproj import Proj
@@ -17,20 +17,23 @@ class Shapefile(FeatureDataPlugin):
     version = '1.0'
     extensions = [('shp', 'Shapefile')]
 
+    data_name = None
+    extent = None
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        self._name = None
         self.metadata = None
-        self._extent = None
+        self.data_name = None
+        self.extent = None
+        self._num_features = 0
 
     def load_data(self):
-
-        self._name = self.path.split(os.sep)[-1].split('.')[0]
+        self.data_name = self.path.split(os.sep)[-1].split('.')[0]
 
         with fiona.open(self.path, 'r') as shp:
             self.metadata = shp.meta
             projection = Proj(init=self.metadata['crs']['init'])
+            self._num_features = len(shp)
 
         driver = ogr.GetDriverByName('ESRI Shapefile')
         src = driver.Open(self.path, 0)
@@ -39,21 +42,12 @@ class Shapefile(FeatureDataPlugin):
             print("OGR Failed...")
         else:
             layer = src.GetLayer()
-            self._num_features = layer.GetFeatureCount()
             xmin, xmax, ymin, ymax = layer.GetExtent()
-            self._extent = Extent(xmin, ymin, xmax, ymax, projection)
-
-    @property
-    def data_name(self):
-        return self._name
+            self.extent = Extent(xmin, ymin, xmax, ymax, projection)
 
     @staticmethod
     def is_valid_file(path):
         return True
-
-    @property
-    def extent(self):
-        return self._extent
 
     @property
     def time_info(self):
@@ -62,10 +56,6 @@ class Shapefile(FeatureDataPlugin):
     @property
     def variables(self):
         return list(self.metadata['schema']['properties'].keys())
-
-    @property
-    def has_stats(self):
-        return os.path.exists(self.path.replace('.shp', '.json'))
 
     def calculate_stats(self):
         variables = self.variables
@@ -96,6 +86,9 @@ class Shapefile(FeatureDataPlugin):
             for var, stats in all_stats:
                 self.stats[var] = stats
             self.save_stats()
+
+    def get_num_features(self):
+        return self._num_features
 
     def get_features(self, date=None):
         with fiona.open(self.path, 'r') as shp:

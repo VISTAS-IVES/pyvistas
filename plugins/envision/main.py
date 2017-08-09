@@ -204,11 +204,12 @@ class EnvisionVisualization(VisualizationPlugin3D):
                 self._attributes.labels = list(self.envision_style.keys())
                 self.current_attribute = self._attributes.labels[0]
 
-            except (ElementTree.ParseError, FileNotFoundError):
+            except (ElementTree.ParseError, ValueError, FileNotFoundError):
                 post_message("XML parsing failed, defaulting to feature schema.", 1)
 
                 # Use shapefile colors instead
-                self._attributes.labels = list(self.data.variables)
+                self.envision_style = None
+                self._attributes.labels = self.data.variables
                 self.current_attribute = self._attributes.labels[0]
 
         else:
