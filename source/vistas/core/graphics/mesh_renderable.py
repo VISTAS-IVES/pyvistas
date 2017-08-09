@@ -13,7 +13,6 @@ class MeshRenderable(Renderable):
 
         self._mesh = None
         self.textures_map = {}
-        self._bounding_box = None
         self.mesh = Mesh() if mesh is None else mesh
 
     @property
@@ -56,17 +55,14 @@ class MeshRenderable(Renderable):
             return
 
         shader = self.selection_shader
-
         shader.pre_render(camera)
         glUniform4f(shader.get_uniform_location('color'), r, g, b, 1.0)
-        glBindVertexArray(self.mesh.vertex_array_object)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.mesh.index_buffer)
 
         glDrawElements(self.mesh.mode, self.mesh.num_indices, GL_UNSIGNED_INT, None)
 
-        glBindVertexArray(0)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
         shader.post_render(camera)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
 
     def aqcuire_texture(self, texture):
         self.textures_map[texture.number] = texture

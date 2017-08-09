@@ -45,18 +45,18 @@ class Renderable:
         self.rotation = Vector3()
         self._bounding_box = None
 
-        self.bbox_vao = -1
-        self.bbox_vertex_buffer = -1
-        self.bbox_index_buffer = -1
+        self.bbox_vao = None
+        self.bbox_vertex_buffer = None
+        self.bbox_index_buffer = None
 
         # Init the VAO
         self.bounding_box = BoundingBox(0, 0, 0, 0, 0, 0)
 
     def __del__(self):
         if self.bbox_vao != -1:
-            glDeleteVertexArrays(1, [self.bbox_vao])
-            glDeleteBuffers(1, [self.bbox_vertex_buffer])
-            glDeleteBuffers(1, [self.bbox_index_buffer])
+            glDeleteVertexArrays(1, self.bbox_vao)
+            glDeleteBuffers(1, self.bbox_vertex_buffer)
+            glDeleteBuffers(1, self.bbox_index_buffer)
 
     @property
     def bounding_box(self):
@@ -89,7 +89,7 @@ class Renderable:
         ], dtype=GLfloat)
 
         # Init bbox VAO if need be
-        if self.bbox_vao == -1:
+        if self.bbox_vao is None:
             self.bbox_vao = glGenVertexArrays(1)
             self.bbox_vertex_buffer = glGenBuffers(1)
             self.bbox_index_buffer = glGenBuffers(1)
@@ -119,7 +119,9 @@ class Renderable:
         self.bbox_shader_program.uniform3fv("color", 1, color.rgb.rgb_list)
         glBindVertexArray(self.bbox_vao)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.bbox_index_buffer)
+
         glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, None)
+
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
         self.bbox_shader_program.post_render(camera)
