@@ -63,7 +63,7 @@ class ViewerPanel(wx.Panel, Observer):
         self.legend_button = wx.BitmapButton(self, wx.ID_ANY, get_resource_bitmap('stripes.png'))
         self.legend_button.SetToolTip('Show/hide legend')
 
-        self.camera = Camera()
+        self.camera = Camera(observable=True)
 
         attrib_list = [
             WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16, WX_GL_CORE_PROFILE, 

@@ -31,6 +31,7 @@ class GLCanvas(wx.glcanvas.GLCanvas):
             self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
     def OnDestroy(self, event):
+        CameraObservable.get().remove_observer(self.camera)
         self.camera_controls.Destroy()
 
     @property
