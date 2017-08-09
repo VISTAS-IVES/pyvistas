@@ -12,6 +12,7 @@ from vistas.ui.project import DataNode
 
 
 class VisualizationDialog(wx.Frame):
+    """ A window for viewing information about a VisualizationPlugin. """
 
     active_dialogs = []
 

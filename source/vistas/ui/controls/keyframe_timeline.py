@@ -17,6 +17,7 @@ class KeyframeTimelineEvent(KeyframeTimelineBase):
 
 
 class KeyframeTimeline(wx.Window):
+    """ Timeline control for rendering keyframes checkpoints at irregular intervals. """
 
     CURSOR_WIDTH = 10
 

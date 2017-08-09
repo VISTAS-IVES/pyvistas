@@ -10,6 +10,11 @@ from vistas.ui.events import EVT_CAMERA_MODE_CHANGED, EVT_CAMERA_SYNC, CameraSyn
 
 
 class ViewerContainerPanel(wx.Panel):
+    """
+    A container panel that provides access to all active viewer panels and handles adding, removing and resizing
+    window rows and columns. Also provides access for synchronizing ViewerPanels when mouse events occur.
+    """
+
     class Row:
         def __init__(self):
             self.viewers = []

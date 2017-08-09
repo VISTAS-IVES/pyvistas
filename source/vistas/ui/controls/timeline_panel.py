@@ -8,6 +8,7 @@ from vistas.ui.utils import get_paint_dc, get_platform
 
 
 class PlaybackOptionsFrame(wx.Frame):
+    """ Timeline options control that adjusts parameters associated with playback/animation. """
 
     def __init__(self, parent, id):
         super().__init__(parent, id, "Playback Options", style=wx.FRAME_NO_TASKBAR | wx.FRAME_FLOAT_ON_PARENT)
@@ -86,6 +87,7 @@ class PlaybackOptionsFrame(wx.Frame):
 
 
 class TimelineCtrl(wx.Control):
+    """ A Timeline control for rendering timesteps for selection. """
 
     CURSOR_WIDTH = 10
     HEIGHT = 10
@@ -286,6 +288,8 @@ class TimelineCtrl(wx.Control):
 
 
 class TimelinePanel(wx.Panel):
+    """ A container panel for submitting user events to a Timeline. """
+
     def __init__(self, parent, id):
         super().__init__(parent, id)
         self.SetMinSize(wx.Size(200, 40))

@@ -4,6 +4,8 @@ from vistas.core.task import Task
 
 
 class MainStatusBar(wx.StatusBar):
+    """ Main task status bar for currently running Tasks. """
+
     def __init__(self, parent, id):
         super().__init__(parent, id)
         self.SetFieldsCount(2, [70, -1])

@@ -8,6 +8,8 @@ from vistas.ui.utils import post_redisplay
 
 
 class FlythroughPoint:
+    """ A single flythrough point with a camera position, direction and up vector. """
+
     def __init__(self, position=Vector3(), direction=Vector3(), up=Vector3([0, 1, 0])):
         self.position = position
         self.direction = direction
@@ -15,6 +17,8 @@ class FlythroughPoint:
 
 
 class Flythrough:
+    """ An interface for interpolating a camera between points of interest in a 3D scene. """
+
     def __init__(self, scene, fps=30, length=60):
 
         self.camera = Camera(scene=scene)

@@ -24,7 +24,8 @@ HandleExceptionEvent, EVT_HANDLE_EXCEPTION = wx.lib.newevent.NewEvent()
 
 
 class App(wx.App):
-    """ The top-level UI application. """
+    """ The UI application entry point. """
+
     _global_app = None
     init = False
 
@@ -105,6 +106,7 @@ class App(wx.App):
 
 
 def exception_hook(exc_type, value, trace):
+    """ Redirect exception reporting. """
     exception_message = ''.join(traceback.format_exception(exc_type, value, trace))
     logger.error('Unhandled exception\n{}'.format(exception_message))
 

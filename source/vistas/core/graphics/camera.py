@@ -10,6 +10,8 @@ from vistas.core.observers.interface import Observer
 
 
 class Camera(Observer):
+    """ Rendering interface for an OpenGL camera and its scene's renderable objects. """
+
     offscreen_buffers_initialized = False
     offscreen_frame_buffer = None
     offscreen_color_buffer = None

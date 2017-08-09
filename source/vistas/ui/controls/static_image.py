@@ -4,6 +4,7 @@ from vistas.core.utils import get_platform
 
 
 class StaticImage(wx.Panel):
+    """ A panel that displays a rendered image when can be altered at any time. """
 
     def __init__(self, parent, id, image):
         super().__init__(parent, id)

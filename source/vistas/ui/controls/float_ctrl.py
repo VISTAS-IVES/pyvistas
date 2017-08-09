@@ -6,6 +6,8 @@ FloatCtrlEventBase, EVT_FLOAT = wx.lib.newevent.NewEvent()
 
 
 class FloatCtrlEvent(FloatCtrlEventBase):
+    """ An event that simply passes a float value. """
+
     def __init__(self, value=None):
         super().__init__(value=value)
 
@@ -15,6 +17,7 @@ class FloatCtrl(wx.TextCtrl):
     A custom text input for handling floating point values. Functions almost exactly like wx.TextCtrl, except values are
     expected to be `float` rather than `str`.
     """
+
     def __init__(self, parent, id=wx.ID_ANY, value=0.0, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0,
                  validator=wx.DefaultValidator, name='floatctrl'):
         super().__init__(parent, id, value=str(value), pos=pos, size=size, style=style, validator=validator, name=name)

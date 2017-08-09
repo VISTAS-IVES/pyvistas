@@ -14,6 +14,7 @@ from vistas.ui.utils import post_message
 
 
 class ExportItem:
+    """ An interface for drawing an exportable item to an image. """
 
     SCENE = 'scene'
     LABEL = 'label'
@@ -200,6 +201,7 @@ class ExportItem:
 
 
 class Exporter:
+    """ A workflow class for capturing ExportItems as images and transferring them to encoders or simple images. """
 
     def __init__(self, size=(740, 480)):
         super().__init__()
@@ -303,6 +305,7 @@ class Exporter:
 
 
 class ExportFramesTask(Thread):
+    """ A worker thread for writing exportable images to an encoder. """
 
     def __init__(self, exporter, encoder, path):
         super().__init__()

@@ -23,6 +23,11 @@ PADDING = 5
 
 
 class AppController(wx.EvtHandler):
+    """
+    Master application event handler. Responsible for orchestrating top-level application logic and handlers for main
+    window interactions.
+    """
+
     def __init__(self):
         super().__init__()
         load_plugins(paths.get_builtin_plugins_directory())

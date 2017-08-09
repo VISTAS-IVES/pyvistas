@@ -11,6 +11,7 @@ from vistas.core.paths import get_resources_directory
 
 
 class Renderable:
+    """ Abstract renderable class. Subclasses implement a `render` method to perform OpenGL bindings. """
 
     bbox_shader_program = None
     bbox_indices = numpy.array([

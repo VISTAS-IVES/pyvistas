@@ -4,6 +4,8 @@ from vistas.ui.utils import get_paint_dc
 
 
 class ExpandButton(wx.Panel):
+    """ Translucent expand/collapse button that brightens/dims when the mouse enters/leaves. """
+
     def __init__(self, parent):
         super().__init__(parent, wx.ID_ANY)
 

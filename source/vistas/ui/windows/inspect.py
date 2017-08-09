@@ -3,6 +3,8 @@ import wx.grid
 
 
 class InspectWindow(wx.Frame):
+    """ A window for showing data collected from an identify operation. """
+
     def __init__(self, parent, id):
         super().__init__(parent, id, "Inspect", style=wx.FRAME_TOOL_WINDOW | wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX
                                                       | wx.FRAME_FLOAT_ON_PARENT | wx.RESIZE_BORDER)

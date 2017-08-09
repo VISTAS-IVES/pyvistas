@@ -8,6 +8,10 @@ from vistas.ui.events import CameraSyncEvent
 
 
 class GLCanvas(wx.glcanvas.GLCanvas):
+    """
+    Main panel for 3D rendering. A shared OpenGL context is created when the first instance of this class is used.
+    """
+
     initialized = False
     shared_gl_context = None
 

@@ -2,6 +2,8 @@ from OpenGL.GL import *
 
 
 class Texture:
+    """ Object representation of an OpenGL texture. """
+
     def __init__(self, data=None, width=None, height=None, use_rgb=True):
         self.texture = glGenTextures(1)
 

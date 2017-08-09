@@ -16,18 +16,26 @@ from vistas.ui.windows.task_dialog import TaskDialog
 
 
 class ExportTextCtrl(wx.TextCtrl):
+    """ Subclass of wx.TextCtrl with a reference to a text ExportItem. """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.item = None
 
 
 class ExportDeleteTimer(wx.Timer):
+    """ Subclass of wx.Timer with a reference to an ExportTextCtrl. """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.item_to_delete = None
 
 
 class ExportController(wx.EvtHandler):
+    """
+    Event handler for controlling the export of renderable content to external media (e.g. images, videos). Provides
+    controls for connecting exportable items such as scenes, legends and 2D visualizations.
+    """
 
     MENU_ADD_LABEL = 1
     MENU_ADD_TIMESTAMP = 2

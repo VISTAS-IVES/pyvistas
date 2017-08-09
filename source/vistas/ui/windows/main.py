@@ -17,6 +17,8 @@ from vistas.ui.windows.viz_dialog import VisualizationDialog
 
 
 class MainWindow(wx.Frame):
+    """ The main application window. Handles all customized events that apply across disparate panels and window. """
+
     MENU_FILE_NEW = 101
     MENU_FILE_OPEN = 102
     MENU_FILE_SAVE = 103

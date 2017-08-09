@@ -7,6 +7,8 @@ from vistas.ui.utils import post_timeline_change
 
 
 class Timeline:
+    """ A represenation of a temporal timeline. """
+
     _global_timeline = None
 
     @classmethod

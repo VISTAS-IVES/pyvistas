@@ -8,6 +8,8 @@ from vistas.ui.utils import get_main_window
 
 
 class GLCameraButtonFrame(wx.Frame):
+    """ Translucent frame for handling darkness and brightness when the mouse enters and leaves the parent Frame. """
+
     BRIGHT = 1
     DARK = 75
 
@@ -54,6 +56,8 @@ class GLCameraButtonFrame(wx.Frame):
 
 
 class GLCameraButton(wx.Frame):
+    """ Selectable camera button for changing a GLCanvas' current CameraInteractor. """
+
     def __init__(self, controls, parent, id, bitmap_path):
         super().__init__(parent, id, style=wx.FRAME_NO_TASKBAR | wx.FRAME_FLOAT_ON_PARENT)
         bitmap = get_resource_bitmap(bitmap_path)
@@ -116,6 +120,10 @@ class GLCameraButton(wx.Frame):
 
 
 class GLCameraControls(wx.EvtHandler):
+    """
+    Event handler for controlling the the currently enabled CameraInteractor for a given GLCanvas. Handles window
+    creation and positioning with respect to the given GLCanvas in the constructor.
+    """
 
     SPHERE = 0
     FREELOOK = 1

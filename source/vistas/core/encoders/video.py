@@ -15,6 +15,8 @@ FFMPEG_ROOT_URL = 'https://github.com/imageio/imageio-binaries/raw/master/ffmpeg
 
 
 class ImageIOVideoEncoder(VideoEncoder):
+    """ A video encoder which exports videos utilizing the imageio library. """
+
     def __init__(self):
         self._fps = 30
         self.writer = None
@@ -61,6 +63,10 @@ class ImageIOVideoEncoder(VideoEncoder):
 
 
 class DownloadFFMpegThread(Thread):
+    """
+    A worker thread that downloads the ffmpeg libraries to the default imageio appdata directory.
+    """
+
     def run(self):
         file = FNAME_PER_PLATFORM[get_platform()]
         path = os.path.join(appdata_dir('imageio'), 'ffmpeg', file)

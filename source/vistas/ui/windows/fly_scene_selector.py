@@ -4,6 +4,7 @@ from vistas.ui.project import SceneNode
 
 
 class FlythroughSceneSelector(wx.Dialog):
+    """ A Dialog for choosing a Scene to create a Flythrough for. """
 
     def __init__(self, scene_list: [SceneNode], parent, id):
         super().__init__(parent, id, "Select Flythrough Scene", style=wx.CAPTION | wx.STAY_ON_TOP)

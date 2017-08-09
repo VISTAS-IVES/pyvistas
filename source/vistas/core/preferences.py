@@ -7,6 +7,8 @@ from vistas.core.utils import get_platform, get_config_dir
 
 
 class Preferences:
+    """ Application preferences cache. """
+
     _app_preferences = None
 
     @classmethod

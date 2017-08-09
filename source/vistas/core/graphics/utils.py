@@ -5,6 +5,7 @@ from OpenGL.GL import *
 
 
 def map_buffer(target, type, access, size):
+    """ Maps an OpenGL buffer back to a numpy array. """
     fn = ctypes.pythonapi.PyMemoryView_FromMemory
     fn.restype = ctypes.py_object
 
