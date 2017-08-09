@@ -714,7 +714,9 @@ class TerrainRenderable(MeshRenderable):
                         result['Flow Direction (degrees)'] = degrees if degrees < 360.0 else degrees - 360.0
 
                     if self.plugin.flow_acc_data is not None:
-                        result['Flow Accumulation'] = self.plugin.flow_acc_data.get_data(self.plugin.flow_acc_data.variables[0])[cell_x, cell_y]
+                        result['Flow Accumulation'] = self.plugin.flow_acc_data.get_data(
+                            self.plugin.flow_acc_data.variables[0]
+                        )[cell_x, cell_y]
 
                     self.plugin.selected_point = (cell_x, cell_y)
                     self.plugin._needs_boundaries = True

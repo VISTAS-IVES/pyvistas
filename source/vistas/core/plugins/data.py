@@ -3,7 +3,7 @@ from vistas.core.gis.extent import Extent
 from vistas.core.plugins.interface import Plugin
 from vistas.core.plugins.stats import PluginStats, VariableStats
 
-from typing import Union
+from typing import Optional
 
 
 class TemporalInfo:
@@ -52,18 +52,18 @@ class DataPlugin(Plugin):
         raise NotImplemented
 
     @property
-    def extent(self) -> Union[Extent, None]:
+    def extent(self) -> Optional[Extent]:
         """ Returns an extent (bounding box) object for the data, if applicable """
 
         return None
 
     @property
-    def time_info(self) -> Union[TemporalInfo, None]:
+    def time_info(self) -> Optional[TemporalInfo]:
         """ Get time info for the data, if applicable """
 
         return None
 
-    def variable_stats(self, variable) -> Union[VariableStats, None]:
+    def variable_stats(self, variable) -> Optional[VariableStats]:
         """
         Get the statistics calculated for the variable, if applicable. Plugins determine whether statistics are
         calculated for a given variable.
@@ -91,7 +91,7 @@ class DataPlugin(Plugin):
         """ Load pre-calculated statistics for a plugin. """
 
         if os.path.exists(self.stats_path):
-            self.stats = PluginStats.load(self.stats_path, self.variables)
+            self.stats = PluginStats.load(self.stats_path, self.path, self.variables)
         else:
             self.stats = PluginStats()
 
@@ -103,7 +103,7 @@ class DataPlugin(Plugin):
 
         if os.path.exists(self.stats_path):
             os.remove(self.stats_path)
-        self.stats.save(self.stats_path)
+        self.stats.save(self.stats_path, self.path)
 
     def calculate_stats(self):
         """ Perform statistics for the data. """

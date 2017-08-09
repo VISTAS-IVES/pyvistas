@@ -1,9 +1,7 @@
+import time
+import hashlib
 import json
 import os
-import datetime
-
-
-DEFAULT_CACHE_EXPIRATION = 86400  # 1 day in seconds
 
 
 class VariableStats:
@@ -47,30 +45,39 @@ class PluginStats:
     def __len__(self):
         return self.stats_map.__len__()
 
-    def save(self, path):
+    def save(self, save_path, data_path):
         """ Save the plugin stats. """
 
-        result = {varname: self.stats_map[varname].to_dict for varname in self.stats_map.keys()}
-        with open(path, 'w') as f:
+        result = {
+            'stats': {varname: self.stats_map[varname].to_dict for varname in self.stats_map.keys()},
+            'last_modified': time.time(),
+            'checksum': compute_file_checksum(data_path)
+        }
+        with open(save_path, 'w') as f:
             json.dump(result, f)
         self.is_stale = False
 
     @classmethod
-    def load(cls, path, plugin_variables, expiration=DEFAULT_CACHE_EXPIRATION):
+    def load(cls, load_path, data_path, plugin_variables):
         """ Load plugin stats. Flags whether the stats are stale or not. """
 
-        with open(path, 'r') as f:
+        with open(load_path, 'r') as f:
             data = json.load(f)
 
-        # Extract stats for current plugin variables. If any are missing, then cache is stale.
-        stats = cls({var: VariableStats.from_dict(data[var]) for var in plugin_variables if var in data})
-        if len(stats) < len(plugin_variables):
-            stats.is_stale = True
+        stored = data.get('stats')
+        stats = cls({var: VariableStats.from_dict(stored.get(var)) for var in plugin_variables if var in stored})
 
-        # Is the cache old?
-        maketime = datetime.datetime.fromtimestamp(os.stat(path).st_mtime)
-        current = datetime.datetime.now()
-        if current - maketime > datetime.timedelta(seconds=expiration):
-            stats.is_stale = True
+        # Check if the cache is stale - first by recorded data_path's modify time, and then by checksum
+        if data.get('last_modified') < os.path.getmtime(data_path):
+            if data.get('checksum') != compute_file_checksum(data_path):
+                stats.is_stale = True
 
         return stats
+
+
+def compute_file_checksum(path):
+    """ Compute a SHA1 checksum for a file. """
+
+    with open(path, 'rb') as f:
+        checksum = hashlib.sha1(f.read()).hexdigest()
+    return checksum
