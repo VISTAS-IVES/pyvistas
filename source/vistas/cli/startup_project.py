@@ -6,7 +6,7 @@ import os
 
 @cli.command(short_help='Start VISTAS with a predefined project loaded.')
 @click.argument('project', type=click.Path(exists=True))
-def load_from_file(project):
+def startup_project(project):
     os.chdir(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))  # Todo - macOS equivalent?
-    App.preload_save = project
+    App.startup_project = project
     App.get().MainLoop()

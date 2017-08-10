@@ -13,7 +13,5 @@ if len(sys.argv) > 1:
 # Main app
 else:
     from vistas.ui.app import App
-    import os
-    print(os.getcwd())
     app = App.get()
     app.MainLoop()

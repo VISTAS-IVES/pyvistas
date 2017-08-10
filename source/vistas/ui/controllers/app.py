@@ -23,11 +23,11 @@ PADDING = 5
 
 
 class AppController(wx.EvtHandler):
-    def __init__(self, load_from_file=None):
+    def __init__(self, startup_project=None):
         super().__init__()
         load_plugins(paths.get_builtin_plugins_directory())
 
-        self.commandline_save = load_from_file
+        self.startup_project = startup_project
 
         self.main_window = MainWindow(None, wx.ID_ANY)
         self.main_window.Show()
@@ -86,9 +86,9 @@ class AppController(wx.EvtHandler):
             splash_composite, wx.adv.SPLASH_TIMEOUT | wx.adv.SPLASH_CENTRE_ON_PARENT, 5000, self.main_window, wx.ID_ANY
         )
 
-        if self.commandline_save:
-            self.main_window.project_controller.LoadProject(self.commandline_save)
-            self.commandline_save = None
+        if self.startup_project:
+            self.main_window.project_controller.LoadProject(self.startup_project)
+            self.startup_project = None
 
     def OnWindowMenu(self, event):
         event_id = event.GetId()

@@ -26,7 +26,7 @@ HandleExceptionEvent, EVT_HANDLE_EXCEPTION = wx.lib.newevent.NewEvent()
 class App(wx.App):
     """ The top-level UI application. """
     _global_app = None
-    preload_save = None
+    startup_project = None
     init = False
 
     @classmethod
@@ -90,7 +90,7 @@ class App(wx.App):
         else:
             asyncio.set_event_loop(asyncio.SelectorEventLoop())
 
-        self.app_controller = AppController(self.preload_save)
+        self.app_controller = AppController(self.startup_project)
 
         # Download FFmpeg
         DownloadFFMpegThread().start()
