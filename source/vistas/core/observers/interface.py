@@ -8,10 +8,10 @@ class Observer:
 class Observable:
     """ A class for registering Observers to be updated. """
 
-    observers = []
+    observers = set()
 
     def add_observer(self, observer: Observer):
-        self.observers.append(observer)
+        self.observers.add(observer)
 
     def remove_observer(self, observer: Observer):
         if observer in self.observers:

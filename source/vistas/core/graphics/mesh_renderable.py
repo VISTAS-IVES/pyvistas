@@ -15,7 +15,6 @@ class MeshRenderable(Renderable):
 
         self._mesh = None
         self.textures_map = {}
-        self.bounding_box = None
         self.mesh = Mesh() if mesh is None else mesh
 
     @property
@@ -58,7 +57,6 @@ class MeshRenderable(Renderable):
             return
 
         shader = self.selection_shader
-
         shader.pre_render(camera)
         glUniform4f(shader.get_uniform_location('color'), r, g, b, 1.0)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.mesh.index_buffer)
