@@ -1,62 +1,70 @@
-from pytest import fixture
+import json
+from io import StringIO
+from unittest.mock import patch, mock_open, MagicMock
 
-from vistas.core.plugins.stats import PluginStats, VariableStats
+from vistas.core.plugins import stats
 
-data = {
+data_file_contents = b'I am a data file'
+
+var_data = {
     'min_value': 1.3362300395965576,
     'max_value': 30.22311019897461,
     'nodata_value': -9999.0,
     'shape': [67, 86]
 }
 
-
-@fixture(scope='session')
-def stats_file(tmpdir_factory):
-    path = str(tmpdir_factory.mktemp('data').join('stats.json'))
-    PluginStats({'test_data': VariableStats.from_dict(data)}).save(path)
-    return path
+cache_data = {
+    'stats': {'test_data': var_data},
+    'last_modified': 10.0,
+    'checksum': '123'
+}
 
 
 def test_to_dict():
-    vs = VariableStats(123, 321, None, {'custom': 'data'})
+    vs = stats.VariableStats(123, 321, None, {'custom': 'data'})
     assert vs.to_dict == {'min_value': 123, 'max_value': 321, 'nodata_value': None, 'custom': 'data'}
 
 
 def test_from_dict():
-    vs = VariableStats.from_dict(data)
-    assert vs.min_value == data.get('min_value')
-    assert vs.max_value == data.get('max_value')
-    assert vs.nodata_value == data.get('nodata_value')
+    vs = stats.VariableStats.from_dict(var_data)
+    assert vs.min_value == var_data.get('min_value')
+    assert vs.max_value == var_data.get('max_value')
+    assert vs.nodata_value == var_data.get('nodata_value')
     assert vs.misc == {'shape': [67, 86]}
 
 
-def test_save(tmpdir):
-    path = tmpdir.mkdir('test').join('stats.json')
-    vs = VariableStats.from_dict(data)
-    ps = PluginStats({'test_data': vs})
-    ps.save(str(path))
-    assert len(tmpdir.listdir()) == 1
+@patch('vistas.core.plugins.stats.compute_file_checksum', MagicMock(return_value='123'))
+@patch('time.time', MagicMock(return_value=10.0))
+def test_save():
+    with patch('{}.open'.format(stats.__name__), mock_open(read_data='{}')) as open_mock:
+        open_mock.return_value = StringIO()
+        open_mock().close = MagicMock()
+        ps = stats.PluginStats({'test_data': stats.VariableStats.from_dict(var_data)})
+        ps.save('cache.json', 'data.asc')
+        assert open_mock().getvalue() == json.dumps(cache_data)
+        assert ps.is_stale is False
 
 
-def test_load(stats_file):
-    ps = PluginStats.load(stats_file, ['test_data'])
-    assert len(ps) == 1
-    assert ps['test_data'].to_dict == data
-    assert ps['nonexistent_data'] is None
+def test_load():
+    with patch('{}.open'.format(stats.__name__), mock_open(read_data=json.dumps(cache_data))) as open_mock:
 
+        # Assume checksums are same
+        with patch('vistas.core.plugins.stats.compute_file_checksum', MagicMock(return_value='123')):
 
-def test_is_stale(stats_file):
-    ps = PluginStats()
-    assert ps.is_stale
+            # Test that data is at least as old as the cache
+            with patch('os.path.getmtime', MagicMock(return_value=10.0)):
+                ps = stats.PluginStats.load('cache.json', 'data.asc', ['test_data'])
+                assert ps.is_stale is False
 
-    vs = VariableStats.from_dict(data)
-    ps = PluginStats({'test_data': vs})
-    assert not ps.is_stale
+            # Test that the data is younger than the cache, but checksum is same
+            with patch('os.path.getmtime', MagicMock(return_value=11.0)):
+                ps = stats.PluginStats.load('cache.json', 'data.asc', ['test_data'])
+                assert ps.is_stale is False
 
-    # Simulate data that has an unaccounted variable
-    ps = PluginStats.load(stats_file, ['test_data', 'new_data'])
-    assert ps.is_stale
+        # Assume checksums are different (i.e. the file was modified)
+        with patch('vistas.core.plugins.stats.compute_file_checksum', MagicMock(return_value='321')):
 
-    # Simulate an expired cache
-    ps = PluginStats.load(stats_file, ['test_data'], expiration=0)
-    assert ps.is_stale
+            # Test that data is younger than the cache
+            with patch('os.path.getmtime', MagicMock(return_value=100.0)):
+                ps = stats.PluginStats.load('cache.json', 'data.asc', ['test_data'])
+                assert ps.is_stale
