@@ -1,11 +1,19 @@
 import platform
-
+import sys
 import matplotlib
 
 if platform.uname().system == 'Windows':
     matplotlib.use('AGG')
 
-from vistas.ui.app import App
+# Check for command line arguments
+if len(sys.argv) > 1:
+    from vistas.cli.main import cli
+    cli()
 
-app = App.get()
-app.MainLoop()
+# Main app
+else:
+    from vistas.ui.app import App
+    import os
+    print(os.getcwd())
+    app = App.get()
+    app.MainLoop()
