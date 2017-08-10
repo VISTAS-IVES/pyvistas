@@ -32,7 +32,7 @@ def make_window_transparent(win):
 
 
 def get_main_window() -> wx.Window:
-    """ A utility function for return the application's MainWindow. """
+    """ A utility function for return the application's main window. """
     return wx.GetTopLevelWindows()[0]   # Assumed to be MainWindow
 
 

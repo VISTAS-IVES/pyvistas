@@ -123,7 +123,7 @@ class HSVColor(Color):
 
 
 def interpolate_color(range, min_color: Color, max_color: Color, t):
-    """ Linearly interpolate in the HSV color space. Copies colors in RGB space to HSV. """
+    """ Linearly interpolate in the HSV color space. """
 
     if t < range[0]:
         return min_color

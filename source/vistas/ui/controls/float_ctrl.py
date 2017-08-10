@@ -6,8 +6,6 @@ FloatCtrlEventBase, EVT_FLOAT = wx.lib.newevent.NewEvent()
 
 
 class FloatCtrlEvent(FloatCtrlEventBase):
-    """ An event that simply passes a float value. """
-
     def __init__(self, value=None):
         super().__init__(value=value)
 

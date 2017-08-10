@@ -24,7 +24,7 @@ class CalculateStatsThread(Thread):
 
 
 class DataDialog(wx.Dialog):
-    """ A Dialog for viewing information about an DataPlugin. """
+    """ A Dialog for viewing information about a DataPlugin. """
 
     def __init__(self, parent, id, data: DataPlugin=None):
         super().__init__(parent, id, "Data Options")

@@ -2,8 +2,6 @@ from threading import RLock
 
 
 class Task:
-    """ Abstract class for handling task management. """
-
     STOPPED = 'stopped'
     RUNNING = 'running'
     INDETERMINATE = 'indeterminate'

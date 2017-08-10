@@ -121,8 +121,8 @@ class GLCameraButton(wx.Frame):
 
 class GLCameraControls(wx.EvtHandler):
     """
-    Event handler for controlling the the currently enabled CameraInteractor for a given GLCanvas. Handles window
-    creation and positioning with respect to the given GLCanvas in the constructor.
+    Event handler for controlling the camera interaction for a GLCanvas. Allows a user to switch between different
+    camera interaction modes.
     """
 
     SPHERE = 0

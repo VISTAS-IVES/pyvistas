@@ -16,16 +16,12 @@ from vistas.ui.windows.task_dialog import TaskDialog
 
 
 class ExportTextCtrl(wx.TextCtrl):
-    """ Subclass of wx.TextCtrl with a reference to a text ExportItem. """
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.item = None
 
 
 class ExportDeleteTimer(wx.Timer):
-    """ Subclass of wx.Timer with a reference to an ExportTextCtrl. """
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.item_to_delete = None

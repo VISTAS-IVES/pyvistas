@@ -7,8 +7,8 @@ from vistas.ui.project import Project
 
 class GraphPanel(wx.Panel):
     """
-    Main panel for 2D rendering. GraphPanels render 2D images derived from PIL.Image. Rendering logic is handled by
-    instances of VisualizationPlugin2D.
+    A panel for 2D drawing. GraphPanels render 2D images derived from PIL.Image. Drawing logic is handled by instances
+    of VisualizationPlugin2D.
     """
 
     def __init__(self, parent, id):
