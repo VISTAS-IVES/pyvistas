@@ -1,6 +1,9 @@
 import platform
 import sys
+
 import matplotlib
+
+from vistas.ui.app import App
 
 if platform.uname().system == 'Windows':
     matplotlib.use('AGG')
@@ -12,6 +15,5 @@ if len(sys.argv) > 1:
 
 # Main app
 else:
-    from vistas.ui.app import App
     app = App.get()
     app.MainLoop()
