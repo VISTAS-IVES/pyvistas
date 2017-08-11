@@ -8,6 +8,7 @@ HistogramCtrlValueChangedEvent, HISTOGRAM_CTRL_RANGE_VALUE_CHANGED_EVT = wx.lib.
 
 
 class HistogramCtrl(wx.Control):
+    """ Control for rendering histograms based on the core Histogram interface. """
 
     HANDLE_WIDTH = 10
     HANDLE_HEIGHT = 10

@@ -4,6 +4,8 @@ from vistas.core.paths import get_resource_bitmap
 
 
 class ProjectTreeCtrl(wx.TreeCtrl):
+    """ A TreeCtrl that represents the current structure for a Project's root FolderNodes. """
+
     def __init__(self, parent, id, style=wx.TR_HAS_BUTTONS, *args, **kwargs):
         super().__init__(parent, id, style=style, *args, **kwargs)
 
@@ -36,6 +38,8 @@ class ProjectTreeCtrl(wx.TreeCtrl):
 
 
 class ProjectPanel(wx.Panel):
+    """ Main project panel for displaying current project structure. """
+
     def __init__(self, parent, id):
         super().__init__(parent, id)
 

@@ -2,6 +2,8 @@ import wx
 
 
 class ExceptionDialog(wx.Dialog):
+    """ A Dialog for alerting the user that an unhandled exception has occured. """
+
     is_shown = False
 
     def __init__(self, parent, message):

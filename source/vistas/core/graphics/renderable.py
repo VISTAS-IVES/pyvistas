@@ -11,6 +11,7 @@ from vistas.core.paths import get_resources_directory
 
 
 class Renderable:
+    """ Abstract renderable class. Subclasses implement a `render` method to perform OpenGL bindings. """
 
     bbox_shader_program = None
     bbox_indices = numpy.array([
@@ -53,7 +54,7 @@ class Renderable:
         self.bounding_box = BoundingBox(0, 0, 0, 0, 0, 0)
 
     def __del__(self):
-        if self.bbox_vao != -1:
+        if self.bbox_vao is not None:
             glDeleteVertexArrays(1, self.bbox_vao)
             glDeleteBuffers(1, self.bbox_vertex_buffer)
             glDeleteBuffers(1, self.bbox_index_buffer)

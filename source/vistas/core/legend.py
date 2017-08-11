@@ -5,6 +5,7 @@ from vistas.core.fonts import get_font_path
 
 
 class Legend:
+    """ Base legend class. Provides functions for rendering legends as PIL.Image objects. """
 
     MIDPOINT_PADDING = 3
 

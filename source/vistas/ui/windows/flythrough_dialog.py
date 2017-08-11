@@ -11,6 +11,11 @@ from vistas.ui.controls.keyframe_timeline import KeyframeTimeline, KeyframeTimel
 
 
 class FlythroughDialog(wx.Frame):
+    """
+    A window for designing and configuring Flythroughs for a scene. Flythroughs are created by manipulating a 3D scene
+    to a set of desired camera positions and orientations, or 'keyframes'. The keyframes are then interpolated along a
+    keyframe timeline with a specified FPS and flythrough length, determining the total number of possible keyframes.
+    """
 
     FLYTHROUGH_POPUP_AUTOKEYFRAME = 201
     VALUE_PER_PX = 0.01

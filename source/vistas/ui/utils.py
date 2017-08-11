@@ -5,6 +5,7 @@ from vistas.ui.events import PluginOptionEvent, RedisplayEvent, NewLegendEvent, 
 
 
 def get_paint_dc(win):
+    """ A utility function for obtaining a BufferedPaintDC on Windows. """
     if get_platform() == 'windows':
         dc = wx.BufferedPaintDC(win)
         dc.SetBrush(wx.Brush((win if win.UseBgCol() else win.GetParent()).GetBackgroundColour()))
@@ -16,6 +17,7 @@ def get_paint_dc(win):
 
 
 def make_window_transparent(win):
+    """ A utility function for creating transparent windows on Windows. """
     if get_platform() == 'windows':
         try:
             import ctypes
@@ -30,24 +32,30 @@ def make_window_transparent(win):
 
 
 def get_main_window() -> wx.Window:
+    """ A utility function for return the application's main window. """
     return wx.GetTopLevelWindows()[0]   # Assumed to be MainWindow
 
 
 def post_newoptions_available(plugin):
+    """ A utility function for alerting the application that new plugin Options are available. """
     get_main_window().AddPendingEvent(PluginOptionEvent(plugin=plugin, change=PluginOptionEvent.NEW_OPTIONS_AVAILABLE))
 
 
 def post_redisplay():
+    """ A utility function for updating all 2D and 3D panels. """
     get_main_window().AddPendingEvent(RedisplayEvent())
 
 
 def post_new_legend():
+    """ A utility function for alerting the application that legends need to be refreshed. """
     get_main_window().AddPendingEvent(NewLegendEvent())
 
 
 def post_timeline_change(time, change):
+    """ A utility function for alerting the application that a timeline change has occurred. """
     get_main_window().AddPendingEvent(TimelineEvent(time=time, change=change))
 
 
 def post_message(msg, level):
+    """ A utility function for posting a message to the user. """
     get_main_window().AddPendingEvent(MessageEvent(msg=msg, level=level))

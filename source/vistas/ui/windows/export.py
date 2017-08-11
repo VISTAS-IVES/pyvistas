@@ -233,6 +233,7 @@ class ExportItemBitmap(wx.EvtHandler):
 
 
 class ExportCanvas(wx.ScrolledWindow):
+    """ A window for designing annotated visualizations for export into external media. """
 
     def __init__(self, parent, id):
         super().__init__(parent, id, style=wx.HSCROLL | wx.VSCROLL)
@@ -410,6 +411,7 @@ class ExportCanvas(wx.ScrolledWindow):
 
 
 class ExportFrame(wx.Frame):
+    """ A container window for adjusting export parameters and containing an ExportCanvas. """
 
     def __init__(self, parent, id):
         super().__init__(parent, id, "Export Animation", style=wx.DEFAULT_FRAME_STYLE)

@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 
 
 class ProjectTreeMenu(wx.Menu):
+    """ A Menu with a reference to ProjectTree and a ProjectNode. """
+
     def __init__(self, tree, item):
         super().__init__()
 
@@ -30,6 +32,8 @@ class ProjectTreeMenu(wx.Menu):
 
 
 class ProjectController(wx.EvtHandler):
+    """ Event handler for accessing and altering project structure. """
+
     POPUP_RENAME = 1
     POPUP_ADD_FOLDER = 2
     POPUP_ADD_DATA_FILE = 3

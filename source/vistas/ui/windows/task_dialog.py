@@ -5,6 +5,8 @@ import wx
 
 
 class TaskDialog(wx.Dialog):
+    """ A configurable Dialog for showing the current progress of a Task. """
+
     def __init__(self, parent, task, show_timer=False, allow_cancel=False):
         super().__init__(parent, wx.ID_ANY, 'Status', style=wx.SYSTEM_MENU | wx.CAPTION)
 
