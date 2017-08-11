@@ -53,7 +53,7 @@ class Renderable:
         self.bounding_box = BoundingBox(0, 0, 0, 0, 0, 0)
 
     def __del__(self):
-        if self.bbox_vao != -1:
+        if self.bbox_vao is not None:
             glDeleteVertexArrays(1, self.bbox_vao)
             glDeleteBuffers(1, self.bbox_vertex_buffer)
             glDeleteBuffers(1, self.bbox_index_buffer)

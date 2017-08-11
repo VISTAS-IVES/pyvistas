@@ -15,6 +15,9 @@ class MeshRenderable(Renderable):
         self.textures_map = {}
         self.mesh = Mesh() if mesh is None else mesh
 
+    def __del__(self):
+        self._mesh = None
+
     @property
     def mesh(self):
         return self._mesh
