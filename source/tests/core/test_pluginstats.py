@@ -2,9 +2,7 @@ import json
 from io import StringIO
 from unittest.mock import patch, mock_open, MagicMock
 
-from vistas.core.plugins import stats
-
-data_file_contents = b'I am a data file'
+from vistas.core import stats
 
 var_data = {
     'min_value': 1.3362300395965576,
@@ -33,7 +31,7 @@ def test_from_dict():
     assert vs.misc == {'shape': [67, 86]}
 
 
-@patch('vistas.core.plugins.stats.compute_file_checksum', MagicMock(return_value='123'))
+@patch('vistas.core.stats.compute_file_checksum', MagicMock(return_value='123'))
 @patch('time.time', MagicMock(return_value=10.0))
 def test_save():
     with patch('{}.open'.format(stats.__name__), mock_open(read_data='{}')) as open_mock:
@@ -49,7 +47,7 @@ def test_load():
     with patch('{}.open'.format(stats.__name__), mock_open(read_data=json.dumps(cache_data))) as open_mock:
 
         # Assume checksums are same
-        with patch('vistas.core.plugins.stats.compute_file_checksum', MagicMock(return_value='123')):
+        with patch('vistas.core.stats.compute_file_checksum', MagicMock(return_value='123')):
 
             # Test that data is at least as old as the cache
             with patch('os.path.getmtime', MagicMock(return_value=10.0)):
@@ -62,7 +60,7 @@ def test_load():
                 assert ps.is_stale is False
 
         # Assume checksums are different (i.e. the file was modified)
-        with patch('vistas.core.plugins.stats.compute_file_checksum', MagicMock(return_value='321')):
+        with patch('vistas.core.stats.compute_file_checksum', MagicMock(return_value='321')):
 
             # Test that data is younger than the cache
             with patch('os.path.getmtime', MagicMock(return_value=100.0)):

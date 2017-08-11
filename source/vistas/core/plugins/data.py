@@ -1,9 +1,9 @@
 import os
+from typing import Optional
+
+from vistas.core.stats import PluginStats, VariableStats
 from vistas.core.gis.extent import Extent
 from vistas.core.plugins.interface import Plugin
-from vistas.core.plugins.stats import PluginStats, VariableStats
-
-from typing import Optional
 
 
 class TemporalInfo:
