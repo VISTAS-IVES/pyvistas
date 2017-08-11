@@ -65,30 +65,13 @@ class GeoTIFF(RasterDataPlugin):
     def variables(self):
         return ['Band {}'.format(i) for i in range(1, self._count + 1)]
 
-    def variable_stats(self, variable):
-        band = self._band(variable)
-        if os.path.exists(self._stats_path):
-            with open(self._stats_path, 'r') as f:
-                all_stats = json.load(f)
-                return VariableStats.from_dict(all_stats[band])
-        else:
-            return VariableStats()
-
-    @property
-    def has_stats(self):
-        return os.path.exists(self._stats_path)
-
     def calculate_stats(self):
-        if self.has_stats:
-            return
-
-        all_stats = {}
-        with rasterio.open(self.path) as src:
-            for band in range(1, self._count + 1):
-                data = src.read(band)
-                if self._nodata is not None:
-                    data = data[data != self._nodata]
-                stats = VariableStats(float(data.min()), float(data.max()), self._nodata)
-                all_stats[band] = stats.to_dict
-        with open(self._stats_path, 'w') as f:
-            json.dump(all_stats, f)
+        if self.stats.is_stale:
+            with rasterio.open(self.path) as src:
+                variables = self.variables
+                for i, band in enumerate(range(1, self._count + 1)):
+                    data = src.read(band)
+                    if self._nodata is not None:
+                        data = data[data != self._nodata]
+                    self.stats[variables[i]] = VariableStats(float(data.min()), float(data.max()), self._nodata)
+            self.save_stats()
