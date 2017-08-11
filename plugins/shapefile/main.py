@@ -22,7 +22,6 @@ class Shapefile(FeatureDataPlugin):
         self._name = None
         self.metadata = None
         self._extent = None
-        self._stats = None
 
     def load_data(self):
 
@@ -77,48 +76,39 @@ class Shapefile(FeatureDataPlugin):
     def time_info(self):
         return TemporalInfo()  # Todo - implement ENVISION-style pattern matching for time-enabled shapefiles
 
-    def variable_stats(self, variable):
-        for stats in self._stats:
-            if stats[0] == variable:
-                return stats[1]
-        return None
-
     @property
     def variables(self):
         return list(self.metadata['schema']['properties'].keys())
 
     def calculate_stats(self):
-
         variables = self.variables
-        all_stats = [(var, VariableStats()) for var in self.variables]
+        if self.stats.is_stale:
+            all_stats = [(var, VariableStats()) for var in self.variables]
+            with fiona.open(self.path, 'r') as shp:
+                for feature in shp:
+                    for i, var in enumerate(variables):
+                        stats = all_stats[i][1]
+                        value = feature['properties'][var]
 
-        with fiona.open(self.path, 'r') as shp:
+                        if isinstance(value, (int, float)):
+                            if stats.max_value is None:
+                                stats.max_value = stats.min_value = value
+                            else:
+                                if stats.max_value < value:
+                                    stats.max_value = value
+                                elif stats.min_value > value:
+                                    stats.min_value = value
 
-            for feature in shp:
+                        elif isinstance(value, str):
+                            misc = stats.misc
+                            if 'unique_values' not in misc:
+                                misc['unique_values'] = []
+                            if value not in misc['unique_values']:
+                                misc['unique_values'].append(value)
 
-                for i, var in enumerate(variables):
-                    stats = all_stats[i][1]
-                    value = feature['properties'][var]
-
-                    if isinstance(value, (int, float)):
-
-                        if stats.max_value is None:
-                            stats.max_value = stats.min_value = value
-                        else:
-                            if stats.max_value < value:
-                                stats.max_value = value
-                            elif stats.min_value > value:
-                                stats.min_value = value
-
-                    elif isinstance(value, str):
-                        misc = stats.misc
-
-                        if 'unique_values' not in misc:
-                            misc['unique_values'] = []
-
-                        misc['unique_values'].append(value)
-
-        self._stats = all_stats
+            for var, stats in all_stats:
+                self.stats[var] = stats
+            self.save_stats()
 
     def get_features(self, date=None):
         with fiona.open(self.path, 'r') as shp:
