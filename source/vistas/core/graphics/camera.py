@@ -10,12 +10,14 @@ from vistas.core.observers.interface import Observer
 
 
 class Camera(Observer):
+    """ Rendering interface for an OpenGL camera and its scene's renderable objects. """
+
     offscreen_buffers_initialized = False
     offscreen_frame_buffer = None
     offscreen_color_buffer = None
     offscreen_depth_buffer = None
 
-    def __init__(self, scene=None, color=RGBColor(0, 0, 0)):
+    def __init__(self, scene=None, color=RGBColor(0, 0, 0), observable=False):
         if scene is None:
             scene = Scene()
 
@@ -32,7 +34,8 @@ class Camera(Observer):
         self.set_position(Vector3())
         self.set_point_of_interest(Vector3([0, 0, -10]))
 
-        CameraObservable.get().add_observer(self)
+        if observable:
+            CameraObservable.get().add_observer(self)
 
     def __del__(self):
         CameraObservable.get().remove_observer(self)

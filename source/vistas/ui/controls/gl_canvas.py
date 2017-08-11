@@ -8,6 +8,11 @@ from vistas.ui.events import CameraSyncEvent
 
 
 class GLCanvas(wx.glcanvas.GLCanvas):
+    """
+    A panel for rendering an OpenGL context. An OpenGL context is created when the first instance of this class is
+    created, and is shared between all other instances.
+    """
+
     initialized = False
     shared_gl_context = None
 
@@ -31,6 +36,7 @@ class GLCanvas(wx.glcanvas.GLCanvas):
             self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
     def OnDestroy(self, event):
+        CameraObservable.get().remove_observer(self.camera)
         self.camera_controls.Destroy()
 
     @property

@@ -17,6 +17,11 @@ from vistas.ui.windows.viz_dialog import VisualizationDialog
 
 
 class MainWindow(wx.Frame):
+    """
+    The main application window. Handles many custom wx events (E.x. EVT_REDISPLAY) that can be created at arbitrary
+    points within the whole application
+    """
+
     MENU_FILE_NEW = 101
     MENU_FILE_OPEN = 102
     MENU_FILE_SAVE = 103

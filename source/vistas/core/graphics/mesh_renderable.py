@@ -8,13 +8,17 @@ from vistas.core.paths import get_resources_directory
 
 
 class MeshRenderable(Renderable):
+    """ Base mesh renderable class, combining a Mesh and a MeshShaderProgram into an OpenGL-renderable object. """
+
     def __init__(self, mesh=None):
         super().__init__()
 
         self._mesh = None
         self.textures_map = {}
-        self.bounding_box = None
         self.mesh = Mesh() if mesh is None else mesh
+
+    def __del__(self):
+        self._mesh = None
 
     @property
     def mesh(self):
@@ -45,10 +49,13 @@ class MeshRenderable(Renderable):
 
     @property
     def selection_shader(self):
-        path = os.path.join(get_resources_directory(), 'shaders', 'mesh_render_for_selection_hit_vert.glsl')
         shader = MeshShaderProgram(self.mesh)
-        shader.attach_shader(path, GL_VERTEX_SHADER)
-
+        shader.attach_shader(os.path.join(
+            get_resources_directory(), 'shaders', 'mesh_render_for_selection_hit_vert.glsl'
+        ), GL_VERTEX_SHADER)
+        shader.attach_shader(os.path.join(
+            get_resources_directory(), 'shaders', 'mesh_render_for_selection_hit_frag.glsl'
+        ), GL_FRAGMENT_SHADER)
         return shader
 
     def render_for_selection_hit(self, camera, r, g, b):
@@ -56,7 +63,6 @@ class MeshRenderable(Renderable):
             return
 
         shader = self.selection_shader
-
         shader.pre_render(camera)
         glUniform4f(shader.get_uniform_location('color'), r, g, b, 1.0)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.mesh.index_buffer)

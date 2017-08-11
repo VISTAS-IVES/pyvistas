@@ -15,6 +15,7 @@ from vistas.ui.utils import post_redisplay
 
 
 class VectorFieldRenderable(Renderable):
+    """ A vector field renderable for rendering large amounts of vectors efficiently. """
 
     VERTICES = numpy.array([
         # arrow shaft

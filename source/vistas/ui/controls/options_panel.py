@@ -8,6 +8,8 @@ from vistas.ui.events import PluginOptionEvent
 
 
 class OptionsPanel(wx.ScrolledWindow):
+    """ Modular window for adding customized visualization plugin controls. """
+
     def __init__(self, parent, id):
         super().__init__(parent, id)
         self.sizer = wx.BoxSizer(wx.VERTICAL)

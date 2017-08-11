@@ -5,6 +5,7 @@ from vistas.core.fonts import get_font_path
 
 
 class Legend:
+    """ Base legend class. Provides functions for rendering legends as PIL.Image objects. """
 
     MIDPOINT_PADDING = 3
 
@@ -40,7 +41,7 @@ class Legend:
 
         for y in range(height):
             color = tuple(
-                [int(255 * x) for x in interpolate_color((0, height), low_color, high_color, y).rgb.rgba_list]
+                [int(255 * x) for x in interpolate_color((0, height), low_color, high_color, height - y).rgb.rgba_list]
             )
             draw.line((0, y, midpoint, y), fill=color)
 

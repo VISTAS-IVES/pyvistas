@@ -10,6 +10,7 @@ from vistas.ui.controls.options_panel import OptionsPanel
 
 
 class CalculateStatsThread(Thread):
+    """ A worker thread for calculating statistics from a DataPlugin. """
 
     def __init__(self, data_plugin: DataPlugin):
         super().__init__()
@@ -23,6 +24,7 @@ class CalculateStatsThread(Thread):
 
 
 class DataDialog(wx.Dialog):
+    """ A Dialog for viewing information about a DataPlugin. """
 
     def __init__(self, parent, id, data: DataPlugin=None):
         super().__init__(parent, id, "Data Options")

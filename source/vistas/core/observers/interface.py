@@ -1,13 +1,17 @@
 class Observer:
+    """ An abstract class for performing updates initiated by an Observable. """
+
     def update(self, observable):
-        raise NotImplementedError("Implemented by subclasses")
+        raise NotImplementedError
 
 
 class Observable:
-    observers = []
+    """ A class for registering Observers to be updated. """
+
+    observers = set()
 
     def add_observer(self, observer: Observer):
-        self.observers.append(observer)
+        self.observers.add(observer)
 
     def remove_observer(self, observer: Observer):
         if observer in self.observers:

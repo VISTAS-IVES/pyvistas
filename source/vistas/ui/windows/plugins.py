@@ -6,6 +6,8 @@ from vistas.core.plugins.management import *
 
 
 class PluginsWindow(wx.Frame):
+    """ A window for listing currently registered plugin information. """
+
     def __init__(self, parent, id):
         super().__init__(parent, id, "Plugins")
         self.SetSize(500, 400)

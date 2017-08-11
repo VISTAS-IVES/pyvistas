@@ -8,6 +8,10 @@ from vistas.ui.utils import post_redisplay
 
 
 class CameraInteractor:
+    """
+    A class for transferring user camera interactions to a camera's model view matrix. Subclasses implement key and
+    mouse methods for determining the appropriate matrix transformations for the respective method.
+    """
 
     SPHERE = 'sphere'
     FREELOOK = 'freelook'
@@ -72,6 +76,7 @@ class CameraInteractor:
 
 
 class SphereInteractor(CameraInteractor):
+    """ A CameraInteractor that implements 'spherical' (or 'orbit') controls for a given scene. """
 
     def __init__(self, camera, reset_mv=True):
         self.camera_type = CameraInteractor.SPHERE
@@ -126,6 +131,7 @@ class SphereInteractor(CameraInteractor):
 
 
 class FreelookInteractor(CameraInteractor):
+    """ A CameraInteractor that implements 'freelook' controls for a given scene. """
 
     def __init__(self, camera, reset_mv=True):
         self.camera_type = CameraInteractor.FREELOOK
@@ -165,6 +171,9 @@ class FreelookInteractor(CameraInteractor):
 
 
 class PanInteractor(SphereInteractor):
+    """
+    A subclass of SphereInteractor that only performs 2D translations.
+    """
 
     def __init__(self, camera, reset_mv=True):
         super().__init__(camera, reset_mv)

@@ -462,6 +462,7 @@ class Project:
     orchestrating serialization and deserialization routines when saving and loading projects from disk, including data
     migrations and handling exceptions.
     """
+
     current_project = None
 
     def __init__(self, name='Untitled Project'):

@@ -7,6 +7,7 @@ from vistas.ui.controls.gl_canvas import GLCanvas
 
 
 class ExportSceneDialog(wx.Dialog):
+    """ A Dialog for configuring a scene for export. """
 
     def __init__(self, parent, id, item: ExportItem):
         super().__init__(parent, id, "", style=wx.SYSTEM_MENU | wx.CLOSE_BOX | wx.CLIP_CHILDREN | wx.CAPTION)

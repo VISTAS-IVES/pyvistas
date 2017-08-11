@@ -9,6 +9,8 @@ LegendRenderEvent, EVT_LEGEND_RENDERED = wx.lib.newevent.NewEvent()
 
 
 class LegendWindow(wx.Frame):
+    """ A window for showing a rendered image derived from a Legend. """
+
     class RenderThread(Thread):
         def __init__(self, plugin, size, handler):
             super().__init__()

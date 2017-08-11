@@ -9,6 +9,8 @@ from vistas.core.graphics.utils import map_buffer
 
 
 class Mesh:
+    """ Base geometry class for 3D objects. """
+
     POINTS = GL_POINTS
     LINE_STRIP = GL_LINE_STRIP
     LINES = GL_LINES

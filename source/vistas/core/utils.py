@@ -8,6 +8,7 @@ import wx
 
 
 def get_platform():
+    """ Utility function for determining the current operating system. """
     return 'macos' if platform.uname().system == 'Darwin' else 'windows'
 
 

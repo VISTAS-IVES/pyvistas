@@ -158,7 +158,7 @@ class ESRIGridAscii(RasterDataPlugin):
 
         data = numpy.loadtxt(path, skiprows=6).astype(numpy.float32)
         data = numpy.ma.masked_where(data == nodata_value, data)    # Mask out nodata
-        self._current_grid = data.T
+        self._current_grid = data
         self._current_variable = variable
         self._current_time = date
         return self._current_grid

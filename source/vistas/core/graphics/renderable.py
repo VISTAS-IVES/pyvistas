@@ -11,6 +11,7 @@ from vistas.core.paths import get_resources_directory
 
 
 class Renderable:
+    """ Abstract renderable class. Subclasses implement a `render` method to perform OpenGL bindings. """
 
     bbox_shader_program = None
     bbox_indices = numpy.array([
@@ -43,12 +44,28 @@ class Renderable:
         self.scale = Vector3([1, 1, 1])
         self.position = Vector3()
         self.rotation = Vector3()
+        self._bounding_box = None
+
+        self.bbox_vao = None
+        self.bbox_vertex_buffer = None
+        self.bbox_index_buffer = None
+
+        # Init the VAO
         self.bounding_box = BoundingBox(0, 0, 0, 0, 0, 0)
 
-    def render(self, camera):
-        pass
+    def __del__(self):
+        if self.bbox_vao is not None:
+            glDeleteVertexArrays(1, self.bbox_vao)
+            glDeleteBuffers(1, self.bbox_vertex_buffer)
+            glDeleteBuffers(1, self.bbox_index_buffer)
 
-    def render_bounding_box(self, color, camera):
+    @property
+    def bounding_box(self):
+        return self._bounding_box
+
+    @bounding_box.setter
+    def bounding_box(self, bounding_box):
+        self._bounding_box = bounding_box
 
         bbox_scale = 0.1
         x_margin = (self.bounding_box.max_x - self.bounding_box.min_x) * bbox_scale
@@ -72,34 +89,43 @@ class Renderable:
             x_max, y_max, z_max     # 7
         ], dtype=GLfloat)
 
-        # Start render pipeline
-        self.bbox_shader_program.pre_render(camera)
-        self.bbox_shader_program.uniform3fv("color", 1, color.rgb.rgb_list)
+        # Init bbox VAO if need be
+        if self.bbox_vao is None:
+            self.bbox_vao = glGenVertexArrays(1)
+            self.bbox_vertex_buffer = glGenBuffers(1)
+            self.bbox_index_buffer = glGenBuffers(1)
 
-        # Now setup buffers specific to this bbox
-        vertex_buffer = glGenBuffers(1)
-        glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer)
+            # One-time bind of index buffer
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.bbox_index_buffer)
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.bbox_indices.nbytes, self.bbox_indices, GL_STATIC_DRAW)
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
+
+        # Update VAO
+        glBindVertexArray(self.bbox_vao)
+        glBindBuffer(GL_ARRAY_BUFFER, self.bbox_vertex_buffer)
         glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
+
         position_loc = self.bbox_shader_program.get_attrib_location("position")
         glEnableVertexAttribArray(position_loc)
         glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, 0, None)
 
-        index_buffer = glGenBuffers(1)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer)
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.bbox_indices.nbytes, self.bbox_indices, GL_STATIC_DRAW)
+        glBindBuffer(GL_ARRAY_BUFFER, 0)
+        glBindVertexArray(0)
 
-        # Render
+    def render(self, camera):
+        pass
+
+    def render_bounding_box(self, color, camera):
+        self.bbox_shader_program.pre_render(camera)
+        self.bbox_shader_program.uniform3fv("color", 1, color.rgb.rgb_list)
+        glBindVertexArray(self.bbox_vao)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.bbox_index_buffer)
+
         glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, None)
 
-        # Unlink the shader program
-        glDisableVertexAttribArray(position_loc)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
+        glBindVertexArray(0)
         self.bbox_shader_program.post_render(camera)
-
-        # Now teardown this program's buffers
-        glDeleteBuffers(1, [vertex_buffer])
-        glDeleteBuffers(1, [index_buffer])
 
     def render_for_selection_hit(self, camera, r, g, b):
         pass
