@@ -8,6 +8,7 @@ from vistas.ui.project import DataNode
 
 
 class GenerateDEMThread(Thread):
+    """ A worker thread for generating a Digital Elevation Map (DEM) from a DataPlugin. """
 
     def __init__(self, node, controller, path):
         super().__init__()

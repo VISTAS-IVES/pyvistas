@@ -28,6 +28,10 @@ class ExportDeleteTimer(wx.Timer):
 
 
 class ExportController(wx.EvtHandler):
+    """
+    Event handler for controlling the export of renderable content to external media (e.g. images, videos). Provides
+    controls for connecting exportable items such as scenes, legends and 2D visualizations.
+    """
 
     MENU_ADD_LABEL = 1
     MENU_ADD_TIMESTAMP = 2

@@ -2,6 +2,7 @@ import numpy
 
 
 class Histogram:
+    """ Internal representation of a histogram. Internally handles array masking and ranges. """
 
     def __init__(self, data=None, nodata_value=None):
         if data is None:

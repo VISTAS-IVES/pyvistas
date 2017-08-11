@@ -4,6 +4,8 @@ from vistas.ui.utils import get_paint_dc
 
 
 class StaticBitmapButton(wx.Window):
+    """ Button control that displays a bitmap that updates on click events and does not flicker. """
+
     def __init__(self, parent, id, label: wx.Bitmap, pos=wx.DefaultPosition, size=wx.Size(20, 20), style=0):
         super().__init__(parent, id, pos, size, style)
 

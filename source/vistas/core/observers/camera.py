@@ -3,6 +3,7 @@ from vistas.ui.utils import post_redisplay
 
 
 class CameraObservable(Observable):
+    """ A singleton observable for performing camera synchronization. """
 
     _camera_observable = None
 

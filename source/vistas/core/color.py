@@ -2,6 +2,8 @@ import random
 
 
 class Color:
+    """ Base color class. Provides functions for converting between color spaces. """
+
     @property
     def rgb(self):
         if isinstance(self, RGBColor):
@@ -22,6 +24,8 @@ class Color:
 
 
 class RGBColor(Color):
+    """ Color in RGB color space. """
+
     def __init__(self, r, g, b, a=1):
         self.r = r
         self.g = g
@@ -63,6 +67,8 @@ class RGBColor(Color):
 
 
 class HSVColor(Color):
+    """ Color in the HSV color space. """
+
     def __init__(self, h, s, v, a=1):
         self.h = h
         self.s = s
@@ -117,7 +123,7 @@ class HSVColor(Color):
 
 
 def interpolate_color(range, min_color: Color, max_color: Color, t):
-    """ Linearly interpolate in the HSV color space """
+    """ Linearly interpolate in the HSV color space. """
 
     if t < range[0]:
         return min_color

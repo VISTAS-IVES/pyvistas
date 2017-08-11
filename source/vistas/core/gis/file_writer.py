@@ -5,9 +5,7 @@ import numpy
 
 
 class RasterWriter:
-    """
-    An interface for writing various raster data formats
-    """
+    """ An interface for writing various raster data formats. """
 
     @staticmethod
     def write_esri_grid_ascii_file(path, data, extent, cellsize, nodata_value=-9999.0):

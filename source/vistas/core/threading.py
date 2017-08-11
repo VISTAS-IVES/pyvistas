@@ -7,6 +7,8 @@ ThreadSyncEvent, EVT_THREAD_SYNC = wx.lib.newevent.NewEvent()
 
 
 class Thread(threading.Thread, wx.EvtHandler):
+    """ Base threading class. Enables event-based synchronization of the worker thread with the main thread. """
+
     def __init__(self, *args, **kwargs):
         threading.Thread.__init__(self, *args, **kwargs)
         wx.EvtHandler.__init__(self)

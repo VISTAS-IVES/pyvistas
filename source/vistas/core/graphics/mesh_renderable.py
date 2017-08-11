@@ -8,6 +8,8 @@ from vistas.core.paths import get_resources_directory
 
 
 class MeshRenderable(Renderable):
+    """ Base mesh renderable class, combining a Mesh and a MeshShaderProgram into an OpenGL-renderable object. """
+
     def __init__(self, mesh=None):
         super().__init__()
 
