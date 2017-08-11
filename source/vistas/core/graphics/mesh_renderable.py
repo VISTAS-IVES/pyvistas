@@ -49,10 +49,13 @@ class MeshRenderable(Renderable):
 
     @property
     def selection_shader(self):
-        path = os.path.join(get_resources_directory(), 'shaders', 'mesh_render_for_selection_hit_vert.glsl')
         shader = MeshShaderProgram(self.mesh)
-        shader.attach_shader(path, GL_VERTEX_SHADER)
-
+        shader.attach_shader(os.path.join(
+            get_resources_directory(), 'shaders', 'mesh_render_for_selection_hit_vert.glsl'
+        ), GL_VERTEX_SHADER)
+        shader.attach_shader(os.path.join(
+            get_resources_directory(), 'shaders', 'mesh_render_for_selection_hit_frag.glsl'
+        ), GL_FRAGMENT_SHADER)
         return shader
 
     def render_for_selection_hit(self, camera, r, g, b):

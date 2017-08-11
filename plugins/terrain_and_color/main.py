@@ -623,6 +623,7 @@ class TerrainRenderable(MeshRenderable):
     def selection_shader(self):
         shader = TerrainAndColorShaderProgram(self.mesh)
         shader.attach_shader(self.plugin.get_shader_path('selection_vert.glsl'), GL_VERTEX_SHADER)
+        shader.attach_shader(self.plugin.get_shader_path('selection_frag.glsl'), GL_FRAGMENT_SHADER)
         shader.height_factor = self.plugin._elevation_factor.value if self.plugin._elevation_factor.value > 0 else 0.01
         return shader
 
