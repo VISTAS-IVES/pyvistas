@@ -8,6 +8,8 @@ from vistas.core.graphics.bounds import BoundingBox
 
 
 class Scene:
+    """ Container class for containing renderable objects. """
+
     def __init__(self, name='New Scene'):
         self.render_bounding_boxes = False
         self.bounding_box_color = RGBColor(1, 1, 1)

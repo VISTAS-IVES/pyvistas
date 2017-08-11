@@ -6,6 +6,7 @@ from vistas.ui.controls.float_ctrl import FloatCtrl, EVT_FLOAT
 
 
 class ExportOptionsDialog(wx.Dialog):
+    """ A Dialog for configuring parameters for an export encoder. """
 
     VIDEO = 0
     IMAGE = 1

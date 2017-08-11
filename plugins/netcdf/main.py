@@ -22,7 +22,6 @@ class NetCDF4DataPlugin(RasterDataPlugin):
 
         self._header = {}
         self._temporal_info = None
-        self._stats = {}
         self._name = None
         self._extent = None
         self._variables = []
@@ -100,14 +99,12 @@ class NetCDF4DataPlugin(RasterDataPlugin):
     def get_data(self, variable, date=None):
         with Dataset(self.path, 'r') as ds:
             data = ds.variables[variable][:][self._temporal_info.timestamps.index(date)]
-            if isinstance(data, numpy.ma.MaskedArray):
-                data = data.data
-        return data.T
+        return data
 
     @property
     def shape(self):
         with Dataset(self.path, 'r') as ds:
-                return ds.variables[self._variables[0]].shape   # Shape assumed to be uniform across variables
+            return ds.variables[self._variables[0]].shape   # Shape assumed to be uniform across variables
 
     @property
     def extent(self):
@@ -125,16 +122,12 @@ class NetCDF4DataPlugin(RasterDataPlugin):
     def variables(self):
         return self._variables
 
-    def variable_stats(self, variable):
-        return self._stats[variable]
-
     def calculate_stats(self):
-        self._stats = {}
         with Dataset(self.path, 'r') as ds:
             for var in self._variables:
                 data = ds.variables[var][:]
-                self._stats[var] = VariableStats(
-                    min_value=data.min(),
-                    max_value=data.max(),
-                    nodata_value=ds.variables[var]._FillValue if isinstance(data, numpy.ma.MaskedArray) else None
+                self.stats[var] = VariableStats(
+                    min_value=float(data.min()),
+                    max_value=float(data.max()),
+                    nodata_value=float(ds.variables[var]._FillValue) if isinstance(data, numpy.ma.MaskedArray) else None
                 )

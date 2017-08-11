@@ -2,6 +2,8 @@ from pyrr import Vector3
 
 
 class BoundingBox:
+    """ An interface for determining common bounding box values. """
+
     def __init__(self, min_x=-1, min_y=-1, min_z=-1, max_x=1, max_y=1, max_z=1):
         self.min_x = min_x
         self.min_y = min_y

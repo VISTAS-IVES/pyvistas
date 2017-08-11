@@ -158,7 +158,7 @@ class ESRIGridAscii(RasterDataPlugin):
 
         data = numpy.loadtxt(path, skiprows=6).astype(numpy.float32)
         data = numpy.ma.masked_where(data == nodata_value, data)    # Mask out nodata
-        self._current_grid = data.T
+        self._current_grid = data
         self._current_variable = variable
         self._current_time = date
         return self._current_grid
@@ -183,38 +183,25 @@ class ESRIGridAscii(RasterDataPlugin):
     def variables(self):
         return [self._name]
 
-    def variable_stats(self, variable):
-        stats_path = self.path.replace('.asc', '.json')
-        if os.path.exists(stats_path):
-            with open(stats_path, 'r') as f:
-                return VariableStats.from_dict({**json.loads(f.read()), **self._header})
-        else:
-            return VariableStats(misc=self._header)
-
-    @property
-    def has_stats(self):
-        return os.path.exists(self.path.replace('.asc', '.json'))
-
     def calculate_stats(self):
-        if self.has_stats:
-            return
+        if self.stats.is_stale:
+            stats = VariableStats()
+            if self.time_info and self.time_info.is_temporal:
+                maxs = []
+                mins = []
+                for step in self.time_info.timestamps:
+                    grid = self.get_data("", step)
+                    mins.append(grid.min())
+                    maxs.append(grid.max())
+                stats.min_value = float(min(mins))
+                stats.max_value = float(max(maxs))
+            else:
+                grid = self.get_data("")
+                stats.min_value = float(grid.min())
+                stats.max_value = float(grid.max())
 
-        stats = VariableStats()
-        if self.time_info and self.time_info.is_temporal:
-            maxs = []
-            mins = []
-            for step in self.time_info.timestamps:
-                grid = self.get_data("", step)
-                mins.append(grid.min())
-                maxs.append(grid.max())
-            stats.min_value = float(min(mins))
-            stats.max_value = float(max(maxs))
-        else:
-            grid = self.get_data("")
-            stats.min_value = float(grid.min())
-            stats.max_value = float(grid.max())
+            stats.nodata_value = self._header['nodata_value']
+            stats.misc['shape'] = "({},{})".format(*self.shape)
 
-        stats.nodata_value = self._header['nodata_value']
-        stats.misc['shape'] = "({},{})".format(*self.shape)
-        with open(self.path.replace('.asc', '.json'), 'w') as f:
-            f.write(json.dumps(stats.to_dict))
+            self.stats[self._name] = stats
+            self.save_stats()

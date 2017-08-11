@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 
 
 class ShaderProgram(wx.PyEvtHandler):
+    """ Base shader program implementation. Programs are recompiled when .glsl files are modified. """
+
     def __init__(self):
         self.program = -1
 

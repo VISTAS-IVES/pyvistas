@@ -7,6 +7,8 @@ from vistas.core.utils import get_platform, get_config_dir
 
 
 class Preferences:
+    """ Manage key/value preferences. """
+
     _app_preferences = None
 
     @classmethod

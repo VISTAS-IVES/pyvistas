@@ -10,6 +10,8 @@ from vistas.ui.utils import post_timeline_change, post_message
 
 
 class TimeIntervalPanel(wx.Panel):
+    """ A control for encapsulating user input for specifying a datetime.timedelta. """
+
     def __init__(self, parent, id):
         super().__init__(parent, id)
 
@@ -63,6 +65,8 @@ class TimeIntervalPanel(wx.Panel):
 
 
 class TimeFilterWindow(wx.Frame):
+    """ A window for enabling a user to specify a time filter on the current global timeline. """
+
     def __init__(self, parent):
         super().__init__(
             parent, wx.ID_ANY, "Timeline Filter",
