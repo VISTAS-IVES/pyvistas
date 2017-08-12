@@ -30,13 +30,11 @@ class GeoTIFF(RasterDataPlugin):
         self.resolution = None
         self._nodata = None
         self._count = None
-        self._stats_path = None
 
     def load_data(self):
         file_name = self.path.split(os.sep)[-1]
         *name, ext = file_name.split('.')
         self.data_name = '.'.join(name)
-        self._stats_path = os.path.join(os.path.dirname(self.path), '{}.{}'.format(self.data_name, 'json'))
 
         with rasterio.open(self.path) as src:
             projection = Proj(src.crs)
