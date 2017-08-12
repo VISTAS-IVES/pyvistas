@@ -1,10 +1,12 @@
 import os
+from typing import List
 
 from OpenGL.GL import *
 
 from vistas.core.graphics.mesh import Mesh, MeshShaderProgram
 from vistas.core.graphics.renderable import Renderable
 from vistas.core.paths import get_resources_directory
+from vistas.core.math import Triangle
 
 
 class MeshRenderable(Renderable):
@@ -77,3 +79,16 @@ class MeshRenderable(Renderable):
 
     def release_texture(self, number):
         return self.textures_map.pop(number)
+
+    def raycast(self, raycaster) -> List[Renderable.Intersection]:
+
+        intersects = []
+
+        def check_intersection():
+            pass
+
+        if self.mesh.shader is None:
+            return intersects
+
+        # Todo - implement
+        return intersects

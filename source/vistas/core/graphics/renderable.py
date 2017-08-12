@@ -1,3 +1,4 @@
+from typing import List
 import copy
 import os
 
@@ -12,6 +13,13 @@ from vistas.core.paths import get_resources_directory
 
 class Renderable:
     """ Abstract renderable class. Subclasses implement a `render` method to perform OpenGL bindings. """
+
+    class Intersection:
+        """ Container class for describing an intersection at a point. """
+        def __init__(self, distance, point, object):
+            self.distance = distance
+            self.point = point
+            self.object = object
 
     bbox_shader_program = None
     bbox_indices = numpy.array([
@@ -132,6 +140,11 @@ class Renderable:
 
     def get_selection_detail(self, width, height, x, y, camera):
         pass
+
+    def raycast(self, raycaster) -> List[Intersection]:
+        """ Returns a list of intersections from the raycaster to the this renderable. """
+
+        return list()
 
     @property
     def bounds(self):
