@@ -538,14 +538,10 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 center = (int(p[0] / grid_height * texture_w), int(512 - p[1] / grid_width * texture_h))
 
                 # Draw black rectangle directly into data
-                min_x = center[0] - box_w / 2
-                min_x = min_x if min_x >= 0 else 0
-                max_x = center[0] + box_w / 2
-                max_x = max_x if max_x <= 511 else 511
-                min_y = center[1] - box_h / 2
-                min_y = min_y if min_y >= 0 else 0
-                max_y = center[1] + box_h / 2
-                max_y = max_y if max_y <= 511 else 511
+                min_x = min(max(center[0] - box_w / 2, 0), 510)
+                max_x = min(max(center[0] + box_w / 2, min_x + 1), 511)
+                min_y = min(max(center[1] - box_h / 2, 0), 510)
+                max_y = min(max(center[1] + box_h / 2, min_y + 1), 511)
 
                 image_data[round(min_y): round(max_y), round(min_x): round(max_x), 0] = 0
 
