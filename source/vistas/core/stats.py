@@ -65,13 +65,13 @@ class PluginStats:
             data = json.load(f)
 
         stored = data.get('stats')
-        stats = cls({var: VariableStats.from_dict(stored.get(var)) for var in plugin_variables if var in stored})
-
-        # Check if the cache is stale - first by recorded data_path's modify time, and then by checksum
-        if data.get('last_modified') < os.path.getmtime(data_path):
-            if data.get('checksum') != compute_file_checksum(data_path):
-                stats.is_stale = True
-
+        if stored is None:
+            stats = cls()   # Old-style stats, default to stale
+        else:
+            stats = cls({var: VariableStats.from_dict(stored.get(var)) for var in plugin_variables if var in stored})
+            if data.get('last_modified') < os.path.getmtime(data_path):
+                if data.get('checksum') != compute_file_checksum(data_path):
+                    stats.is_stale = True
         return stats
 
 
