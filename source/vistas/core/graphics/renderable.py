@@ -1,6 +1,6 @@
-from typing import List
 import copy
 import os
+from typing import List
 
 import numpy
 from OpenGL.GL import *
@@ -14,12 +14,24 @@ from vistas.core.paths import get_resources_directory
 class Renderable:
     """ Abstract renderable class. Subclasses implement a `render` method to perform OpenGL bindings. """
 
+    class Face:
+        """ Container for describing a face on a Renderable object """
+        def __init__(self, a, b, c, normal=None, color=None):
+            self.a = a
+            self.b = b
+            self.c = c
+            self.normal = normal
+            self.color = color
+
     class Intersection:
-        """ Container class for describing an intersection at a point. """
+        """ Container for describing an intersection at a point on a Renderable object. """
         def __init__(self, distance, point, object):
             self.distance = distance
             self.point = point
             self.object = object
+            self.uv = None
+            self.face = None
+            self.face_index = None
 
     bbox_shader_program = None
     bbox_indices = numpy.array([
@@ -141,10 +153,10 @@ class Renderable:
     def get_selection_detail(self, width, height, x, y, camera):
         pass
 
-    def raycast(self, raycaster) -> List[Intersection]:
-        """ Returns a list of intersections from the raycaster to the this renderable. """
+    def raycast(self, raycaster, camera) -> List[Intersection]:
+        """Returns a list of intersections from the raycaster to this renderable. """
 
-        return list()
+        raise NotImplementedError
 
     @property
     def bounds(self):

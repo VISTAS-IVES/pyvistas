@@ -1,5 +1,5 @@
 from typing import Optional
-from pyrr import Vector3
+from pyrr import Matrix44, Vector3
 
 
 def cubic_interpolation(p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, t) -> Vector3:
@@ -19,6 +19,26 @@ def catmull_rom_splines(p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, t) -
     return a0 * t * t2 + a1 * t2 + a2 * t + a3
 
 
+def apply_matrix_44(vec: Vector3, m: Matrix44):
+    v = vec.copy()
+    x, y, z = v
+    w = 1 / (m.m14 * x + m.m24 * y + m.m34 * z + m.m44)
+    v.x = (m.m11 * x + m.m21 * y + m.m31 * z + m.m41) * w
+    v.y = (m.m12 * x + m.m22 * y + m.m32 * z + m.m42) * w
+    v.z = (m.m13 * x + m.m23 * y + m.m33 * z + m.m43) * w
+    return v
+
+
+def transform_direction(vec: Vector3, m: Matrix44):
+    v = vec.copy()
+    x, y, z = v
+    v.x = m.m11 * x + m.m21 * y + m.m31 * z
+    v.y = m.m12 * x + m.m22 * y + m.m32 * z
+    v.z = m.m13 * x + m.m23 * y + m.m33 * z
+    v.normalize()
+    return v
+
+
 class Triangle:
     """
     Barymetric coordinate math within a triangle defined in 3D space.
@@ -29,6 +49,10 @@ class Triangle:
         self.a = a
         self.b = b
         self.c = c
+
+    @property
+    def normal(self):
+        pass
 
     def barycoord_from_pos(self, p):
         return Triangle._barycoord_from_pos(p, self.a, self.b, self.c)

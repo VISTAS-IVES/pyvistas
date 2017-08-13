@@ -1,12 +1,17 @@
 import os
-from typing import List
+from typing import List, Optional
 
 from OpenGL.GL import *
+from numpy import floor, sqrt, square
+from pyrr import Vector3
 
 from vistas.core.graphics.mesh import Mesh, MeshShaderProgram
 from vistas.core.graphics.renderable import Renderable
+from vistas.core.math import Triangle, apply_matrix_44
 from vistas.core.paths import get_resources_directory
-from vistas.core.math import Triangle
+
+
+# Todo - maybe we should implement a quadtree (or oct-tree) for large terrains?
 
 
 class MeshRenderable(Renderable):
@@ -80,15 +85,78 @@ class MeshRenderable(Renderable):
     def release_texture(self, number):
         return self.textures_map.pop(number)
 
-    def raycast(self, raycaster) -> List[Renderable.Intersection]:
-
+    def raycast(self, raycaster, camera) -> List[Renderable.Intersection]:
         intersects = []
+        matrix_world = camera.matrix.copy()
+        ray = raycaster.ray.apply_matrix_44(matrix_world.inverse)
 
-        def check_intersection():
-            pass
-
-        if self.mesh.shader is None:
+        if self.bounding_box is None or not ray.intersects_bbox(self.bounding_box) or self.mesh.shader is None:
             return intersects
 
-        # Todo - implement
+        # ray intersects this object, now check for face intersections
+        # Todo - Maybe we need a copy of the data on client side?
+        position = self.mesh.acquire_vertex_array()
+        self.mesh.release_vertex_array()
+
+        if self.mesh.has_texture_coords:
+            uv = self.mesh.acquire_texcoords_array()
+            self.mesh.release_texcoords_array()
+        else:
+            uv = None
+
+        if self.mesh.has_index_array:
+            index = self.mesh.acquire_index_array()
+            self.mesh.release_index_array()
+        else:
+            index = None
+
+        def uv_intersection(point, p1, p2, p3, uv1, uv2, uv3):
+            barycoord = Triangle(p1, p2, p3).barycoord_from_pos(point)
+            uv1 *= barycoord.x
+            uv2 *= barycoord.y
+            uv3 *= barycoord.z
+            return uv1 + uv2 + uv3
+
+        def check_intersection(a, b, c) -> Optional[Renderable.Intersection]:
+            intersect = ray.intersect_triangle(c, b, a)
+            if intersect is not None:
+                intersection_point_world = apply_matrix_44(intersect, matrix_world)
+                # Todo - implement 'distance_to' workaround
+                distance = raycaster.ray.origin.distance_to(intersection_point_world)
+                if distance < raycaster.near or distance > raycaster.far:
+                    return None
+                return Renderable.Intersection(distance, intersection_point_world, self)
+            else:
+                return None
+
+        def check_buffer_intersection(a, b, c) -> Optional[Renderable.Intersection]:
+            va = Vector3(position[a: a + 3])
+            vb = Vector3(position[b: b + 3])
+            vc = Vector3(position[c: c + 3])
+            intersection = check_intersection(va, vb, vc)
+            if intersection is not None:
+
+                # Obtain the uv coordinates for this triangle
+                if uv is not None:
+                    uv_a = Vector3([*uv[a: a + 2], 0])
+                    uv_b = Vector3([*uv[b: b + 2], 0])
+                    uv_c = Vector3([*uv[c: c + 2], 0])
+                    intersection.uv = uv_intersection(Vector3(), va, vb, vc, uv_a, uv_b, uv_c)
+
+                # Add the intersection's face information
+                intersection.face = Renderable.Face(a, b, c, Triangle(va, vb, vc).normal)
+            return intersection
+
+        if index is not None:
+            for i in range(0, self.mesh.num_indices, 3):
+                index_a = index[i]
+                index_b = index[i + 1]
+                index_c = index[i + 2]
+                intersection = check_buffer_intersection(index_a, index_b, index_c)
+                if intersection is not None:
+                    intersection.face_index = floor(i / 3)
+                    intersects.append(intersection)
+        else:
+            pass    # Todo - handle non-indexed geometry?
+
         return intersects

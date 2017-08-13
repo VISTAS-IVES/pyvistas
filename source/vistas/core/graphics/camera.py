@@ -5,6 +5,7 @@ from pyrr import Matrix44, Vector3
 
 from vistas.core.color import RGBColor
 from vistas.core.graphics.scene import Scene
+from vistas.core.math import apply_matrix_44
 from vistas.core.observers.camera import CameraObservable
 from vistas.core.observers.interface import Observer
 
@@ -47,7 +48,19 @@ class Camera(Observer):
         if self._matrix_stack:
             self.matrix = self._matrix_stack.pop()
 
+    def project(self, v: Vector3) -> Vector3:
+        """ Project a vector to world coordinate system. """
+
+        return apply_matrix_44(v, self.proj_matrix * self.matrix.inverse)
+
+    def unproject(self, v: Vector3) -> Vector3:
+        """ Unproject a vector from the world coordinates. """
+
+        return apply_matrix_44(v, self.matrix * self.proj_matrix.inverse)
+
     def get_position(self) -> Vector3:
+        """ Get camera position in world coordinate system. """
+
         mat = self.matrix
         relative_pos = Vector3([mat[3, 0], mat[3, 1], mat[3, 2]])
         relative_pos *= -1
@@ -59,6 +72,8 @@ class Camera(Observer):
         return actual_pos
 
     def get_direction(self) -> Vector3:
+        """ Get camera direction in world coordinate system. """
+
         return Vector3([self.matrix[0, 2] * -1, self.matrix[1, 2] * -1, self.matrix[2, 2] * -1])
 
     def set_point_of_interest(self, poi: Vector3):
