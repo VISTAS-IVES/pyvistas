@@ -27,10 +27,11 @@ class AppController(wx.EvtHandler):
     Master application event handler. Responsible for orchestrating top-level application logic and handlers for main
     window interactions.
     """
-
-    def __init__(self):
+    def __init__(self, startup_project=None):
         super().__init__()
         load_plugins(paths.get_builtin_plugins_directory())
+
+        self.startup_project = startup_project
 
         self.main_window = MainWindow(None, wx.ID_ANY)
         self.main_window.Show()
@@ -88,6 +89,10 @@ class AppController(wx.EvtHandler):
         wx.adv.SplashScreen(
             splash_composite, wx.adv.SPLASH_TIMEOUT | wx.adv.SPLASH_CENTRE_ON_PARENT, 5000, self.main_window, wx.ID_ANY
         )
+
+        if self.startup_project:
+            self.main_window.project_controller.LoadProject(self.startup_project)
+            self.startup_project = None
 
     def OnWindowMenu(self, event):
         event_id = event.GetId()

@@ -27,6 +27,7 @@ class App(wx.App):
     """ The UI application entry point. """
 
     _global_app = None
+    startup_project = None
     init = False
 
     @classmethod
@@ -90,7 +91,7 @@ class App(wx.App):
         else:
             asyncio.set_event_loop(asyncio.SelectorEventLoop())
 
-        self.app_controller = AppController()
+        self.app_controller = AppController(self.startup_project)
 
         # Download FFmpeg
         DownloadFFMpegThread().start()
