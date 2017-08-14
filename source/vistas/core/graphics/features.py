@@ -279,6 +279,7 @@ class FeatureLayer:
             xs = triangles[:, 0]
             ys = triangles[:, 1]
             verts = numpy.dstack((xs, numpy.zeros_like(xs), ys))[0]
+            verts = verts.astype(numpy.float32)
 
             # cache the vertices
             if use_cache:
