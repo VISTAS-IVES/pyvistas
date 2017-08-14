@@ -357,6 +357,12 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             shader.min_value = self._min_value.value
             shader.max_value = self._max_value.value
 
+            # If attribute data does not specify a nodata_value, set something that won't affect rendering
+            if self.attribute_data:
+                stats = self.attribute_data.variable_stats(self._attribute.selected)
+                if stats.nodata_value is None:
+                    shader.nodata_value = stats.min_value - 1
+
             shader.min_color = self._min_color.value.hsv.hsva_list
             shader.max_color = self._max_color.value.hsv.hsva_list
             shader.nodata_color = self._nodata_color.value.hsv.hsva_list
@@ -487,7 +493,9 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                     data = data.data
 
                 height, width = data.shape
-                shader.nodata_value = self.attribute_data.variable_stats(attribute).nodata_value
+                color_stats = self.attribute_data.variable_stats(attribute)
+                if color_stats.nodata_value:
+                    shader.nodata_value = color_stats.nodata_value
                 size = sizeof(c_float) * width * height
 
                 # Inform OpenGL of the new color buffer
