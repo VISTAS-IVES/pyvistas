@@ -42,3 +42,23 @@ class BoundingBox:
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
+
+
+def union_bboxs(bboxs):
+    """ Return the largest BoundingBox from a list of bounding boxes. """
+
+    bbox = BoundingBox(bboxs[0].min_x, bboxs[0].min_y, bboxs[0].min_z, bboxs[0].max_x, bboxs[0].max_y, bboxs[0].max_z)
+    for box in bboxs[1:]:
+        if box.min_x < bbox.min_x:
+            bbox.min_x = box.min_x
+        if box.min_y < bbox.min_y:
+            bbox.min_y = box.min_y
+        if box.min_z < bbox.min_z:
+            bbox.min_z = box.min_z
+        if box.max_x > bbox.max_x:
+            bbox.max_x = box.max_x
+        if box.max_y > bbox.max_y:
+            bbox.max_y = box.max_y
+        if box.max_z > bbox.max_z:
+            bbox.max_z = box.max_z
+    return bbox

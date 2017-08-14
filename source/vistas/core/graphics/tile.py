@@ -1,5 +1,5 @@
-import os
 import math
+import os
 
 import mercantile
 import numpy
@@ -8,7 +8,7 @@ from pyproj import Proj
 from pyrr import Vector3, Matrix44
 from pyrr.vector3 import generate_vertex_normals
 
-from vistas.core.gis.elevation import ElevationService, calculate_cellsize, TILE_SIZE
+from vistas.core.gis.elevation import ElevationService, meters_per_px, TILE_SIZE
 from vistas.core.graphics.bounds import BoundingBox
 from vistas.core.graphics.mesh import Mesh
 from vistas.core.graphics.renderable import Renderable
@@ -51,12 +51,12 @@ class TileShaderProgram(ShaderProgram):
 class TileMesh(Mesh):
     """ Base tile mesh, contains all VAO/VBO objects """
 
-    def __init__(self, tile: mercantile.Tile, cellsize):
+    def __init__(self, tile: mercantile.Tile, meters_per_px):
         vertices = TILE_SIZE ** 2
         indices = 6 * (TILE_SIZE - 1) ** 2
         super().__init__(indices, vertices, True, mode=Mesh.TRIANGLES)
         self.mtile = tile
-        self.cellsize = cellsize
+        self.meters_per_px = meters_per_px
 
     def set_buffers(self, vertices, indices, normals, neighbor_meshes):
 
@@ -105,7 +105,8 @@ class TileMesh(Mesh):
         index_buf[:] = indices.ravel()
         self.release_index_array()
 
-        self.bounding_box = BoundingBox(0, -10, 0, TILE_SIZE * self.cellsize, 10, TILE_SIZE * self.cellsize)
+        self.bounding_box = BoundingBox(0, float(vertices.min()) / self.meters_per_px, 0, TILE_SIZE,
+                                        float(vertices.max()) / self.meters_per_px, TILE_SIZE)
 
 
 class TileRenderThread(Thread):
@@ -122,9 +123,8 @@ class TileRenderThread(Thread):
         e = ElevationService()
         e.zoom = self.grid.zoom
         self.task.status = Task.RUNNING
-        self.task.description = 'Collecting elevation data...'
+        self.task.description = 'Collecting Elevation Data'
         e.get_tiles(self.grid.wgs84, self.task)
-        cellsize = self.grid.cellsize
 
         self.task.description = 'Generating Terrain Mesh'
         self.task.target = len(self.grid.tiles)
@@ -147,9 +147,9 @@ class TileRenderThread(Thread):
             height, width = data.shape
             indices = numpy.indices(data.shape)
             heightfield = numpy.zeros((height, width, 3), dtype=numpy.float32)
-            heightfield[:, :, 0] = indices[0] * cellsize
-            heightfield[:, :, 2] = indices[1] * cellsize
-            heightfield[:, :, 1] = data
+            heightfield[:, :, 0] = indices[0]
+            heightfield[:, :, 2] = indices[1]
+            heightfield[:, :, 1] = data / self.grid.meters_per_px
 
             # Setup indices
             index_array = []
@@ -190,7 +190,7 @@ class TileLayerRenderable(Renderable):
         self._br = None
         self._zoom = None
         self._meshes = []
-        self.cellsize = None
+        self.meters_per_px = None
 
         self.zoom = zoom    # Update things appropriately
 
@@ -218,16 +218,15 @@ class TileLayerRenderable(Renderable):
             self._ul = self.tiles[0]
             self._br = self.tiles[-1]
 
-            # recalculate cellsize
-            self.cellsize = calculate_cellsize(self.zoom)
+            self.meters_per_px = meters_per_px(self.zoom)
 
             del self._meshes[:]
             TileRenderThread(self).start()
 
     def add_tile(self, t, vertices, indices, normals):
-        tile = TileMesh(t, self.cellsize)
+        tile = TileMesh(t, self.meters_per_px)
 
-        # resolve seams before allocating buffers
+        # Determine neighbors for this tile
         neighbors = [
             mercantile.Tile(t.x - 1, t.y, t.z),     # left
             mercantile.Tile(t.x, t.y + 1, t.z),     # bottom
@@ -235,13 +234,14 @@ class TileLayerRenderable(Renderable):
             mercantile.Tile(t.x, t.y - 1, t.z)      # top
         ]
         neighbor_meshes = [x for x in self._meshes if x.mtile in neighbors]
+
+        # Allocate OpenGL buffers
         tile.set_buffers(vertices, indices, normals, neighbor_meshes)
         self._meshes.append(tile)
 
     def refresh_bounding_box(self):
-        width = (self._br.x - self._ul.x + 1) * TILE_SIZE * self.cellsize
-        height = (self._br.y - self._ul.y + 1) * TILE_SIZE * self.cellsize
-
+        width = (self._br.x - self._ul.x + 1) * TILE_SIZE
+        height = (self._br.y - self._ul.y + 1) * TILE_SIZE
         self.bounding_box = BoundingBox(0, -10, 0, width, 10, height)
 
     @property
@@ -260,8 +260,8 @@ class TileLayerRenderable(Renderable):
         for tile in self._meshes:
             camera.push_matrix()
             camera.matrix *= Matrix44.from_translation(
-                Vector3([(tile.mtile.x - self._ul.x) * (TILE_SIZE - 1) * tile.cellsize, 0,
-                         (tile.mtile.y - self._ul.y) * (TILE_SIZE - 1) * tile.cellsize])
+                Vector3([(tile.mtile.x - self._ul.x) * (TILE_SIZE - 1), 0,
+                         (tile.mtile.y - self._ul.y) * (TILE_SIZE - 1)])
                 )
             self.shader.current_tile = tile
             self.shader.pre_render(camera)

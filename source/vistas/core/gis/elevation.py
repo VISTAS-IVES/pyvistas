@@ -19,7 +19,7 @@ TILE_SIZE = 256                 # Our tile representation size, can be changed
 DEFAULT_TILE_SIZE = 256         # ZXY tiles
 
 
-def calculate_cellsize(zoom):
+def meters_per_px(zoom):
     return 6378137.0 * 2 * numpy.pi / (TILE_SIZE * (2 ** zoom))
 
 
@@ -42,8 +42,8 @@ class ElevationService:
     @property
     def zoom(self):
         """
-            Only get tiles where we benefit from lower zoom level.
-            See https://gist.github.com/tucotuco/1193577#file-globalmaptiles-py-L268
+        Only get tiles where we benefit from lower zoom level.
+        See https://gist.github.com/tucotuco/1193577#file-globalmaptiles-py-L268
         """
 
         if self._zoom is not None:
@@ -54,7 +54,7 @@ class ElevationService:
 
         # Calculate self._zoom once and cache
         for i in range(16):
-            if self.resolution > calculate_cellsize(i):
+            if self.resolution > meters_per_px(i):
                 self._zoom = i - 1 if i != 0 else 0
                 return self._zoom
 
@@ -220,6 +220,8 @@ class ElevationService:
 
         else:
             shape = plugin.shape
+            # Todo - res assumes resolution is in meters. ElevationService will fail if resolution is lat/lon
+            # Todo - Check for geographic projection and convert lat/lon to meters_per_px
             res = plugin.resolution
 
         self.create_dem(

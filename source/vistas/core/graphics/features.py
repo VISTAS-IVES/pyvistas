@@ -10,7 +10,7 @@ from OpenGL.GL import *
 from shapely.ops import transform
 
 from vistas.core.color import RGBColor
-from vistas.core.gis.elevation import ElevationService, TILE_SIZE, calculate_cellsize
+from vistas.core.gis.elevation import ElevationService, meters_per_px, TILE_SIZE
 from vistas.core.graphics.bounds import BoundingBox
 from vistas.core.graphics.mesh import Mesh
 from vistas.core.graphics.renderable import Renderable
@@ -32,7 +32,7 @@ class FeatureShaderProgram(ShaderProgram):
         self.link_program()
         self.alpha = 1.0
         self.height_multiplier = 1.0
-        self.height_offset = 500.0
+        self.height_offset = 5.0
 
     def pre_render(self, camera):
         super().pre_render(camera)
@@ -147,7 +147,7 @@ class FeatureLayer:
         self._br = None
         self.bounding_box = None
         self._zoom = None
-        self.cellsize = None
+        self.meters_per_px = None
         self.zoom = zoom    # update bounds
 
         self._color_func = None
@@ -170,11 +170,11 @@ class FeatureLayer:
         self._ul = tiles[0]
         self._br = tiles[-1]
 
-        self.cellsize = calculate_cellsize(self.zoom)
+        self.meters_per_px = meters_per_px(self.zoom)
 
         self.bounding_box = BoundingBox(
             0, -10, 0,
-            (self._br.x - self._ul.x + 1) * TILE_SIZE * self.cellsize, 10, (self._br.y - self._ul.y + 1) * TILE_SIZE * self.cellsize
+            (self._br.x - self._ul.x + 1) * TILE_SIZE, 10, (self._br.y - self._ul.y + 1) * TILE_SIZE
         )
         if self.renderable:
             self.renderable.bounding_box = self.bounding_box
@@ -297,11 +297,11 @@ class FeatureLayer:
         # Index into current DEM and assign heights
         us = numpy.floor(verts[:, 0] * dwidth).astype(int)
         vs = numpy.floor(verts[:, 2] * dheight).astype(int)
-        verts[:, 1] = dem[vs, us].ravel()
+        verts[:, 1] = dem[vs, us].ravel() / self.meters_per_px
 
         # Scale vertices based on tile size
-        verts[:, 0] *= (self._br.x - self._ul.x + 1) * TILE_SIZE * self.cellsize
-        verts[:, 2] *= (self._br.y - self._ul.y + 1) * TILE_SIZE * self.cellsize
+        verts[:, 0] *= (self._br.x - self._ul.x + 1) * TILE_SIZE
+        verts[:, 2] *= (self._br.y - self._ul.y + 1) * TILE_SIZE
 
         # Vertex indices are assumed to be unique
         indices = numpy.arange(verts.shape[0])

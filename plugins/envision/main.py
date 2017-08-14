@@ -38,7 +38,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
         self._zoom = Option(self, Option.SLIDER, 'Zoom Level', 9, 5, 11, 1)
         self._transparency = Option(self, Option.SLIDER, 'Transparency', 0.75, 0.0, 1.0, 0.1)
         self._height = Option(self, Option.SLIDER, 'Height Multiplier', 1.0, 0.01, 5.0, 0.01)
-        self._offset = Option(self, Option.FLOAT, 'Height Offset', 500, 0.0, 2000)
+        self._offset = Option(self, Option.FLOAT, 'Height Offset', 5, 0, 10)
         self._options = OptionGroup()
         self._options.items = [self._attributes, self._zoom, self._transparency, self._height, self._offset]
 
