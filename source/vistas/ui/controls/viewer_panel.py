@@ -314,16 +314,13 @@ class ViewerPanel(wx.Panel, Observer):
         mouse_y = - event.GetY() / size.y * 2 + 1
         self.gl_canvas.camera.raycaster.set_from_camera((mouse_x, mouse_y), self.camera)
         intersects = self.gl_canvas.camera.raycaster.intersect_objects(self.camera)
-
-        # Todo - reimplement data retrieval
-        #object = self.gl_canvas.camera.select_object(*size, event.GetX(), event.GetY())
-        #if object is not None:
-        #    result = object.get_selection_detail(*size, event.GetX(), event.GetY(), self.gl_canvas.camera)
-
-        #    if self.inspect_window is None:
-        #        self.inspect_window = InspectWindow(self, wx.ID_ANY)
-        #    self.inspect_window.data = result
-        #    self.inspect_window.Show()
+        if intersects:
+            intersection = intersects[0]
+            result = intersection.object.get_selection_detail(intersection.point)
+            if self.inspect_window is None:
+                self.inspect_window = InspectWindow(self, wx.ID_ANY)
+            self.inspect_window.data = result
+            self.inspect_window.Show()
 
     def OnCanvasRightClick(self, event):
         menu = wx.Menu()

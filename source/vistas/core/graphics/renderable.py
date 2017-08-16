@@ -1,6 +1,6 @@
 import copy
 import os
-from typing import List
+from typing import List, Dict, Optional
 
 import numpy
 from OpenGL.GL import *
@@ -144,7 +144,7 @@ class Renderable:
     def render_for_selection_hit(self, camera, r, g, b):
         pass
 
-    def get_selection_detail(self, width, height, x, y, camera):
+    def get_selection_detail(self, point: Vector3) -> Optional[Dict]:
         pass
 
     def raycast(self, raycaster) -> List[Intersection]:

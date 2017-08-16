@@ -1,6 +1,7 @@
 import math
 from collections import OrderedDict
 from ctypes import sizeof, c_float
+from typing import Dict, Optional
 
 import numpy
 import shapely.geometry as geometry
@@ -618,74 +619,14 @@ class TerrainRenderable(MeshRenderable):
         shader.height_factor = self.plugin._elevation_factor.value if self.plugin._elevation_factor.value > 0 else 0.01
         return shader
 
-    def get_selection_detail(self, width, height, x, y, camera):
+    def get_selection_detail(self, point: Vector3) -> Optional[Dict]:
+        if self.plugin.terrain_data is not None:
+            res = self.plugin.terrain_data.resolution
+            cell_x = int(round((point.x / res)))
+            cell_y = int(round((point.y / res)))
 
-        device_x = x * 2.0 / width - 1
-        device_y = 1 - 2.0 * y / height
-
-        ray_clip = Vector4([device_x, device_y, -1, 1])
-        ray_eye = camera.proj_matrix.inverse * ray_clip
-        ray_eye = Vector4([ray_eye.x, ray_eye.y, -1.0, 1.0])
-
-        ray_world = (camera.matrix.T * ray_eye).vector3[0]
-        ray_world.normalise()
-
-        bbox = self.mesh.bounding_box
-        v1 = Vector3([bbox.min_x, bbox.min_y, bbox.min_z])
-        v2 = Vector3([bbox.max_x, bbox.min_y, bbox.min_z])
-        v3 = Vector3([bbox.min_x, bbox.min_y, bbox.max_z])
-        plane_normal = ((v2 - v1).cross(v3 - v1))
-        plane_normal.normalise()
-
-        camera_pos = camera.get_position()
-        denom = ray_world.dot(plane_normal)
-
-        if abs(denom) > 1e-6:
-
-            d = (v1 - Vector3()).length
-
-            t = -((camera_pos.dot(plane_normal) + d ) / denom)
             terrain_attr = self.plugin._elevation_attribute.selected
             terrain_ref = self.plugin.terrain_data.get_data(terrain_attr).T
-            terrain_stats = self.plugin.terrain_data.variable_stats(terrain_attr)
-
-            res = self.plugin.terrain_data.resolution
-            nodata_value = terrain_stats.nodata_value
-            width, height = terrain_ref.shape
-            min_height_value = terrain_stats.min_value
-            max_height_value = terrain_stats.max_value
-            factor = 1.0
-            elevation_multiplier = self.plugin._elevation_factor.value
-
-            max_height = numpy.sqrt(width * height * res) / 2
-            if max_height_value > max_height:
-                factor = max_height / max_height_value
-
-            point = ray_world * t + camera_pos
-            cell_x = int(round((point.x - v1.x) / res))
-            cell_y = int(round((point.z - v1.z) / res))
-
-            angle = numpy.arcsin(camera_pos.y / t)
-            step = res / numpy.cos(angle)
-
-            t2 = 0
-            while t2 < t:
-
-                p = ray_world * t2 + camera_pos
-                x = int(round((p.x - v1.x) / res))
-                y = int(round((p.z - v1.z) / res))
-
-                if x >= 0 and x < width and y >= 0 and y < height:
-                    cell_height = terrain_ref[x, y]
-                    cell_height = cell_height * factor if cell_height != nodata_value else min_height_value
-                    cell_height *= elevation_multiplier
-
-                    if cell_height >= p.y:
-                        cell_x = x
-                        cell_y = y
-                        break
-
-                t2 += step
 
             if self.plugin.attribute_data is not None:
                 attribute_ref = self.plugin.attribute_data.get_data(
