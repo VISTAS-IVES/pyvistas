@@ -85,7 +85,7 @@ class Ray:
 
         pvec = numpy.cross(direction, e2)
         det = numpy.sum(e1 * pvec, axis=-1)
-        det_cond = (det >= eps) | (det <= -eps)     # Get values outside of range eps < det < eps
+        det_cond = (det >= eps) | (det <= -eps)     # Get values outside of range -eps < det < eps
 
         inv_det = 1 / det
         tvec = origin - b

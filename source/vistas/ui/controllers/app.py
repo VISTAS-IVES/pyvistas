@@ -151,6 +151,8 @@ class AppController(wx.EvtHandler):
             self.main_window.viewer_container_panel.ToggleWireframe()
         elif event_id == MainWindow.MENU_DEBUG_TOGGLE_SELECTION_VIEW:
             pass  # Todo
+        elif event_id == MainWindow.MENU_DEBUG_TOGGLE_AUTOMATIC_RAYCASTING:
+            self.main_window.viewer_container_panel.ToggleAutoRaycasting()
         elif event_id == MainWindow.MENU_HELP_REPORT_ISSUE:
             wx.LaunchDefaultBrowser('https://github.com/VISTAS-IVES/pyvistas/issues')
 

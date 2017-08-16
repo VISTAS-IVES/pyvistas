@@ -6,6 +6,7 @@ from vistas.core.observers.camera import CameraObservable
 from vistas.core.preferences import Preferences
 from vistas.ui.controllers.project import ProjectChangedEvent
 from vistas.ui.controls.viewer_panel import ViewerPanel
+from vistas.ui.controls.gl_canvas import GLCanvas
 from vistas.ui.events import EVT_CAMERA_MODE_CHANGED, EVT_CAMERA_SYNC, CameraSyncEvent
 
 
@@ -185,6 +186,9 @@ class ViewerContainerPanel(wx.Panel):
         for viewer in self.GetAllViewerPanels():
             viewer.camera.selection_view = self.selection_view
             viewer.Refresh()
+
+    def ToggleAutoRaycasting(self):
+        GLCanvas.auto_raycast = not GLCanvas.auto_raycast
 
     def OnCameraModeChanged(self, event):
         if CameraObservable.get().is_sync:
