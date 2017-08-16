@@ -163,7 +163,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 self.vector_renderable.animation_speed = self._animation_speed.value
 
             elif name == self._elevation_factor.name:
-                self.vector_renderable.offset_multipliers = Vector3([1, self._elevation_factor.value, 1])
+                self.vector_renderable.offset_multipliers = Vector3([1, 1, self._elevation_factor.value], dtype=numpy.float32)
 
             elif name == self._flow_color.name:
                 self.vector_renderable.color = self._flow_color.value
@@ -407,11 +407,11 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             heightfield = numpy.zeros((height, width, 3))
             indices = numpy.indices((height, width))
             heightfield[:, :, 0] = indices[0] * cellsize   # x
-            heightfield[:, :, 2] = indices[1] * cellsize   # z
-            heightfield[:, :, 1] = height_data
+            heightfield[:, :, 1] = indices[1] * cellsize   # z
+            heightfield[:, :, 2] = height_data
             if nodata_value is not None:
-                heightfield[:, :, 1][heightfield[:, :, 1] != nodata_value] *= factor    # Apply factor where needed
-                heightfield[:, :, 1][heightfield[:, :, 1] == nodata_value] = min_value  # Otherwise, set to min value
+                heightfield[:, :, 2][heightfield[:, :, 1] != nodata_value] *= factor    # Apply factor where needed
+                heightfield[:, :, 2][heightfield[:, :, 1] == nodata_value] = min_value  # Otherwise, set to min value
 
             self.heightfield = heightfield
 
@@ -441,31 +441,17 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             ).reshape(heightfield.shape)
             self.normals = normals
 
-            # Set mesh vertex array to heightfield
-            vert_buf = mesh.acquire_vertex_array()
-            vert_buf[:] = heightfield.ravel()
-            mesh.release_vertex_array()
-
-            # Set mesh normal array
-            norm_buf = mesh.acquire_normal_array()
-            norm_buf[:] = normals.ravel()
-            mesh.release_normal_array()
-
-            # Set mesh index array
-            index_buf = mesh.acquire_index_array()
-            index_buf[:] = index_array
-            mesh.release_index_array()
-
-            # Set mesh texture coordinates
-            texcoord_buf = mesh.acquire_texcoords_array()
             tex_coords = numpy.zeros((height, width, 2))
             tex_coords[:, :, 0] = indices[0] / height  # u
             tex_coords[:, :, 1] = 1 - indices[1] / width   # v
-            texcoord_buf[:] = tex_coords.ravel()
-            mesh.release_texcoords_array()
 
-            mesh.bounding_box = BoundingBox(0, min_value * factor, 0,
-                                            height * cellsize, max_value * factor, width * cellsize)
+            # Initialize mesh buffers
+            mesh.vertices = heightfield
+            mesh.normals = normals
+            mesh.indices = numpy.array(index_array)
+            mesh.texcoords = tex_coords
+            mesh.bounding_box = BoundingBox(0, 0, min_value * factor,
+                                            height * cellsize, width * cellsize, max_value * factor)
 
             self.mesh_renderable = TerrainRenderable(mesh)
             self.mesh_renderable.plugin = self
@@ -582,7 +568,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             vector_data[:, :, 0:3] = self.heightfield
             vector_data[:, :, 3] = flow_dir * -45.0 + 45.0       # VELMA flow direction, converted to polar degrees
             vector_data[:, :, 4] = numpy.zeros((height, width), dtype=numpy.float32)   # tilt of vector
-            vector_data[:, :, 4] = 90 - numpy.arcsin(numpy.abs(self.normals[:, :, 1])) * 180 / numpy.pi
+            vector_data[:, :, 4] = 90 - numpy.arcsin(numpy.abs(self.normals[:, :, 2])) * 180 / numpy.pi
             vector_data[:, :, 5] = numpy.ones((height, width), dtype=numpy.float32) if self.flow_acc_data is None else \
                 self.flow_acc_data.get_data(flow_acc_label, Timeline.app().current).T
             vector_data[:, :, 6] = numpy.zeros((height, width), dtype=numpy.float32) if self.attribute_data is None \

@@ -2,13 +2,14 @@ import os
 from typing import List, Optional
 
 from OpenGL.GL import *
-from numpy import floor, sqrt, square
+from numpy import floor
 from pyrr import Vector3
 
 from vistas.core.graphics.mesh import Mesh, MeshShaderProgram
 from vistas.core.graphics.renderable import Renderable
-from vistas.core.math import Triangle, apply_matrix_44
+from vistas.core.math import Triangle, apply_matrix_44, distance_from
 from vistas.core.paths import get_resources_directory
+from vistas.core.graphics.raycaster import Ray
 
 
 # Todo - maybe we should implement a quadtree (or oct-tree) for large terrains?
@@ -86,29 +87,32 @@ class MeshRenderable(Renderable):
         return self.textures_map.pop(number)
 
     def raycast(self, raycaster, camera) -> List[Renderable.Intersection]:
+        import time
         intersects = []
-        matrix_world = camera.matrix.copy()
-        ray = raycaster.ray.apply_matrix_44(matrix_world.inverse)
-
-        if self.bounding_box is None or not ray.intersects_bbox(self.bounding_box) or self.mesh.shader is None:
+        t = time.time()
+        if self.bounding_box is None or not raycaster.ray.intersects_bbox(self.bounding_box) or self.mesh.shader is None:
             return intersects
-
+        print('Time to bbox intersect: {}'.format(time.time() - t))
+        t = time.time()
         # ray intersects this object, now check for face intersections
-        # Todo - Maybe we need a copy of the data on client side?
-        position = self.mesh.acquire_vertex_array()
-        self.mesh.release_vertex_array()
+        position = self.mesh.vertices
 
         if self.mesh.has_texture_coords:
-            uv = self.mesh.acquire_texcoords_array()
-            self.mesh.release_texcoords_array()
+            uv = self.mesh.texcoords
         else:
             uv = None
 
         if self.mesh.has_index_array:
-            index = self.mesh.acquire_index_array()
-            self.mesh.release_index_array()
+            index = self.mesh.indices
         else:
             index = None
+
+        va = Vector3()
+        vb = Vector3()
+        vc = Vector3()
+        uv_a = Vector3()
+        uv_b = Vector3()
+        uv_c = Vector3()
 
         def uv_intersection(point, p1, p2, p3, uv1, uv2, uv3):
             barycoord = Triangle(p1, p2, p3).barycoord_from_pos(point)
@@ -118,45 +122,40 @@ class MeshRenderable(Renderable):
             return uv1 + uv2 + uv3
 
         def check_intersection(a, b, c) -> Optional[Renderable.Intersection]:
-            intersect = ray.intersect_triangle(c, b, a)
+            intersect = raycaster.ray.it(c, b, a)
             if intersect is not None:
-                intersection_point_world = apply_matrix_44(intersect, matrix_world)
-                # Todo - implement 'distance_to' workaround
-                distance = raycaster.ray.origin.distance_to(intersection_point_world)
-                if distance < raycaster.near or distance > raycaster.far:
-                    return None
-                return Renderable.Intersection(distance, intersection_point_world, self)
+                distance = distance_from(raycaster.ray.origin, intersect)
+                return Renderable.Intersection(distance, intersect, self)
             else:
                 return None
 
         def check_buffer_intersection(a, b, c) -> Optional[Renderable.Intersection]:
-            va = Vector3(position[a: a + 3])
-            vb = Vector3(position[b: b + 3])
-            vc = Vector3(position[c: c + 3])
+            nonlocal va, vb, vc, uv_a, uv_b, uv_c
+            va = Vector3(position[a * 3: a * 3 + 3])
+            vb = Vector3(position[b * 3: b * 3 + 3])
+            vc = Vector3(position[c * 3: c * 3 + 3])
             intersection = check_intersection(va, vb, vc)
             if intersection is not None:
 
                 # Obtain the uv coordinates for this triangle
                 if uv is not None:
-                    uv_a = Vector3([*uv[a: a + 2], 0])
-                    uv_b = Vector3([*uv[b: b + 2], 0])
-                    uv_c = Vector3([*uv[c: c + 2], 0])
-                    intersection.uv = uv_intersection(Vector3(), va, vb, vc, uv_a, uv_b, uv_c)
+                    uv_a = Vector3([*uv[a * 2: a * 2 + 2], 0])
+                    uv_b = Vector3([*uv[b * 2: b * 2 + 2], 0])
+                    uv_c = Vector3([*uv[c * 2: c * 2 + 2], 0])
+                    intersection.uv = uv_intersection(intersection.point, va, vb, vc, uv_a, uv_b, uv_c)
 
                 # Add the intersection's face information
-                intersection.face = Renderable.Face(a, b, c, Triangle(va, vb, vc).normal)
+                intersection.face = Renderable.Face(a, b, c, Triangle(vc, vb, va).normal)
             return intersection
 
         if index is not None:
             for i in range(0, self.mesh.num_indices, 3):
-                index_a = index[i]
-                index_b = index[i + 1]
-                index_c = index[i + 2]
-                intersection = check_buffer_intersection(index_a, index_b, index_c)
+                a = index[i]
+                b = index[i + 1]
+                c = index[i + 2]
+                intersection = check_buffer_intersection(a, b, c)
                 if intersection is not None:
                     intersection.face_index = floor(i / 3)
                     intersects.append(intersection)
-        else:
-            pass    # Todo - handle non-indexed geometry?
-
+        print("Elapsed time: {}".format(time.time() - t))
         return intersects

@@ -4,12 +4,9 @@ import numpy
 from pyrr import Vector3
 
 from vistas.core.graphics.bounds import BoundingBox
-from vistas.core.graphics.camera import Camera
 from vistas.core.graphics.renderable import Renderable
-from vistas.core.math import apply_matrix_44, transform_direction
 
 
-# Todo - add tests for bounding box intersection
 class Ray:
     """
     Representation of a ray in 3D space. Rays emit from an origin along a direction.
@@ -17,8 +14,8 @@ class Ray:
     """
 
     def __init__(self, origin: Optional[Vector3]=None, direction: Optional[Vector3]=None):
-        self.origin = origin if origin else Vector3()
-        self.direction = direction if direction else Vector3()
+        self.origin = origin if origin is not None else Vector3()
+        self.direction = direction if direction is not None else Vector3()
         self.direction.normalize()
 
     def at(self, t):
@@ -26,15 +23,10 @@ class Ray:
 
         return self.direction * t + self.origin
 
-    def apply_matrix_44(self, matrix):
-        return Ray(apply_matrix_44(self.origin, matrix), transform_direction(self.direction.copy(), matrix))
-
     def intersects_bbox(self, bbox: BoundingBox):
         return self.intersect_bbox(bbox) is not None
 
     def intersect_bbox(self, bbox: BoundingBox):
-        """ Test if this ray intersects a bounding box. """
-
         invdirx, invdiry, invdirz = 1 / self.direction  # Any or all could evaluate to numpy.inf, handled below
 
         if invdirx >= 0:
@@ -51,7 +43,7 @@ class Ray:
             tymin = (bbox.max_y - self.origin.y) * invdiry
             tymax = (bbox.min_y - self.origin.y) * invdiry
 
-        if tmin > tymin or tymin > tmax:
+        if tmin > tymax or tymin > tmax:
             return None
 
         # These lines handle when t_min or t_max are numpy.nan or numpy.inf
@@ -68,7 +60,7 @@ class Ray:
             tzmin = (bbox.max_z - self.origin.z) * invdirz
             tzmax = (bbox.min_z - self.origin.z) * invdirz
 
-        if tmin > tzmax or tzmax > tmax:
+        if tmin > tzmax or tzmin > tmax:
             return None
 
         if tzmin > tmin or tmin != tmin:
@@ -83,12 +75,30 @@ class Ray:
 
         return self.at(tmin if tmin >= 0 else tmax)
 
-    def intersects_triangle(self, a, b, c):
-        return self.intersect_triangle(a, b, c) is not None
+    def it(self, a, b, c):
+        e1 = b - a
+        e2 = c - a
+        pvec = self.direction.cross(e2)
+        det = e1.dot(pvec)
+        if det < 1e-8 and det > -1e-8:
+            return None
+
+        inv_det = 1 / det
+        tvec = self.origin - b
+        u = tvec.dot(pvec) * inv_det
+        if u < 0 or u > 1:
+            return None
+
+        qvec = tvec.cross(e1)
+        v = self.direction.dot(qvec) * inv_det
+        if v < 0 or u + v > 1:
+            return None
+
+        return self.at(e2.dot(qvec) * inv_det)
 
     def intersect_triangle(self, a, b, c):
-        edge1 = b - a
-        edge2 = c - a
+        edge1 = a - b
+        edge2 = c - b
         normal = edge1.cross(edge2)
         DdN = self.direction.dot(normal)
 
@@ -96,6 +106,7 @@ class Ray:
             sign = 1
         elif DdN < 0:
             sign = -1
+            DdN *= -1
         else:
             return None
 
@@ -131,18 +142,17 @@ class Raycaster:
         self.near = near if near else 0
         self.far = far if far else numpy.inf
 
-    def set_from_camera(self, coords: Vector3, camera: Camera):
-        self.ray.origin = Vector3.from_matrix44_translation(camera.matrix)
+    def set_from_camera(self, coords: tuple, camera):
+        self.ray.origin = camera.get_position()  # Vector3.from_matrix44_translation(camera.matrix, dtype=numpy.float32)
         self.ray.direction = camera.unproject(coords)
+        self.ray.direction.normalize()
 
-    def intersect_object(self, obj, camera: Camera) -> List[Renderable.Intersection]:
+    def intersect_object(self, obj, camera) -> List[Renderable.Intersection]:
         return obj.raycast(self, camera)
 
-    def intersect_objects(self, camera: Camera) -> List[Renderable.Intersection]:
+    def intersect_objects(self, camera) -> List[Renderable.Intersection]:
         intersects = []
         for obj in camera.scene.objects:
             intersects += self.intersect_object(obj, camera)
-
-        # Todo - sort intersects by distance
-
+        intersects.sort(key=lambda i: i.distance)
         return intersects

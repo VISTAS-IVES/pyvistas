@@ -1,12 +1,13 @@
 import numpy
 from OpenGL.GL import *
 from PIL import Image
-from pyrr import Matrix44, Vector3
+from pyrr import Matrix44, Vector3, Vector4
 
 from vistas.core.color import RGBColor
 from vistas.core.graphics.scene import Scene
 from vistas.core.math import apply_matrix_44
 from vistas.core.observers.camera import CameraObservable
+from vistas.core.graphics.raycaster import Raycaster
 from vistas.core.observers.interface import Observer
 
 
@@ -22,6 +23,7 @@ class Camera(Observer):
         if scene is None:
             scene = Scene()
 
+        self.raycaster = Raycaster()
         self.scene = scene
         self.color = color
         self._matrix_stack = []
@@ -53,10 +55,13 @@ class Camera(Observer):
 
         return apply_matrix_44(v, self.proj_matrix * self.matrix.inverse)
 
-    def unproject(self, v: Vector3) -> Vector3:
+    def unproject(self, v: tuple) -> Vector3:
         """ Unproject a vector from the world coordinates. """
 
-        return apply_matrix_44(v, self.matrix * self.proj_matrix.inverse)
+        # Only take xy coords
+        ray_world = (self.matrix.T * self.proj_matrix.inverse * Vector4([v[0], v[1], -1, 1])).vector3[0]
+        ray_world.normalize()
+        return ray_world
 
     def get_position(self) -> Vector3:
         """ Get camera position in world coordinate system. """
@@ -172,13 +177,14 @@ class Camera(Observer):
         return im
 
     def select_object(self, width, height, x, y):
-        background_color = RGBColor(1.0, 1.0, 1.0, 1.0)
-        self.reset(width, height, background_color)
+        #self.raycaster.ray.intersects_bbox()
+        #background_color = RGBColor(1.0, 1.0, 1.0, 1.0)
+        #self.reset(width, height, background_color)
 
-        y = height - y
+        #y = height - y
 
-        object = self.scene.select_object(self, x, y)
-        self.reset(width, height, background_color)
+        #object = self.scene.select_object(self, x, y)
+        #self.reset(width, height, background_color)
 
         return object
 
@@ -209,4 +215,6 @@ class Camera(Observer):
         znear = max(1.0, c.z - bbox.diameter / 2.0)
         zfar = c.z + bbox.diameter
 
+        self.raycaster.near = znear
+        self.raycaster.far = zfar
         self.proj_matrix = Matrix44.perspective_projection(80.0, width / height, znear, zfar)

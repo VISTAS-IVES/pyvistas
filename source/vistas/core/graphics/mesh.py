@@ -41,6 +41,12 @@ class Mesh:
 
         self.vertex_array_object = glGenVertexArrays(1)
 
+        # Client-side copy of vertex and uv data for quick access. Properties handle necessary updates to GPU buffers
+        self._indices = None
+        self._vertices = None
+        self._normals = None
+        self._texcoords = None
+
         glBindVertexArray(self.vertex_array_object)
 
         if self.has_index_array:
@@ -90,6 +96,66 @@ class Mesh:
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
 
+    @property
+    def indices(self):
+        if self._indices is None:
+            index_buf = self.acquire_index_array(GL_READ_ONLY)
+            self._indices = index_buf[:]
+            self.release_index_array()
+        return self._indices
+
+    @indices.setter
+    def indices(self, indices):
+        self._indices = indices.ravel()
+        index_buf = self.acquire_index_array()
+        index_buf[:] = self._indices
+        self.release_index_array()
+
+    @property
+    def vertices(self):
+        if self._vertices is None:
+            vert_buf = self.acquire_vertex_array(GL_READ_ONLY)
+            self._vertices = vert_buf[:]
+            self.release_vertex_array()
+        return self._vertices
+
+    @vertices.setter
+    def vertices(self, verts):
+        self._vertices = verts.ravel()
+        vert_buf = self.acquire_vertex_array()
+        vert_buf[:] = self._vertices
+        self.release_vertex_array()
+
+    @property
+    def normals(self):
+        if self._normals is None:
+            norm_buf = self.acquire_normal_array(GL_READ_ONLY)
+            self._normals = norm_buf[:]
+            self.release_normal_array()
+        return self._normals
+
+    @normals.setter
+    def normals(self, norms):
+        self._normals = norms.ravel()
+        norm_buf = self.acquire_normal_array()
+        norm_buf[:] = self._normals
+        self.release_normal_array()
+
+    @property
+    def texcoords(self):
+        if self._texcoords is None:
+            uvs = self.acquire_texcoords_array(GL_READ_ONLY)
+            self._texcoords = uvs[:]
+            self.release_texcoords_array()
+        return self._texcoords
+
+    @texcoords.setter
+    def texcoords(self, texcoords):
+        self._texcoords = texcoords.ravel()
+        uvs = self.acquire_texcoords_array()
+        uvs[:] = self._texcoords
+        self.release_texcoords_array()
+
     def __del__(self):
         if self.has_index_array:
             glDeleteBuffers(1, self.index_buffer)
@@ -108,35 +174,35 @@ class Mesh:
 
         glDeleteVertexArrays(1, self.vertex_array_object)
 
-    def acquire_index_array(self):
+    def acquire_index_array(self, access=GL_WRITE_ONLY):
         """ Note: Mesh.release_index_array() must be called once the buffer is no longer needed """
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.index_buffer)
-        return map_buffer(GL_ELEMENT_ARRAY_BUFFER, numpy.uint32, GL_WRITE_ONLY, self.num_indices * sizeof(c_uint))
+        return map_buffer(GL_ELEMENT_ARRAY_BUFFER, numpy.uint32, access, self.num_indices * sizeof(c_uint))
 
-    def acquire_vertex_array(self):
+    def acquire_vertex_array(self, access=GL_WRITE_ONLY):
         """ Note: Mesh.release_vertex_array() must be called once the buffer is no longer needed """
 
         glBindBuffer(GL_ARRAY_BUFFER, self.vertex_buffer)
-        return map_buffer(GL_ARRAY_BUFFER, numpy.float32, GL_WRITE_ONLY, self.num_vertices * 3 * sizeof(c_float))
+        return map_buffer(GL_ARRAY_BUFFER, numpy.float32, access, self.num_vertices * 3 * sizeof(c_float))
 
-    def acquire_normal_array(self):
+    def acquire_normal_array(self, access=GL_WRITE_ONLY):
         """ Note: Mesh.release_normal_array() must be called once the buffer is no longer needed """
 
         glBindBuffer(GL_ARRAY_BUFFER, self.normal_buffer)
-        return map_buffer(GL_ARRAY_BUFFER, numpy.float32, GL_WRITE_ONLY, self.num_vertices * 3 * sizeof(c_float))
+        return map_buffer(GL_ARRAY_BUFFER, numpy.float32, access, self.num_vertices * 3 * sizeof(c_float))
 
-    def acquire_color_array(self):
+    def acquire_color_array(self, access=GL_WRITE_ONLY):
         """ Note: Mesh.release_color_array() must be called once the buffer is no longer needed """
 
         size = 4 if self.use_rgba else 3
 
         glBindBuffer(GL_ARRAY_BUFFER, self.color_buffer)
-        return map_buffer(GL_ARRAY_BUFFER, numpy.float32, GL_WRITE_ONLY, self.num_vertices * size * sizeof(c_float))
+        return map_buffer(GL_ARRAY_BUFFER, numpy.float32, access, self.num_vertices * size * sizeof(c_float))
 
-    def acquire_texcoords_array(self):
+    def acquire_texcoords_array(self, access=GL_WRITE_ONLY):
         glBindBuffer(GL_ARRAY_BUFFER, self.texcoords_buffer)
-        return map_buffer(GL_ARRAY_BUFFER, numpy.float32, GL_WRITE_ONLY, self.num_vertices * 2 * sizeof(c_float))
+        return map_buffer(GL_ARRAY_BUFFER, numpy.float32, access, self.num_vertices * 2 * sizeof(c_float))
 
     def release_index_array(self):
         glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER)

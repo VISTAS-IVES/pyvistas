@@ -309,17 +309,21 @@ class ViewerPanel(wx.Panel, Observer):
         self.GetParent().UpdateViewerSizes()
 
     def OnCanvasDClick(self, event: wx.MouseEvent):
-        size = self.gl_canvas.GetSize().Get()
+        size = self.gl_canvas.GetSize()
+        mouse_x = event.GetX() / size.x * 2 - 1
+        mouse_y = - event.GetY() / size.y * 2 + 1
+        self.gl_canvas.camera.raycaster.set_from_camera((mouse_x, mouse_y), self.camera)
+        intersects = self.gl_canvas.camera.raycaster.intersect_objects(self.camera)
+        print(intersects)
+        print('Done with the intersection!')
+        #object = self.gl_canvas.camera.select_object(*size, event.GetX(), event.GetY())
+        #if object is not None:
+        #    result = object.get_selection_detail(*size, event.GetX(), event.GetY(), self.gl_canvas.camera)
 
-        object = self.gl_canvas.camera.select_object(*size, event.GetX(), event.GetY())
-        if object is not None:
-            result = object.get_selection_detail(*size, event.GetX(), event.GetY(), self.gl_canvas.camera)
-
-            if self.inspect_window is None:
-                self.inspect_window = InspectWindow(self, wx.ID_ANY)
-
-            self.inspect_window.data = result
-            self.inspect_window.Show()
+        #    if self.inspect_window is None:
+        #        self.inspect_window = InspectWindow(self, wx.ID_ANY)
+        #    self.inspect_window.data = result
+        #    self.inspect_window.Show()
 
     def OnCanvasRightClick(self, event):
         menu = wx.Menu()

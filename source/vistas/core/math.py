@@ -1,3 +1,4 @@
+from numpy import sqrt
 from typing import Optional
 from pyrr import Matrix44, Vector3
 
@@ -20,8 +21,9 @@ def catmull_rom_splines(p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, t) -
 
 
 def apply_matrix_44(vec: Vector3, m: Matrix44):
-    v = vec.copy()
-    x, y, z = v
+    v = Vector3()
+    v.dtype = float
+    x, y, z = vec
     w = 1 / (m.m14 * x + m.m24 * y + m.m34 * z + m.m44)
     v.x = (m.m11 * x + m.m21 * y + m.m31 * z + m.m41) * w
     v.y = (m.m12 * x + m.m22 * y + m.m32 * z + m.m42) * w
@@ -39,6 +41,11 @@ def transform_direction(vec: Vector3, m: Matrix44):
     return v
 
 
+def distance_from(a: Vector3, b: Vector3):
+    x = a - b
+    return sqrt(x.dot(x))
+
+
 class Triangle:
     """
     Barymetric coordinate math within a triangle defined in 3D space.
@@ -52,7 +59,11 @@ class Triangle:
 
     @property
     def normal(self):
-        pass
+        edge1 = self.a - self.b
+        edge2 = self.c - self.b
+        normal = edge1.cross(edge2)
+        normal.normalize()
+        return normal
 
     def barycoord_from_pos(self, p):
         return Triangle._barycoord_from_pos(p, self.a, self.b, self.c)

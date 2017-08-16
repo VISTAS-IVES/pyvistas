@@ -102,7 +102,7 @@ void interpolateColor(out vec4 colorOut) {
 }
 
 void main() {
-    vec3 scale = vec3(1., heightFactor, 1.);
+    vec3 scale = vec3(1., 1., heightFactor);
 	vec4 eyePosition = modelViewMatrix * vec4(position * scale, 1.0);
 	gl_Position = projectionMatrix * eyePosition;
     fragPosition = eyePosition.xyz;

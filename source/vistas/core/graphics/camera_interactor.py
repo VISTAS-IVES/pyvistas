@@ -50,8 +50,8 @@ class CameraInteractor:
             self.camera.matrix = Matrix44.identity(dtype=numpy.float32)
             bbox = self.camera.scene.bounding_box
             center = bbox.center
-            eye = Vector3([center.x, center.y, bbox.max_z + bbox.diameter])
-            up = Vector3([0, 1, 0])
+            eye = Vector3([center.x, bbox.max_y + bbox.diameter, center.z])
+            up = Vector3([0, 0, 1])
             self.camera.look_at(eye, center, up)
         self.default_matrix = self.camera.matrix
         self._distance = 0
@@ -98,7 +98,7 @@ class SphereInteractor(CameraInteractor):
     def mouse_wheel(self, value, delta, shift, alt, ctrl):
         bbox = self.camera.scene.bounding_box
         diameter = bbox.diameter
-        orig_dist = bbox.max_z + diameter
+        orig_dist = bbox.max_y + diameter
         curr_dist = self.camera.distance_to_point(bbox.center)
         dist_ratio = 1 - (orig_dist - curr_dist) / orig_dist
         if dist_ratio < 0:
