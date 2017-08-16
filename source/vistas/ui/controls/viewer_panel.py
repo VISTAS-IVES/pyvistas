@@ -314,8 +314,8 @@ class ViewerPanel(wx.Panel, Observer):
         mouse_y = - event.GetY() / size.y * 2 + 1
         self.gl_canvas.camera.raycaster.set_from_camera((mouse_x, mouse_y), self.camera)
         intersects = self.gl_canvas.camera.raycaster.intersect_objects(self.camera)
-        print(intersects)
-        print('Done with the intersection!')
+
+        # Todo - reimplement data retrieval
         #object = self.gl_canvas.camera.select_object(*size, event.GetX(), event.GetY())
         #if object is not None:
         #    result = object.get_selection_detail(*size, event.GetX(), event.GetY(), self.gl_canvas.camera)

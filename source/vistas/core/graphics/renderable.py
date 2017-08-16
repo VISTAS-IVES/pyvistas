@@ -147,7 +147,7 @@ class Renderable:
     def get_selection_detail(self, width, height, x, y, camera):
         pass
 
-    def raycast(self, raycaster, camera) -> List[Intersection]:
+    def raycast(self, raycaster) -> List[Intersection]:
         """Returns a list of intersections from the raycaster to this renderable. """
 
         raise NotImplementedError

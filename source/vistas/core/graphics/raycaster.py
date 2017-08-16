@@ -75,27 +75,37 @@ class Ray:
 
         return self.at(tmin if tmin >= 0 else tmax)
 
-    def it(self, a, b, c):
+    def intersect_triangles(self, a, b, c):
+        """ Determine face-level triangle intersections from this ray. """
         e1 = b - a
         e2 = c - a
-        pvec = self.direction.cross(e2)
-        det = e1.dot(pvec)
-        if det < 1e-8 and det > -1e-8:
-            return None
+        direction = numpy.array(self.direction)
+        origin = numpy.array(self.origin)
+        eps = numpy.finfo(numpy.float32).eps
+
+        pvec = numpy.cross(direction, e2)
+        det = numpy.sum(e1 * pvec, axis=-1)
+        det_cond = (det >= eps) | (det <= -eps)     # Get values outside of range eps < det < eps
 
         inv_det = 1 / det
-        tvec = self.origin - b
-        u = tvec.dot(pvec) * inv_det
-        if u < 0 or u > 1:
-            return None
+        tvec = origin - b
+        u = numpy.sum(tvec * pvec, axis=-1) * inv_det
+        u_cond = (u <= 1) & (u >= 0)                    # Get values if not (u < 0 or u > 1)
 
-        qvec = tvec.cross(e1)
-        v = self.direction.dot(qvec) * inv_det
-        if v < 0 or u + v > 1:
-            return None
+        qvec = numpy.cross(tvec, e1)
+        v = numpy.sum(direction * qvec, axis=-1) * inv_det
+        v_cond = (v >= 0) & (u + v <= 1)                    # Get values if not (if v < 0 or u + v > 1)
 
-        return self.at(e2.dot(qvec) * inv_det)
+        # Filter down and determine intersections
+        result = numpy.sum(e2 * qvec, axis=-1) * inv_det
+        intersections = numpy.where(det_cond & u_cond & v_cond)
+        distances = result[intersections]
 
+        # Now we return their locations in terms of distance
+        return distances, intersections[0]
+
+    """
+    # Todo - remove or refactor to use as numpy-accelerated code
     def intersect_triangle(self, a, b, c):
         edge1 = a - b
         edge2 = c - b
@@ -129,6 +139,7 @@ class Ray:
             return None
 
         return self.at(QdN / DdN)
+    """
 
 
 class Raycaster:
@@ -147,12 +158,14 @@ class Raycaster:
         self.ray.direction = camera.unproject(coords)
         self.ray.direction.normalize()
 
-    def intersect_object(self, obj, camera) -> List[Renderable.Intersection]:
-        return obj.raycast(self, camera)
+    def intersect_object(self, obj) -> List[Renderable.Intersection]:
+        intersects = obj.raycast(self)
+        intersects.sort(key=lambda i: i.distance)
+        return intersects
 
     def intersect_objects(self, camera) -> List[Renderable.Intersection]:
         intersects = []
         for obj in camera.scene.objects:
-            intersects += self.intersect_object(obj, camera)
+            intersects += self.intersect_object(obj)
         intersects.sort(key=lambda i: i.distance)
         return intersects
