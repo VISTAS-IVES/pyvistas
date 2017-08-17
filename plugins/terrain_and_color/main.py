@@ -390,7 +390,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             min_value = height_stats.min_value
             max_value = height_stats.max_value
             cellsize = self.terrain_data.resolution
-            height_data = self.terrain_data.get_data(elevation_attribute).T
+            height_data = self.terrain_data.get_data(elevation_attribute)
             if type(height_data) is numpy.ma.MaskedArray:
                 height_data = height_data.data
 
@@ -474,7 +474,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
                 # Retrieve color layer
                 attribute = self._attribute.selected
-                data = self.attribute_data.get_data(attribute, Timeline.app().current).T
+                data = self.attribute_data.get_data(attribute, Timeline.app().current)
 
                 if type(data) is numpy.ma.MaskedArray:
                     data = data.data
@@ -530,7 +530,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 xscale = texture_w / terrain_extent.width
                 yscale = texture_h / terrain_extent.height
                 box_w, box_h = cell_size * xscale, cell_size * yscale
-                center = (int(p[0] / grid_height * texture_w), int(512 - p[1] / grid_width * texture_h))
+                center = (int(p[0] / grid_width * texture_w), int(512 - p[1] / grid_height * texture_h))
 
                 # Draw black rectangle directly into data
                 min_x = min(max(center[0] - box_w / 2, 0), 510)
@@ -554,8 +554,8 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             flow_acc_label = self.flow_acc_data.variables[0] if self.flow_acc_data is not None else ""
             attribute_label = self._attribute.selected
 
-            height_data = self.terrain_data.get_data(height_label, Timeline.app().current).T
-            flow_dir = self.flow_dir_data.get_data(flow_dir_label, Timeline.app().current).T
+            height_data = self.terrain_data.get_data(height_label, Timeline.app().current)
+            flow_dir = self.flow_dir_data.get_data(flow_dir_label, Timeline.app().current)
 
             height, width = flow_dir.shape
 
@@ -571,9 +571,9 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             vector_data[:, :, 4] = numpy.zeros((height, width), dtype=numpy.float32)   # tilt of vector
             vector_data[:, :, 4] = 90 - numpy.arcsin(numpy.abs(self.normals[:, :, 2])) * 180 / numpy.pi
             vector_data[:, :, 5] = numpy.ones((height, width), dtype=numpy.float32) if self.flow_acc_data is None else \
-                self.flow_acc_data.get_data(flow_acc_label, Timeline.app().current).T
+                self.flow_acc_data.get_data(flow_acc_label, Timeline.app().current)
             vector_data[:, :, 6] = numpy.zeros((height, width), dtype=numpy.float32) if self.attribute_data is None \
-                else self.attribute_data.get_data(attribute_label, Timeline.app().current).T
+                else self.attribute_data.get_data(attribute_label, Timeline.app().current)
 
             # Inform vector_renderable of attribute grid (if set) so shader knows whether to hide nodata values
             if self.attribute_data is not None:
@@ -626,12 +626,12 @@ class TerrainRenderable(MeshRenderable):
             cell_y = int(round((point.y / res)))
 
             terrain_attr = self.plugin._elevation_attribute.selected
-            terrain_ref = self.plugin.terrain_data.get_data(terrain_attr).T
+            terrain_ref = self.plugin.terrain_data.get_data(terrain_attr)
 
             if self.plugin.attribute_data is not None:
                 attribute_ref = self.plugin.attribute_data.get_data(
                     self.plugin._attribute.selected, Timeline.app().current
-                ).T
+                )
                 attr_width, attr_height = attribute_ref.shape
                 if 0 <= cell_x < attr_width and 0 <= cell_y < attr_height:
 
@@ -641,7 +641,7 @@ class TerrainRenderable(MeshRenderable):
                     result['Height'] = terrain_ref[cell_x, cell_y]
 
                     if self.plugin.flow_dir_data is not None:
-                        flow_dir_ref = self.plugin.flow_dir_data.get_data(self.plugin.flow_dir_data.variables[0]).T
+                        flow_dir_ref = self.plugin.flow_dir_data.get_data(self.plugin.flow_dir_data.variables[0])
                         direction = flow_dir_ref[cell_x, cell_y]
                         result['Flow Direction (input)'] = direction
                         degrees = 45.0 + 45.0 * direction
@@ -650,7 +650,7 @@ class TerrainRenderable(MeshRenderable):
                     if self.plugin.flow_acc_data is not None:
                         result['Flow Accumulation'] = self.plugin.flow_acc_data.get_data(
                             self.plugin.flow_acc_data.variables[0]
-                        ).T[cell_x, cell_y]
+                        )[cell_x, cell_y]
 
                     self.plugin.selected_point = (cell_x, cell_y)
                     self.plugin._needs_boundaries = True
