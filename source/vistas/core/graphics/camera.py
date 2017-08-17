@@ -176,18 +176,6 @@ class Camera(Observer):
         im = Image.frombuffer('RGBA', (width, height), image_data, 'raw', 'RGBA', 0, 1).transpose(Image.FLIP_TOP_BOTTOM)
         return im
 
-    def select_object(self, width, height, x, y):
-        #self.raycaster.ray.intersects_bbox()
-        #background_color = RGBColor(1.0, 1.0, 1.0, 1.0)
-        #self.reset(width, height, background_color)
-
-        #y = height - y
-
-        #object = self.scene.select_object(self, x, y)
-        #self.reset(width, height, background_color)
-
-        return object
-
     def update(self, observable: CameraObservable):
         if observable.is_sync:
             interactor = observable.global_interactor

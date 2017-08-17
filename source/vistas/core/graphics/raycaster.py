@@ -9,7 +9,7 @@ from vistas.core.graphics.renderable import Renderable
 
 class Ray:
     """
-    Representation of a ray in 3D space. Rays emit from an origin along a direction.
+    Representation of a ray in 3D space. Rays emit from an origin along a direction. Implementatin inspired by mrdoob -
     https://github.com/mrdoob/three.js/blob/master/src/math/Ray.js
     """
 
@@ -19,7 +19,7 @@ class Ray:
         self.direction.normalize()
 
     def at(self, t):
-        """ The distance along the Ray to retrieve a position for. """
+        """ Retrieve a point along the ray. """
 
         return self.direction * t + self.origin
 
@@ -46,8 +46,7 @@ class Ray:
         if tmin > tymax or tymin > tmax:
             return None
 
-        # These lines handle when t_min or t_max are numpy.nan or numpy.inf
-        if tymin > tmin or tmin != tmin:
+        if tymin > tmin or tmin != tmin:    # tmin != tmin returns false if t_min is numpy.inf
             tmin = tymin
 
         if tymax < tmax or tmax != tmax:
@@ -88,7 +87,7 @@ class Ray:
         det_cond = (det >= eps) | (det <= -eps)     # Get values outside of range -eps < det < eps
 
         inv_det = 1 / det
-        tvec = origin - b
+        tvec = origin - a
         u = numpy.sum(tvec * pvec, axis=-1) * inv_det
         u_cond = (u <= 1) & (u >= 0)                    # Get values if not (u < 0 or u > 1)
 
@@ -104,43 +103,6 @@ class Ray:
         # Now we return their locations in terms of distance
         return distances, intersections[0]
 
-    """
-    # Todo - remove or refactor to use as numpy-accelerated code
-    def intersect_triangle(self, a, b, c):
-        edge1 = a - b
-        edge2 = c - b
-        normal = edge1.cross(edge2)
-        DdN = self.direction.dot(normal)
-
-        if DdN > 0:
-            sign = 1
-        elif DdN < 0:
-            sign = -1
-            DdN *= -1
-        else:
-            return None
-
-        diff = self.origin - a
-        DdQxE2 = sign * self.direction.dot(diff.cross(edge2))
-
-        if DdQxE2 < 0:
-            return None
-
-        DdE1xQ = sign * self.direction.dot(edge1.cross(diff))
-        if DdE1xQ < 0:
-            return None
-
-        if DdQxE2 + DdE1xQ > DdN:
-            return None
-
-        QdN = -sign * diff.dot(normal)
-
-        if QdN < 0:
-            return None
-
-        return self.at(QdN / DdN)
-    """
-
 
 class Raycaster:
     """
@@ -154,7 +116,7 @@ class Raycaster:
         self.far = far if far else numpy.inf
 
     def set_from_camera(self, coords: tuple, camera):
-        self.ray.origin = camera.get_position()  # Vector3.from_matrix44_translation(camera.matrix, dtype=numpy.float32)
+        self.ray.origin = camera.get_position()
         self.ray.direction = camera.unproject(coords)
         self.ray.direction.normalize()
 
