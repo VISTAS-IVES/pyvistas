@@ -19,6 +19,7 @@ from vistas.core.paths import get_resources_directory
 from vistas.core.task import Task
 from vistas.core.threading import Thread
 from vistas.ui.utils import post_redisplay
+from pyrr.vector3 import generate_vertex_normals
 
 
 class FeatureShaderProgram(ShaderProgram):
@@ -52,7 +53,7 @@ class FeatureShaderProgram(ShaderProgram):
 class FeatureMesh(Mesh):
 
     def __init__(self, vertices, indices):
-        super().__init__(len(indices), len(vertices), has_color_array=True, mode=Mesh.TRIANGLES)
+        super().__init__(len(indices), len(vertices), has_normal_array=True, has_color_array=True, mode=Mesh.TRIANGLES)
 
         color_buf = self.acquire_color_array()
         color_buf[:] = numpy.ones_like(vertices.ravel()) * 0.5  # init the color buffer with grey
@@ -76,8 +77,8 @@ class FeatureCollectionRenderThread(Thread):
         if self.collection.needs_vertices:
             self.task.status = Task.RUNNING
             self.task.name = 'Generating meshes'
-            verts, indices = self.collection.generate_meshes(self.task)
-            self.sync_with_main(self.collection.add_features_to_scene, (verts, indices, self.scene), block=True)
+            verts, indices, normals = self.collection.generate_meshes(self.task)
+            self.sync_with_main(self.collection.add_features_to_scene, (verts, indices, normals, self.scene), block=True)
             self.collection.needs_vertices = False
 
         if self.collection.needs_color:
@@ -184,7 +185,7 @@ class FeatureLayer:
 
         FeatureCollectionRenderThread(self, scene).start()
 
-    def add_features_to_scene(self, vertices, indices, scene):
+    def add_features_to_scene(self, vertices, indices, normals, scene):
         """ Render callback to add the the feature collection's renderable to the specified scene. """
 
         if self.renderable is None:
@@ -200,6 +201,10 @@ class FeatureLayer:
         index_buf = mesh.acquire_index_array()
         index_buf[:] = indices.ravel()
         mesh.release_index_array()
+
+        norm_buf = mesh.acquire_normal_array()
+        norm_buf[:] = normals.ravel()
+        mesh.release_normal_array()
 
         self.renderable.bounding_box = self.bounding_box
 
@@ -307,7 +312,23 @@ class FeatureLayer:
         # Vertex indices are assumed to be unique
         indices = numpy.arange(verts.shape[0])
 
-        return verts, indices
+        normal_dem = e.create_data_dem(self.extent, self.zoom, merge=True, src=e.AWS_NORMALS)
+        normals = normal_dem[vs, us].ravel()
+
+
+        #dem_indices = numpy.indices(dem.shape)
+        #heightfield = numpy.zeros((dheight, dwidth, 3), dtype=numpy.float32)
+        #heightfield[:, :, 0] = dem_indices[0]
+        #heightfield[:, :, 2] = dem_indices[1]
+        #heightfield[:, :, 1] = dem / self.meters_per_px
+        #_normals = generate_vertex_normals(heightfield.reshape(-1, 3), dem_indices.reshape(-1, 3)).reshape(heightfield.shape)
+        #normals = _normals[vs, us]
+        #print('gotcah')
+        #normals = generate_vertex_normals(
+        #    verts.reshape(-1, 3), indices.reshape(-1, 3)
+        #)
+
+        return verts, indices, normals
 
     @staticmethod
     def _default_color_function(feature):

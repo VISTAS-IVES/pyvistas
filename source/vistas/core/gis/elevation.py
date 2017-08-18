@@ -31,6 +31,7 @@ class ElevationService:
 
     TILE_SIZE = 256
     AWS_ELEVATION = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"
+    AWS_NORMALS = "https://s3.amazonaws.com/elevation-tiles-prod/normal/{z}/{x}/{y}.png"
 
     def __init__(self):
         self.x = None
@@ -66,22 +67,29 @@ class ElevationService:
     def zoom(self, zoom):
         self._zoom = int(zoom)
 
-    def get_grid(self, x, y, z=None):
+    def get_grid(self, x, y, z=None, src=AWS_ELEVATION):
         z = z if z else self.zoom
-        if x != self.x or y != self.y:
+        if x != self.x or y != self.y or src != self.AWS_ELEVATION:
             self.x = x
             self.y = y
-            img = Image.open(self._get_tile_path(z, x, y))
-            grid = numpy.array(img.getdata(), dtype=numpy.float32).reshape(256, 256, 3)
+            img = Image.open(self._get_tile_path(z, x, y, src=src))
+            grid = numpy.array(img.getdata(), dtype=numpy.float32).reshape(256, 256, 3 if src == self.AWS_ELEVATION else 4)
             img.close()
 
             # decode AWS elevation to height grid
-            self._current_grid = (grid[:, :, 0] * 256.0 + grid[:, :, 1] + grid[:, :, 2] / 256.0) - 32768.0
+            if src == self.AWS_ELEVATION:
+                self._current_grid = (grid[:, :, 0] * 256.0 + grid[:, :, 1] + grid[:, :, 2] / 256.0) - 32768.0
+            else:
+                self._current_grid = grid[:, :, 0:3] / 256.0
         return self._current_grid
 
     @staticmethod
-    def _get_tile_path(z, x, y):
-        return os.path.join(get_config_dir(), 'Tiles', 'AWS', str(z), str(x), "{}.png".format(y))
+    def _get_tile_path(z, x, y, src=AWS_ELEVATION):
+        if src == ElevationService.AWS_ELEVATION:
+            datatype = 'Elevation'
+        else:
+            datatype = 'Normals'
+        return os.path.join(get_config_dir(), 'Tiles', 'AWS', datatype, str(z), str(x), "{}.png".format(y))
 
     def get_tiles(self, extent, task=None):
         async def fetch_tile(client, url, tile_path):
@@ -113,9 +121,12 @@ class ElevationService:
                     max_y = y if y > max_y else max_y
 
                 path = self._get_tile_path(z, x, y)
+                npath = self._get_tile_path(z, x, y, self.AWS_NORMALS)
                 if not os.path.exists(path):
                     url = self.AWS_ELEVATION.format(z=z, x=x, y=y)
+                    nurl = self.AWS_NORMALS.format(z=z, x=x, y=y)
                     requests.append(fetch_tile(client, url, path))
+                    requests.append(fetch_tile(client, nurl, npath))
 
             # Get corner tiles for good measure
             min_x -= 1
@@ -237,7 +248,7 @@ class ElevationService:
         new_plugin.calculate_stats()
         return new_plugin
 
-    def create_data_dem(self, extent, zoom, merge=False) -> Union[Dict[mercantile.Tile, numpy.ndarray], numpy.ndarray]:
+    def create_data_dem(self, extent, zoom, merge=False, src=AWS_ELEVATION) -> Union[Dict[mercantile.Tile, numpy.ndarray], numpy.ndarray]:
         """
         Creates an elevation grid from elevation data in memory.
         :param extent Extent to build the DEM for.
@@ -256,11 +267,14 @@ class ElevationService:
         tiles = extent.tiles(self.zoom)
         if merge:
             shape = ((ll_tile.y - ur_tile.y + 1) * DEFAULT_TILE_SIZE, (ur_tile.x - ll_tile.x + 1) * DEFAULT_TILE_SIZE)
-            data = numpy.zeros(shape, dtype=numpy.float32)
+            if src == self.AWS_ELEVATION:
+                data = numpy.zeros(shape, dtype=numpy.float32)
+            else:
+                data = numpy.zeros((*shape, 3), dtype=numpy.float32)
             for tile in tiles:
                 w = (tile.x - ll_tile.x) * DEFAULT_TILE_SIZE
                 h = (tile.y - ur_tile.y) * DEFAULT_TILE_SIZE
-                data[h: h + DEFAULT_TILE_SIZE, w: w + DEFAULT_TILE_SIZE] = self.get_grid(tile.x, tile.y)
+                data[h: h + DEFAULT_TILE_SIZE, w: w + DEFAULT_TILE_SIZE] = self.get_grid(tile.x, tile.y, src=src)
             return data
         else:
             return {t: self.get_grid(t.x, t.y) for t in tiles}
