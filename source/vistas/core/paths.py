@@ -33,8 +33,11 @@ def get_resources_directory():
         return os.path.join(os.path.dirname(wx.StandardPaths.Get().ExecutablePath), '..', 'resources')
 
 
-def get_userconfig_path():
-    return os.path.join(os.path.dirname(wx.StandardPaths.Get().UserConfigDir), 'VISTAS')
+def get_config_dir():
+    if get_platform() == 'macos':
+        return os.path.join(wx.StandardPaths.Get().UserLocalDataDir, 'VISTAS')
+    else:
+        return os.path.join(wx.StandardPaths.Get().UserConfigDir, 'VISTAS')
 
 
 def get_resource_bitmap(name):

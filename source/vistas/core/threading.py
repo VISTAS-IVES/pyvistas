@@ -1,3 +1,5 @@
+import asyncio
+import sys
 import threading
 from time import sleep
 
@@ -12,6 +14,7 @@ class Thread(threading.Thread, wx.EvtHandler):
     def __init__(self, *args, **kwargs):
         threading.Thread.__init__(self, *args, **kwargs)
         wx.EvtHandler.__init__(self)
+        self.loop = None
 
         self.Bind(EVT_THREAD_SYNC, self.on_sync)
 
@@ -30,3 +33,12 @@ class Thread(threading.Thread, wx.EvtHandler):
         event.func(*event.args, **event.kwargs)
 
         event.event.set()
+
+    def init_event_loop(self):
+        """ Start an asyncio event loop in this thread. """
+        if sys.platform == 'win32':
+            asyncio.set_event_loop(asyncio.ProactorEventLoop())
+        else:
+            asyncio.set_event_loop(asyncio.SelectorEventLoop())
+
+        self.loop = asyncio.get_event_loop()

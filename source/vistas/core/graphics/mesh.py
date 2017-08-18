@@ -81,6 +81,13 @@ class Mesh:
             glEnableVertexAttribArray(1)
             glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, None)
 
+        if self.has_color_array:
+            size = 4 if self.use_rgba else 3
+
+            glBindBuffer(GL_ARRAY_BUFFER, self.color_buffer)   # location 3 = 'color'
+            glEnableVertexAttribArray(3)
+            glVertexAttribPointer(3, size, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * size, None)
+
         if self.has_texture_coords:
             glBindBuffer(GL_ARRAY_BUFFER, self.texcoords_buffer)   # location 2 = 'uv', i.e. texcoords
             glEnableVertexAttribArray(2)
@@ -92,21 +99,21 @@ class Mesh:
 
     def __del__(self):
         if self.has_index_array:
-            glDeleteBuffers(1, self.index_buffer)
+            glDeleteBuffers(1, [self.index_buffer])
 
         if self.has_vertex_array:
-            glDeleteBuffers(1, self.vertex_buffer)
+            glDeleteBuffers(1, [self.vertex_buffer])
 
         if self.has_normal_array:
-            glDeleteBuffers(1, self.normal_buffer)
+            glDeleteBuffers(1, [self.normal_buffer])
 
         if self.has_color_array:
-            glDeleteBuffers(1, self.color_buffer)
+            glDeleteBuffers(1, [self.color_buffer])
 
         if self.has_texture_coords:
-            glDeleteBuffers(1, self.texcoords_buffer)
+            glDeleteBuffers(1, [self.texcoords_buffer])
 
-        glDeleteVertexArrays(1, self.vertex_array_object)
+        glDeleteVertexArrays(1, [self.vertex_array_object])
 
     def acquire_index_array(self):
         """ Note: Mesh.release_index_array() must be called once the buffer is no longer needed """

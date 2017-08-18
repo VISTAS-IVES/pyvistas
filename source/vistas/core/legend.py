@@ -58,16 +58,56 @@ class Legend:
 
         result = Image.new("RGBA", (width, height))
         draw = ImageDraw.Draw(result)
-        midpoint = width / 4
+        midpoint = width // 4
 
         if categories:
-            line_height = height / len(categories)
+            line_height = height // len(categories)
             y_offset = 0
             font, text_offset = Legend._compute_font([x[1] for x in categories], midpoint * 2)
 
             for color, label in categories:
-                draw.rectangle([0, y_offset, midpoint, y_offset + line_height], fill=color.rgb.rgba_list)
+                c = tuple([int(255 * x) for x in color.rgb.rgba_list])
+                draw.rectangle([0, y_offset, midpoint, y_offset + line_height], fill=c)
                 draw.text((midpoint, y_offset + text_offset), label, font=font)
                 y_offset += line_height
 
         return result
+
+    def get_color(self, value):
+        """ Returns the color associated with the given legend. Implemented by subclasses """
+
+        raise NotImplementedError
+
+
+class StretchedLegend(Legend):
+
+    def __init__(self, low_value, high_value, low_color, high_color):
+        self.low_value = low_value
+        self.high_value = high_value
+        self.low_color = low_color
+        self.high_color = high_color
+
+    def render(self, width, height):
+        return self.stretched(width, height, self.low_value, self.high_value, self.low_color, self.high_color)
+
+    def get_color(self, value):
+        """ Returns the color between low and high """
+
+        return interpolate_color((self.low_value, self.high_value), self.low_color, self.high_color, value)
+
+
+class CategoricalLegend(Legend):
+
+    def __init__(self, categories):
+        self.categories = categories
+
+    def render(self, width, height):
+        return self.categorical(width, height, self.categories)
+
+    def get_color(self, value):     # value should be a label/string in this case
+
+        for color, label in self.categories:
+            if label == value:
+                return color
+
+        return None

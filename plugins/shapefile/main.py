@@ -1,6 +1,7 @@
 import os
 
 import fiona
+from osgeo import ogr
 from pyproj import Proj
 
 from vistas.core.gis.extent import Extent
@@ -16,61 +17,37 @@ class Shapefile(FeatureDataPlugin):
     version = '1.0'
     extensions = [('shp', 'Shapefile')]
 
+    data_name = None
+    extent = None
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        self._name = None
         self.metadata = None
-        self._extent = None
+        self.data_name = None
+        self.extent = None
+        self._num_features = 0
 
     def load_data(self):
-
-        self._name = self.path.split(os.sep)[-1].split('.')[0]
+        self.data_name = self.path.split(os.sep)[-1].split('.')[0]
 
         with fiona.open(self.path, 'r') as shp:
             self.metadata = shp.meta
             projection = Proj(init=self.metadata['crs']['init'])
+            self._num_features = len(shp)
 
-            # Determine extent
-            def explode(coords):
-                """ Borrowed from sgilles - https://gis.stackexchange.com/questions/90553/fiona-get-each-feature-extent-bounds
-                Explode a GeoJSON geometry's coordinates object and yield coordinate tuples.
-                As long as the input is conforming, the type of the geometry doesn't matter."""
-                for e in coords:
-                    if isinstance(e, (float, int)):
-                        yield coords
-                        break
-                    else:
-                        for inner_coords in explode(e):
-                            yield inner_coords
+        driver = ogr.GetDriverByName('ESRI Shapefile')
+        src = driver.Open(self.path, 0)
 
-            def bbox(feature):
-                x, y = zip(*list(explode(feature['geometry']['coordinates'])))
-                return min(x), min(y), max(x), max(y)
-
-            xmin, ymin, xmax, ymax = [None] * 4
-
-            for f in shp:
-                if xmin is None:
-                    xmin, ymin, xmax, ymax = bbox(f)
-                else:
-                    _xmin, _ymin, _xmax, _ymax = bbox(f)
-                    xmin, ymin, xmax, ymax = \
-                        min([xmin, _xmin]), min([ymin, _ymin]), max([xmax, _xmax]), max([ymax, _ymax])
-
-        self._extent = Extent(xmin, ymin, xmax, ymax, projection)
-
-    @property
-    def data_name(self):
-        return self._name
+        if src is None:
+            print("OGR Failed...")
+        else:
+            layer = src.GetLayer()
+            xmin, xmax, ymin, ymax = layer.GetExtent()
+            self.extent = Extent(xmin, ymin, xmax, ymax, projection)
 
     @staticmethod
     def is_valid_file(path):
         return True
-
-    @property
-    def extent(self):
-        return self._extent
 
     @property
     def time_info(self):
@@ -110,7 +87,9 @@ class Shapefile(FeatureDataPlugin):
                 self.stats[var] = stats
             self.save_stats()
 
+    def get_num_features(self):
+        return self._num_features
+
     def get_features(self, date=None):
         with fiona.open(self.path, 'r') as shp:
-                features = [f for f in shp]
-        return features
+            yield from shp

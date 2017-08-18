@@ -180,6 +180,8 @@ class Camera(Observer):
 
         glEnable(GL_DEPTH_TEST)
         glDepthFunc(GL_LESS)
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         glClearDepth(1.0)
         glClear(GL_DEPTH_BUFFER_BIT)
         glClearColor(color.r, color.g, color.b, color.a)
