@@ -15,7 +15,6 @@ class GLCanvas(wx.glcanvas.GLCanvas):
 
     initialized = False
     shared_gl_context = None
-    auto_raycast = False
 
     def __init__(self, parent, id, camera, attrib_list=None, can_sync=False):
         super().__init__(parent, id, attribList=attrib_list)
@@ -68,15 +67,6 @@ class GLCanvas(wx.glcanvas.GLCanvas):
     def OnEraseBackground(self, event: wx.EraseEvent):
         pass  # Ignore this event to prevent flickering on Windows
 
-    def UpdateRaycaster(self, event: wx.MouseEvent):
-        if self.auto_raycast:
-            size = self.GetSize()
-            mouse_x = event.GetX() / size.x * 2 - 1
-            mouse_y = - event.GetY() / size.y * 2 + 1
-            self.camera.raycaster.set_from_camera((mouse_x, mouse_y), self.camera)
-            intersects = self.camera.raycaster.intersect_objects(self.camera)
-            print(intersects)
-
     def OnMotion(self, event: wx.MouseEvent):
         if event.LeftIsDown():
             x = event.GetX()
@@ -90,12 +80,10 @@ class GLCanvas(wx.glcanvas.GLCanvas):
             self.Sync()
             self.Refresh()
         else:
-            self.UpdateRaycaster(event)
             self._x = self._y = -1
         event.Skip()
 
     def OnMouseWheel(self, event: wx.MouseEvent):
-        self.UpdateRaycaster(event)
         self.camera_interactor.mouse_wheel(event.GetWheelRotation(), event.GetWheelDelta(), event.ShiftDown(),
                                            event.AltDown(), event.ControlDown())
         self._x = self._y = -1

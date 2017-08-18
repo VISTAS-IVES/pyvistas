@@ -1,18 +1,14 @@
 import os
-from typing import List, Optional
+from typing import List
 
-from OpenGL.GL import *
 import numpy
+from OpenGL.GL import *
 from pyrr import Vector3
 
 from vistas.core.graphics.mesh import Mesh, MeshShaderProgram
 from vistas.core.graphics.renderable import Renderable
-from vistas.core.math import Triangle, apply_matrix_44, distance_from
+from vistas.core.math import Triangle, distance_from
 from vistas.core.paths import get_resources_directory
-from vistas.core.graphics.raycaster import Ray
-
-
-# Todo - maybe we should implement a quadtree (or oct-tree) for large terrains?
 
 
 class MeshRenderable(Renderable):
@@ -91,10 +87,10 @@ class MeshRenderable(Renderable):
         if self.bounding_box is None or not raycaster.ray.intersects_bbox(self.bounding_box) or self.mesh.shader is None:
             return intersects
 
-        pos = self.mesh.vertices.reshape(-1, 3)
+        vertices = self.mesh.vertices.reshape(-1, 3)
         indices = self.mesh.indices.reshape(-1, 3)
         uvs = self.mesh.texcoords
-        v1, v2, v3 = numpy.rollaxis(pos[indices], axis=-2)
+        v1, v2, v3 = numpy.rollaxis(vertices[indices], axis=-2)
 
         def uv_intersection(point, p1, p2, p3, uv1, uv2, uv3):
             barycoord = Triangle(p1, p2, p3).barycoord_from_pos(point)

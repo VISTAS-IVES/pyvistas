@@ -4,10 +4,9 @@ from PIL import Image
 from pyrr import Matrix44, Vector3, Vector4
 
 from vistas.core.color import RGBColor
-from vistas.core.graphics.scene import Scene
-from vistas.core.math import apply_matrix_44
-from vistas.core.observers.camera import CameraObservable
 from vistas.core.graphics.raycaster import Raycaster
+from vistas.core.graphics.scene import Scene
+from vistas.core.observers.camera import CameraObservable
 from vistas.core.observers.interface import Observer
 
 
@@ -49,11 +48,6 @@ class Camera(Observer):
     def pop_matrix(self):
         if self._matrix_stack:
             self.matrix = self._matrix_stack.pop()
-
-    def project(self, v: Vector3) -> Vector3:
-        """ Project a vector to world coordinate system. """
-
-        return apply_matrix_44(v, self.proj_matrix * self.matrix.inverse)
 
     def unproject(self, v: tuple) -> Vector3:
         """ Unproject a vector from the world coordinates. """
