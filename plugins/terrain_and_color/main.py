@@ -540,7 +540,9 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
                 image_data[round(min_y): round(max_y), round(min_x): round(max_x), 0] = 0
 
-            shader.boundary_texture = Texture(data=image_data.ravel(), width=texture_w, height=texture_h)
+            shader.boundary_texture = Texture(
+                data=image_data.ravel(), width=texture_w, height=texture_h, src_format=GL_RGB8
+            )
         else:
             shader.has_boundaries = False
             shader.boundary_texture = Texture()
