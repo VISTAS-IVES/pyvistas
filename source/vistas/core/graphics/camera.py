@@ -1,9 +1,10 @@
 import numpy
 from OpenGL.GL import *
 from PIL import Image
-from pyrr import Matrix44, Vector3
+from pyrr import Matrix44, Vector3, Vector4
 
 from vistas.core.color import RGBColor
+from vistas.core.graphics.raycaster import Raycaster
 from vistas.core.graphics.scene import Scene
 from vistas.core.observers.camera import CameraObservable
 from vistas.core.observers.interface import Observer
@@ -21,6 +22,7 @@ class Camera(Observer):
         if scene is None:
             scene = Scene()
 
+        self.raycaster = Raycaster()
         self.scene = scene
         self.color = color
         self._matrix_stack = []
@@ -47,7 +49,17 @@ class Camera(Observer):
         if self._matrix_stack:
             self.matrix = self._matrix_stack.pop()
 
+    def unproject(self, v: tuple) -> Vector3:
+        """ Unproject a vector from the world coordinates. """
+
+        # Only take xy coords
+        ray_world = (self.matrix.T * self.proj_matrix.inverse * Vector4([v[0], v[1], -1, 1])).vector3[0]
+        ray_world.normalize()
+        return ray_world
+
     def get_position(self) -> Vector3:
+        """ Get camera position in world coordinate system. """
+
         mat = self.matrix
         relative_pos = Vector3([mat[3, 0], mat[3, 1], mat[3, 2]])
         relative_pos *= -1
@@ -59,6 +71,8 @@ class Camera(Observer):
         return actual_pos
 
     def get_direction(self) -> Vector3:
+        """ Get camera direction in world coordinate system. """
+
         return Vector3([self.matrix[0, 2] * -1, self.matrix[1, 2] * -1, self.matrix[2, 2] * -1])
 
     def set_point_of_interest(self, poi: Vector3):
@@ -156,17 +170,6 @@ class Camera(Observer):
         im = Image.frombuffer('RGBA', (width, height), image_data, 'raw', 'RGBA', 0, 1).transpose(Image.FLIP_TOP_BOTTOM)
         return im
 
-    def select_object(self, width, height, x, y):
-        background_color = RGBColor(1.0, 1.0, 1.0, 1.0)
-        self.reset(width, height, background_color)
-
-        y = height - y
-
-        object = self.scene.select_object(self, x, y)
-        self.reset(width, height, background_color)
-
-        return object
-
     def update(self, observable: CameraObservable):
         if observable.is_sync:
             interactor = observable.global_interactor
@@ -196,4 +199,6 @@ class Camera(Observer):
         znear = max(1.0, c.z - bbox.diameter / 2.0)
         zfar = c.z + bbox.diameter
 
+        self.raycaster.near = znear
+        self.raycaster.far = zfar
         self.proj_matrix = Matrix44.perspective_projection(80.0, width / height, znear, zfar)

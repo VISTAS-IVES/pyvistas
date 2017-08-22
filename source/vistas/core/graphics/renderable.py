@@ -1,5 +1,6 @@
 import copy
 import os
+from typing import List, Dict, Optional
 
 import numpy
 from OpenGL.GL import *
@@ -12,6 +13,25 @@ from vistas.core.paths import get_resources_directory
 
 class Renderable:
     """ Abstract renderable class. Subclasses implement a `render` method to perform OpenGL bindings. """
+
+    class Face:
+        """ Container for describing a face on a Renderable object """
+        def __init__(self, a, b, c, normal=None, color=None):
+            self.a = a
+            self.b = b
+            self.c = c
+            self.normal = normal
+            self.color = color
+
+    class Intersection:
+        """ Container for describing an intersection at a point on a Renderable object. """
+        def __init__(self, distance, point, object):
+            self.distance = distance
+            self.point = point
+            self.object = object
+            self.uv = None
+            self.face = None
+            self.face_index = None
 
     bbox_shader_program = None
     bbox_indices = numpy.array([
@@ -29,7 +49,6 @@ class Renderable:
         5, 7], dtype=GLint)
 
     def __init__(self):
-
         # One-time initialization of bounding box shader program
         if Renderable.bbox_shader_program is None:
             Renderable.bbox_shader_program = ShaderProgram()
@@ -66,17 +85,12 @@ class Renderable:
     @bounding_box.setter
     def bounding_box(self, bounding_box):
         self._bounding_box = bounding_box
-
-        bbox_scale = 0.1
-        x_margin = (self.bounding_box.max_x - self.bounding_box.min_x) * bbox_scale
-        y_margin = (self.bounding_box.max_y - self.bounding_box.min_y) * bbox_scale
-        z_margin = (self.bounding_box.max_z - self.bounding_box.min_z) * bbox_scale
-        x_min = self.bounding_box.min_x - x_margin
-        x_max = self.bounding_box.max_x + x_margin
-        y_min = self.bounding_box.min_y - y_margin
-        y_max = self.bounding_box.max_y + y_margin
-        z_min = self.bounding_box.min_z - z_margin
-        z_max = self.bounding_box.max_z + z_margin
+        x_min = self.bounding_box.min_x
+        x_max = self.bounding_box.max_x
+        y_min = self.bounding_box.min_y
+        y_max = self.bounding_box.max_y
+        z_min = self.bounding_box.min_z
+        z_max = self.bounding_box.max_z
 
         vertices = numpy.array([
             x_min, y_min, z_min,    # 0
@@ -130,8 +144,13 @@ class Renderable:
     def render_for_selection_hit(self, camera, r, g, b):
         pass
 
-    def get_selection_detail(self, width, height, x, y, camera):
+    def get_selection_detail(self, point: Vector3) -> Optional[Dict]:
         pass
+
+    def raycast(self, raycaster) -> List[Intersection]:
+        """Returns a list of intersections from the raycaster to this renderable. """
+
+        raise NotImplementedError
 
     @property
     def bounds(self):

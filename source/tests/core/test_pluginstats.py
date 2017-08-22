@@ -39,12 +39,12 @@ def test_save():
         open_mock().close = MagicMock()
         ps = stats.PluginStats({'test_data': stats.VariableStats.from_dict(var_data)})
         ps.save('cache.json', 'data.asc')
-        assert open_mock().getvalue() == json.dumps(cache_data)
+        assert json.loads(open_mock().getvalue()) == cache_data
         assert ps.is_stale is False
 
 
 def test_load():
-    with patch('{}.open'.format(stats.__name__), mock_open(read_data=json.dumps(cache_data))) as open_mock:
+    with patch('{}.open'.format(stats.__name__), mock_open(read_data=json.dumps(cache_data))):
 
         # Assume checksums are same
         with patch('vistas.core.stats.compute_file_checksum', MagicMock(return_value='123')):

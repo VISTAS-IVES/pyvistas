@@ -1,9 +1,13 @@
 import os
+from typing import List
 
+import numpy
 from OpenGL.GL import *
+from pyrr import Vector3
 
 from vistas.core.graphics.mesh import Mesh, MeshShaderProgram
 from vistas.core.graphics.renderable import Renderable
+from vistas.core.math import Triangle, distance_from
 from vistas.core.paths import get_resources_directory
 
 
@@ -77,3 +81,37 @@ class MeshRenderable(Renderable):
 
     def release_texture(self, number):
         return self.textures_map.pop(number)
+
+    def raycast(self, raycaster) -> List[Renderable.Intersection]:
+        intersects = []
+        if self.bounding_box is None or not raycaster.ray.intersects_bbox(self.bounding_box) or self.mesh.shader is None:
+            return intersects
+
+        vertices = self.mesh.vertices.reshape(-1, 3)
+        indices = self.mesh.indices.reshape(-1, 3)
+        uvs = self.mesh.texcoords
+        v1, v2, v3 = numpy.rollaxis(vertices[indices], axis=-2)
+
+        def uv_intersection(point, p1, p2, p3, uv1, uv2, uv3):
+            barycoord = Triangle(p1, p2, p3).barycoord_from_pos(point)
+            uv1 *= barycoord.x
+            uv2 *= barycoord.y
+            uv3 *= barycoord.z
+            return uv1 + uv2 + uv3
+
+        distances, face_indices = raycaster.ray.intersect_triangles(v3, v2, v1)
+        for i, d in enumerate(distances):
+            point = raycaster.ray.at(d)
+            distance = distance_from(raycaster.ray.origin, point)
+            face = indices[face_indices[i]]
+            a, b, c = face
+            intersection = Renderable.Intersection(distance, point, self)
+            va, vb, vc = Vector3(v1[a]), Vector3(v2[b]), Vector3(v3[c])
+            if uvs is not None:
+                uv_a = Vector3([*uvs[a * 2: a * 2 + 2], 0])
+                uv_b = Vector3([*uvs[b * 2: b * 2 + 2], 0])
+                uv_c = Vector3([*uvs[c * 2: c * 2 + 2], 0])
+                intersection.uv = uv_intersection(point, va, vb, vc, uv_a, uv_b, uv_c)
+            intersection.face = Renderable.Face(a, b, c, Triangle(vc, vb, va).normal)
+            intersects.append(intersection)
+        return intersects
