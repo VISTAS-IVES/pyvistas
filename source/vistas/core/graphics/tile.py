@@ -173,7 +173,6 @@ class TileRenderThread(Thread):
                                 block=True)
             self.task.inc_progress()
 
-        self.sync_with_main(self.grid.refresh_bounding_box)
         self.task.status = Task.COMPLETE
         self.sync_with_main(post_redisplay)
 
@@ -191,12 +190,9 @@ class TileLayerRenderable(Renderable):
         self._zoom = None
         self._meshes = []
         self.meters_per_px = None
-
-        self.zoom = zoom    # Update things appropriately
-
         self.bounding_box = BoundingBox()
         self.shader = TileShaderProgram()
-        TileRenderThread(self).start()
+        self.zoom = zoom  # Update things appropriately
 
     @property
     def height_multiplier(self):
@@ -217,7 +213,7 @@ class TileLayerRenderable(Renderable):
             self.tiles = list(mercantile.tiles(*self.wgs84.as_list(), [self.zoom]))
             self._ul = self.tiles[0]
             self._br = self.tiles[-1]
-
+            self.refresh_bounding_box()
             self.meters_per_px = meters_per_px(self.zoom)
 
             del self._meshes[:]
@@ -255,6 +251,9 @@ class TileLayerRenderable(Renderable):
         ul_bounds = mercantile.bounds(self._ul)
         br_bounds = mercantile.bounds(self._br)
         return mercantile.LngLatBbox(ul_bounds.west, br_bounds.south, br_bounds.east, ul_bounds.north)
+
+    def raycast(self, raycaster):
+        return []
 
     def render(self, camera):
         for tile in self._meshes:

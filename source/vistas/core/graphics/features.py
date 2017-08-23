@@ -7,6 +7,7 @@ import pyproj
 import shapely.geometry as geometry
 import triangle
 from OpenGL.GL import *
+from pyrr import Matrix44, Vector3
 from shapely.ops import transform
 
 from vistas.core.color import RGBColor
@@ -19,7 +20,6 @@ from vistas.core.paths import get_resources_directory
 from vistas.core.task import Task
 from vistas.core.threading import Thread
 from vistas.ui.utils import post_redisplay
-from pyrr import Matrix44, Vector3
 
 
 class FeatureShaderProgram(ShaderProgram):
@@ -111,6 +111,9 @@ class FeatureRenderable(Renderable):
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
         camera.pop_matrix()
 
+    def raycast(self, raycaster):
+        return []
+
     @property
     def transparency(self):
         return self.mesh.shader.alpha
@@ -185,6 +188,7 @@ class FeatureLayer:
         )
         if self.renderable:
             self.renderable.bounding_box = self.bounding_box
+            self.renderable.width = (self._br.x - self._ul.x + 1) * TILE_SIZE
 
     def render(self, scene):
         """ Renders the feature collection into a given scene. """

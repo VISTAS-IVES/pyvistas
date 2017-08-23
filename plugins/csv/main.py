@@ -77,5 +77,5 @@ class CSVDataPlugin(ArrayDataPlugin):
             var_data = self._attributes[variable]
             self.stats[variable] = VariableStats(float(var_data.min()), float(var_data.max()))
 
-    def get_data(self, variable):
+    def get_data(self, variable, date=None):
         return self._attributes[variable]

@@ -116,7 +116,7 @@ class ArrayDataPlugin(DataPlugin):
 
     data_type = DataPlugin.ARRAY
 
-    def get_data(self, variable):
+    def get_data(self, variable, date=None):
         """ Returns a numpy array """
 
 

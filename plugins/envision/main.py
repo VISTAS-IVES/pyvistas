@@ -7,6 +7,7 @@ from vistas.core.legend import StretchedLegend, CategoricalLegend
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.option import Option, OptionGroup
 from vistas.core.plugins.visualization import VisualizationPlugin3D
+from vistas.core.timeline import Timeline
 from vistas.ui.utils import *
 
 
@@ -29,6 +30,12 @@ class EnvisionVisualization(VisualizationPlugin3D):
         self.tile_layer = None
         self.feature_layer = None
         self.data = None
+        self.delta_data = None
+
+        # Delta logic
+        self.use_delta = False
+        self.current_delta_array = None
+        self.current_delta = None
 
         # Flags for rendering
         self._needs_mesh = False
@@ -39,8 +46,11 @@ class EnvisionVisualization(VisualizationPlugin3D):
         self._transparency = Option(self, Option.SLIDER, 'Transparency', 0.75, 0.0, 1.0, 0.1)
         self._height = Option(self, Option.SLIDER, 'Height Multiplier', 1.0, 0.01, 5.0, 0.01)
         self._offset = Option(self, Option.FLOAT, 'Height Offset', 5, 0, 10)
+        self._delta_toggle = Option(self, Option.CHECKBOX, 'Use Deltas', False)
         self._options = OptionGroup()
-        self._options.items = [self._attributes, self._zoom, self._transparency, self._height, self._offset]
+        self._options.items = [
+            self._attributes, self._zoom, self._transparency, self._height, self._offset, self._delta_toggle
+        ]
 
         # Coloring
         self.current_attribute = None
@@ -54,36 +64,41 @@ class EnvisionVisualization(VisualizationPlugin3D):
         if option.plugin is not self:
             return
 
-        gl_options_enabled = self.tile_layer is not None and self.feature_layer is not None
-
         # Update zoom layer for map
-        if option.name == self._zoom.name and gl_options_enabled:
+        if option.name == self._zoom.name:
             zoom = int(self._zoom.value)
-            if zoom != self.tile_layer.zoom:
+            if self.tile_layer and zoom != self.tile_layer.zoom:
                 self.tile_layer.zoom = zoom
-                self.tile_layer.render(self._scene)
 
-            if zoom != self.feature_layer.zoom:
+            if self.feature_layer and zoom != self.feature_layer.zoom:
                 self.feature_layer.zoom = zoom
                 self.feature_layer.render(self._scene)
 
         elif option.name == self._transparency.name:
-            if self.feature_layer is not None:
+            if self.feature_layer:
                 self.feature_layer.renderable.transparency = self._transparency.value
 
         elif option.name == self._attributes.name:
             if self._attributes.selected != self.current_attribute:
                 self.current_attribute = self._attributes.selected
                 self.update_colors()
+                if self.delta_data is not None:
+                    self.update_deltas()
 
-        elif option.name == self._height.name and gl_options_enabled:
+        elif option.name == self._height.name:
             multiplier = self._height.value
-            self.tile_layer.height_multiplier = multiplier
-            self.feature_layer.renderable.height_multiplier = multiplier
+            if self.tile_layer:
+                self.tile_layer.height_multiplier = multiplier
+            if self.feature_layer:
+                self.feature_layer.renderable.height_multiplier = multiplier
 
-        elif option.name == self._offset.name and gl_options_enabled:
+        elif option.name == self._offset.name:
             offset = self._offset.value
-            self.feature_layer.renderable.height_offset = offset
+            if self.feature_layer:
+                self.feature_layer.renderable.height_offset = offset
+
+        elif option.name == self._delta_toggle.name:
+            self.update_deltas()
 
         self.refresh()
 
@@ -120,7 +135,27 @@ class EnvisionVisualization(VisualizationPlugin3D):
                 self.legend = None
 
         self.feature_layer.needs_color = True
-        self.feature_layer.render(self._scene)
+        self.feature_layer.render(self.scene)
+
+    def update_deltas(self):
+        if self._delta_toggle.value:
+
+            if self.delta_data is not None and self.envision_style is not None:
+                delta_variables = self.delta_data.variables
+                variable = self.envision_style[self.current_attribute].get('column')
+                if variable in delta_variables:
+                    self.use_delta = True
+            else:
+                self.use_delta = False
+                self.current_delta_array = None
+                self.current_delta = None
+
+            if self.feature_layer is not None:
+                self.feature_layer.needs_color = True
+                self.feature_layer.render(self.scene)
+
+    def timeline_changed(self):
+        self.update_deltas()
 
     def get_legend(self, width, height):
         if self.legend is not None:
@@ -138,7 +173,8 @@ class EnvisionVisualization(VisualizationPlugin3D):
     @property
     def data_roles(self):
         return [
-            (DataPlugin.FEATURE, 'Shapefile')
+            (DataPlugin.FEATURE, 'Shapefile'),
+            (DataPlugin.ARRAY, 'Delta Array')
         ]
 
     def parse_envision_style(self):
@@ -195,30 +231,39 @@ class EnvisionVisualization(VisualizationPlugin3D):
                 self.envision_style.pop(key)
 
     def set_data(self, data: DataPlugin, role):
-        self.data = data
-        self._needs_mesh = True
+        if role == 0:
+            self.data = data
+            self._needs_mesh = True
 
-        if self.data is not None:
-            try:
-                self.parse_envision_style()
-                self._attributes.labels = list(self.envision_style.keys())
-                self.current_attribute = self._attributes.labels[0]
+            if self.data is not None:
+                try:
+                    self.parse_envision_style()
+                    self._attributes.labels = list(self.envision_style.keys())
+                    self.current_attribute = self._attributes.labels[0]
 
-            except (ElementTree.ParseError, ValueError, FileNotFoundError):
-                post_message("XML parsing failed, defaulting to feature schema.", 1)
+                except (ElementTree.ParseError, ValueError, FileNotFoundError):
+                    post_message("XML parsing failed, defaulting to feature schema.", 1)
 
-                # Use shapefile colors instead
+                    # Use shapefile colors instead
+                    self.envision_style = None
+                    self._attributes.labels = self.data.variables
+                    self.current_attribute = self._attributes.labels[0]
+            else:
+                self._attributes.labels = []
+                self.current_attribute = None
                 self.envision_style = None
-                self._attributes.labels = self.data.variables
-                self.current_attribute = self._attributes.labels[0]
 
-        else:
-            self._attributes.labels = []
-            self.current_attribute = None
-            self.envision_style = None
+        elif role == 1:
+            if not isinstance(data, VisualizationPlugin3D.by_name('envision_delta_reader')):
+                raise ValueError("Delta Array role must use the Envision Delta Array Data Plugin.")
+            self.delta_data = data
 
     def get_data(self, role):
-        return self.data
+        if role == 0:
+            return self.data
+        elif role == 1:
+            return self.delta_data
+        return None
 
     @property
     def scene(self):
@@ -266,10 +311,36 @@ class EnvisionVisualization(VisualizationPlugin3D):
             shp_attribute = envision_attribute.get('column')
             legend = envision_attribute.get('legend')
             value = feature.get('properties').get(shp_attribute)
+            idu = feature.get('properties').get('OBJECTID')
             minmax = envision_attribute.get('minmax', None)
             string_value = ''
 
             if minmax is not None:
+                # check if we're using the delta array
+                if self.use_delta:
+                    if self.current_delta_array is None:
+                        variable = self.envision_style[self.current_attribute].get('column')
+                        self.current_delta_array = self.delta_data.get_data(variable, Timeline.app().current)
+                        self.current_delta = next(self.current_delta_array)
+                else:
+                    self.current_delta_array = None
+                    self.current_delta = None
+
+                if self.current_delta_array is not None and self._delta_toggle.value:
+                    try:
+                        while self.current_delta.idu < idu:
+                            self.current_delta = next(self.current_delta_array)
+
+                        # If the current_delta's idu is greater than this feature's idu, we just skip it
+                        if self.current_delta.idu == idu:
+                            value += self.current_delta.new_value
+
+                    # Handle if we reached the end of the delta array
+                    except StopIteration:
+                        self.current_delta_array = None
+                        self.current_delta = None
+                        pass
+
                 for i, pair in enumerate(minmax):
                     if pair[0] <= value <= pair[1]:
                         string_value = legend[i].get('label')
