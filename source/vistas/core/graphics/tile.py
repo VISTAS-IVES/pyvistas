@@ -242,7 +242,7 @@ class TileLayerRenderable(Renderable):
     def refresh_bounding_box(self):
         width = (self._br.x - self._ul.x + 1) * TILE_SIZE
         height = (self._br.y - self._ul.y + 1) * TILE_SIZE
-        self.bounding_box = BoundingBox(0, -10, 0, width, 10, height)
+        self.bounding_box = BoundingBox(0, 0, -10, width, height, 10)
 
     @property
     def mercator_bounds(self):
@@ -259,6 +259,13 @@ class TileLayerRenderable(Renderable):
     def render(self, camera):
         for tile in self._meshes:
             camera.push_matrix()
+
+            # Move from y-up to z-up
+            camera.matrix *= Matrix44.from_translation(
+                Vector3([(self._br.x - self._ul.x + 1) * TILE_SIZE, 0, 0])
+            )
+            camera.matrix *= Matrix44.from_x_rotation(numpy.pi / 2)
+            camera.matrix *= Matrix44.from_z_rotation(numpy.pi)
             camera.matrix *= Matrix44.from_translation(
                 Vector3([(tile.mtile.x - self._ul.x) * (TILE_SIZE - 1), 0,
                          (tile.mtile.y - self._ul.y) * (TILE_SIZE - 1)])

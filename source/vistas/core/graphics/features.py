@@ -19,7 +19,7 @@ from vistas.core.paths import get_resources_directory
 from vistas.core.task import Task
 from vistas.core.threading import Thread
 from vistas.ui.utils import post_redisplay
-from pyrr.vector3 import generate_vertex_normals
+from pyrr import Matrix44, Vector3
 
 
 class FeatureShaderProgram(ShaderProgram):
@@ -93,17 +93,23 @@ class FeatureCollectionRenderThread(Thread):
 
 
 class FeatureRenderable(Renderable):
-    def __init__(self, vertices, indices):
+    def __init__(self, vertices, indices, ul, br):
         super().__init__()
+        self.width = (br.x - ul.x + 1) * TILE_SIZE
         self.mesh = FeatureMesh(vertices, indices)
         self.bounding_box = self.mesh.bounding_box
 
     def render(self, camera):
+        camera.push_matrix()
+        camera.matrix *= Matrix44.from_translation(Vector3([self.width, 0, 0]))
+        camera.matrix *= Matrix44.from_x_rotation(numpy.pi / 2)
+        camera.matrix *= Matrix44.from_z_rotation(numpy.pi)
         self.mesh.shader.pre_render(camera)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.mesh.index_buffer)
         glDrawElements(self.mesh.mode, self.mesh.num_indices, GL_UNSIGNED_INT, None)
         self.mesh.shader.post_render(camera)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
+        camera.pop_matrix()
 
     @property
     def transparency(self):
@@ -174,8 +180,8 @@ class FeatureLayer:
         self.meters_per_px = meters_per_px(self.zoom)
 
         self.bounding_box = BoundingBox(
-            0, -10, 0,
-            (self._br.x - self._ul.x + 1) * TILE_SIZE, 10, (self._br.y - self._ul.y + 1) * TILE_SIZE
+            0, 0, -10,
+            (self._br.x - self._ul.x + 1) * TILE_SIZE, (self._br.y - self._ul.y + 1) * TILE_SIZE, 10
         )
         if self.renderable:
             self.renderable.bounding_box = self.bounding_box
@@ -189,7 +195,7 @@ class FeatureLayer:
         """ Render callback to add the the feature collection's renderable to the specified scene. """
 
         if self.renderable is None:
-            self.renderable = FeatureRenderable(vertices, indices)
+            self.renderable = FeatureRenderable(vertices, indices, self._ul, self._br)
             scene.add_object(self.renderable)
 
         # Allocate buffers for this mesh
@@ -314,19 +320,6 @@ class FeatureLayer:
 
         normal_dem = e.create_data_dem(self.extent, self.zoom, merge=True, src=e.AWS_NORMALS)
         normals = normal_dem[vs, us].ravel()
-
-
-        #dem_indices = numpy.indices(dem.shape)
-        #heightfield = numpy.zeros((dheight, dwidth, 3), dtype=numpy.float32)
-        #heightfield[:, :, 0] = dem_indices[0]
-        #heightfield[:, :, 2] = dem_indices[1]
-        #heightfield[:, :, 1] = dem / self.meters_per_px
-        #_normals = generate_vertex_normals(heightfield.reshape(-1, 3), dem_indices.reshape(-1, 3)).reshape(heightfield.shape)
-        #normals = _normals[vs, us]
-        #print('gotcah')
-        #normals = generate_vertex_normals(
-        #    verts.reshape(-1, 3), indices.reshape(-1, 3)
-        #)
 
         return verts, indices, normals
 
