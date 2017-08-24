@@ -125,9 +125,7 @@ class EnvisionDeltaArray(ArrayDataPlugin):
         if next_year > self.delta_array.timestamps[-1]:
             last = len(self.delta_array)
         if first != -1:
-            for x in self.delta_array.deltas[first:last]:
-                if x.field == variable:
-                    yield x
+            return [x for x in self.delta_array.deltas[first: last] if x.field == variable]
         else:
             return None
 

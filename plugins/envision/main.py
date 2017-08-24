@@ -34,10 +34,6 @@ class EnvisionVisualization(VisualizationPlugin3D):
         self.feature_data = None
         self.delta_data = None
 
-        # Delta array access
-        self.current_delta_array = None
-        self.current_delta = None
-
         # Flags for rendering
         self.needs_mesh = False
         self.needs_color = False
@@ -146,12 +142,16 @@ class EnvisionVisualization(VisualizationPlugin3D):
             else:
                 self.legend = None
 
+        post_new_legend()
+
         if self.needs_color:
             self.feature_layer.needs_color = True
             self.feature_layer.render(self.scene)
 
     def is_delta_attribute(self, variable):
-        return self.envision_style[variable].get('column') in self.delta_data.variables
+        if self.envision_style is not None:
+            return self.envision_style[variable].get('column') in self.delta_data.variables
+        return False
 
     def timeline_changed(self):
         if self.feature_data and self.delta_data:
@@ -258,7 +258,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
                 self.envision_style = None
 
         elif role == 1:
-            if not isinstance(data, VisualizationPlugin3D.by_name('envision_delta_reader')):
+            if not isinstance(data, (type(None), VisualizationPlugin3D.by_name('envision_delta_reader'))):
                 raise ValueError("Delta Array role must use the Envision Delta Array Data Plugin.")
             self.delta_data = data
 
@@ -305,7 +305,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
             self.tile_layer = None
             self.feature_layer = None
 
-    def color_shapes(self, feature):
+    def color_shapes(self, feature, data):
         """
         Color features based either on Envision XML style or on a generic color scheme derived from the feature schema.
         """
@@ -346,7 +346,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
             value = feature.get('properties').get(self.current_attribute)
             return self.legend.get_color(value)
 
-    def color_deltas(self, feature):
+    def color_deltas(self, feature, data):
         """
         Color features based on presence in the Envision Delta Array. Features absent from delta array are colored grey.
         """
@@ -362,30 +362,31 @@ class EnvisionVisualization(VisualizationPlugin3D):
         minmax = envision_attribute.get('minmax', None)
         string_value = ''
 
-        if self.current_delta_array is None:
-            delta_array_generator = self.delta_data.get_data(shp_attribute, Timeline.app().current)
-            if delta_array_generator is not None:
-                self.current_delta_array = delta_array_generator
-                self.current_delta = next(self.current_delta_array)
-            else:
-                self.feature_layer.set_color_function(self.color_shapes)
-                post_message("Could not retrieve deltas, defaulting to base value.", 1)
-                return self.color_shapes(feature)
-
         try:
-            if self.current_delta.idu == idu:
-                value += self.current_delta.new_value
-                self.current_delta = next(self.current_delta_array)
+            if 'delta_array' not in data:
+                data['delta_array'] = self.delta_data.get_data(shp_attribute, Timeline.app().current)
+                data['index'] = 0
+                if data.get('delta_array') is None:
+                    self.feature_layer.set_color_function(self.color_shapes)
+                    post_message("Could not retrieve deltas, defaulting to base value.", 1)
+                    return self.color_shapes(feature, None)
+
+            darray = data.get('delta_array')
+            index = data.get('index')
+
+            if darray[index].idu == idu:
+                value += darray[index].new_value
+                data['index'] += 1
             else:
-                if self.current_delta.idu < idu:
-                    while self.current_delta.idu <= idu:
-                        self.current_delta = next(self.current_delta_array)
+                if darray[index].idu < idu:
+                    while darray[index].idu <= idu:
+                        index += 1
+                data['index'] = index
 
                 return GREY
 
         # Handle if we reached the end of the delta array
-        except StopIteration:
-            self.current_delta_array = None
+        except IndexError:
             return GREY
 
         if minmax is not None:

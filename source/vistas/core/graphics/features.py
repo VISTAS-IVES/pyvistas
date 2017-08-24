@@ -81,7 +81,7 @@ class FeatureCollectionRenderThread(Thread):
             self.sync_with_main(self.collection.add_features_to_scene, (verts, indices, normals, self.scene), block=True)
             self.collection.needs_vertices = False
 
-        if self.collection.needs_color:
+        if self.collection.needs_color and not self.task.should_stop:
             self.task.status = Task.RUNNING
             self.task.name = 'Coloring meshes'
             colors = self.collection.generate_colors(self.task)
@@ -161,6 +161,7 @@ class FeatureLayer:
         self.zoom = zoom    # update bounds
 
         self._color_func = None
+        self._render_thread = None
 
         self._cache = self.plugin.path.replace('.shp', '.ttt')
         self._npz_path = self._cache + '.npz'
@@ -192,8 +193,11 @@ class FeatureLayer:
 
     def render(self, scene):
         """ Renders the feature collection into a given scene. """
-
-        FeatureCollectionRenderThread(self, scene).start()
+        if self._render_thread is not None:
+            self._render_thread.task.status = Task.SHOULD_STOP
+            self._render_thread = None
+        self._render_thread = FeatureCollectionRenderThread(self, scene)
+        self._render_thread.start()
 
     def add_features_to_scene(self, vertices, indices, normals, scene):
         """ Render callback to add the the feature collection's renderable to the specified scene. """
@@ -223,7 +227,9 @@ class FeatureLayer:
 
         if self.renderable is not None:
             color_buf = self.renderable.mesh.acquire_color_array()
-            color_buf[:] = colors.ravel()
+            flat = colors.ravel()
+            if flat.size == color_buf.size:
+                color_buf[:] = flat
             self.renderable.mesh.release_color_array()
 
     @property
@@ -328,7 +334,13 @@ class FeatureLayer:
         return verts, indices, normals
 
     @staticmethod
-    def _default_color_function(feature):
+    def _default_color_function(feature, data):
+        """
+        Base color function for coloring features.
+        :param feature: The feature to color
+        :param data: Persistent data throughout the life of a single render
+        :return: The RGBColor to color the feature
+        """
         return RGBColor(0.5, 0.5, 0.5)
 
     def set_color_function(self, func):
@@ -348,6 +360,9 @@ class FeatureLayer:
             task.progress = 0
             task.target = self.plugin.get_num_features()
 
+        # We use a mutable data structure that is limited to this thread's scope and can be mutated
+        # based on color_func's scope. This allows multiple color threads to occur without locking.
+        mutable_color_data = {}
         for i, feature in enumerate(self.plugin.get_features()):
             if i == 0:
                 left = 0
@@ -356,13 +371,14 @@ class FeatureLayer:
             right = offsets[i]
 
             if task:
+                if task.should_stop:
+                    break
                 task.inc_progress()
 
             num_vertices = (right - left) // 2
-            color = numpy.array(color_func(feature).rgb.rgb_list, dtype=numpy.float32)
+            color = numpy.array(color_func(feature, mutable_color_data).rgb.rgb_list, dtype=numpy.float32)
             for v in range(num_vertices):
                 colors.append(color)
-
         colors = numpy.stack(colors)
 
         return colors
