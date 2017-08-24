@@ -10,6 +10,8 @@ from vistas.core.plugins.data import ArrayDataPlugin, TemporalInfo
 Delta = namedtuple('Delta', ['year', 'idu', 'field', 'new_value'])
 
 
+# Todo - store the start/stop indices for each year, so we can do indexing better.
+# This will speed up loading and minimize the amount of IO time we have to spend
 class DeltaArray:
     def __init__(self):
         self.deltas = []
@@ -117,13 +119,15 @@ class EnvisionDeltaArray(ArrayDataPlugin):
         if date is None:
             return None
 
-        result = None
         first = self.delta_array.index_from_year(date.year)
         next_year = date + datetime.timedelta(days=365)
         last = self.delta_array.index_from_year(next_year.year)
         if next_year > self.delta_array.timestamps[-1]:
             last = len(self.delta_array)
         if first != -1:
-            result = (x for x in self.delta_array.deltas[first:last] if x.field == variable)
-        return result
+            for x in self.delta_array.deltas[first:last]:
+                if x.field == variable:
+                    yield x
+        else:
+            return None
 

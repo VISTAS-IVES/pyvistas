@@ -11,6 +11,9 @@ from vistas.core.timeline import Timeline
 from vistas.ui.utils import *
 
 
+GREY = RGBColor(0.5, 0.5, 0.5)
+
+
 class EnvisionVisualization(VisualizationPlugin3D):
 
     id = 'envision_tiles_viz'
@@ -23,22 +26,24 @@ class EnvisionVisualization(VisualizationPlugin3D):
     def __init__(self):
         super().__init__()
 
-        # This plugin's scene
         self._scene = None
 
         # Renderable objects for this scene
         self.tile_layer = None
         self.feature_layer = None
-        self.data = None
+        self.feature_data = None
         self.delta_data = None
 
-        # Delta logic
-        self.use_delta = False
+        # Delta array access
         self.current_delta_array = None
         self.current_delta = None
 
         # Flags for rendering
-        self._needs_mesh = False
+        self.needs_mesh = False
+        self.needs_color = False
+        self.current_attribute = None
+        self.legend = None
+        self.envision_style = None
 
         # Options
         self._attributes = Option(self, Option.CHOICE, 'Attributes', 0)
@@ -52,10 +57,9 @@ class EnvisionVisualization(VisualizationPlugin3D):
             self._attributes, self._zoom, self._transparency, self._height, self._offset, self._delta_toggle
         ]
 
-        # Coloring
-        self.current_attribute = None
-        self.legend = None
-        self.envision_style = None
+    @property
+    def use_deltas(self):
+        return self._delta_toggle.value
 
     def get_options(self):
         return self._options
@@ -81,9 +85,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
         elif option.name == self._attributes.name:
             if self._attributes.selected != self.current_attribute:
                 self.current_attribute = self._attributes.selected
-                self.update_colors()
-                if self.delta_data is not None:
-                    self.update_deltas()
+                self.needs_color = True
 
         elif option.name == self._height.name:
             multiplier = self._height.value
@@ -98,13 +100,15 @@ class EnvisionVisualization(VisualizationPlugin3D):
                 self.feature_layer.renderable.height_offset = offset
 
         elif option.name == self._delta_toggle.name:
-            self.update_deltas()
+            if self.delta_data and self.delta_data.time_info.is_temporal and \
+                    self.is_delta_attribute(self.current_attribute):
+                self.needs_color = True
 
         self.refresh()
 
     def update_colors(self):
         # Here we determine what type and how we are going to render the viz. Then we're going to send a render request
-        sample_feature = next(self.data.get_features())
+        sample_feature = next(self.feature_data.get_features())
         props = sample_feature.get('properties')
 
         if self.envision_style is not None:
@@ -113,12 +117,20 @@ class EnvisionVisualization(VisualizationPlugin3D):
             if value is not None:
                 self.legend = CategoricalLegend(self.envision_style[self.current_attribute].get('categories'))
 
+                # Decide which color function to use
+                if self.delta_data and self.is_delta_attribute(self.current_attribute) and self.use_deltas:
+                    self.feature_layer.set_color_function(self.color_deltas)
+                else:
+                    self.feature_layer.set_color_function(self.color_shapes)
+
             else:   # Nothing to be done, color it grey
                 self.legend = None
+                self.feature_layer.set_color_function(None)
 
         else:   # Envision styling is not active
-            stats = self.data.variable_stats(self.current_attribute)
+            stats = self.feature_data.variable_stats(self.current_attribute)
             value = props.get(self.current_attribute)
+            self.feature_layer.set_color_function(self.color_shapes)
 
             if isinstance(value, (int, float)):
                 min_value = stats.min_value
@@ -134,28 +146,19 @@ class EnvisionVisualization(VisualizationPlugin3D):
             else:
                 self.legend = None
 
-        self.feature_layer.needs_color = True
-        self.feature_layer.render(self.scene)
+        if self.needs_color:
+            self.feature_layer.needs_color = True
+            self.feature_layer.render(self.scene)
 
-    def update_deltas(self):
-        if self._delta_toggle.value:
-
-            if self.delta_data is not None and self.envision_style is not None:
-                delta_variables = self.delta_data.variables
-                variable = self.envision_style[self.current_attribute].get('column')
-                if variable in delta_variables:
-                    self.use_delta = True
-            else:
-                self.use_delta = False
-                self.current_delta_array = None
-                self.current_delta = None
-
-            if self.feature_layer is not None:
-                self.feature_layer.needs_color = True
-                self.feature_layer.render(self.scene)
+    def is_delta_attribute(self, variable):
+        return self.envision_style[variable].get('column') in self.delta_data.variables
 
     def timeline_changed(self):
-        self.update_deltas()
+        if self.feature_data and self.delta_data:
+            self.needs_color = self.use_deltas and \
+                               self.delta_data.time_info.is_temporal and \
+                               self.is_delta_attribute(self.current_attribute)
+        self.refresh()
 
     def get_legend(self, width, height):
         if self.legend is not None:
@@ -168,7 +171,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
 
     @property
     def can_visualize(self):
-        return self.data is not None
+        return self.feature_data is not None
 
     @property
     def data_roles(self):
@@ -178,7 +181,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
         ]
 
     def parse_envision_style(self):
-        document = ElementTree.parse(self.data.path.replace('.shp', '.xml'))
+        document = ElementTree.parse(self.feature_data.path.replace('.shp', '.xml'))
         root = document.getroot()
 
         # Parse the envision xml style one time into a dictionary
@@ -223,7 +226,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
             self.envision_style.pop(column)
 
         # Remove variables from style that are not in the shapefile
-        variables = self.data.variables
+        variables = self.feature_data.variables
         keys = list(self.envision_style.keys())
         for key in keys:
             column = self.envision_style[key].get('column')
@@ -232,10 +235,11 @@ class EnvisionVisualization(VisualizationPlugin3D):
 
     def set_data(self, data: DataPlugin, role):
         if role == 0:
-            self.data = data
-            self._needs_mesh = True
+            self.feature_data = data
+            self.needs_mesh = True
+            self.needs_color = True
 
-            if self.data is not None:
+            if self.feature_data is not None:
                 try:
                     self.parse_envision_style()
                     self._attributes.labels = list(self.envision_style.keys())
@@ -246,7 +250,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
 
                     # Use shapefile colors instead
                     self.envision_style = None
-                    self._attributes.labels = self.data.variables
+                    self._attributes.labels = self.feature_data.variables
                     self.current_attribute = self._attributes.labels[0]
             else:
                 self._attributes.labels = []
@@ -260,7 +264,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
 
     def get_data(self, role):
         if role == 0:
-            return self.data
+            return self.feature_data
         elif role == 1:
             return self.delta_data
         return None
@@ -281,71 +285,47 @@ class EnvisionVisualization(VisualizationPlugin3D):
             self._scene.add_object(self.tile_layer)
 
     def refresh(self):
-        if self._needs_mesh:
-            self._create_terrain_mesh()
-            self._needs_mesh = False
+        if self.needs_mesh:
+            self.create_terrain_mesh()
+            self.needs_mesh = False
+        if self.needs_color:
+            self.update_colors()
+            self.needs_color = False
         post_redisplay()
 
-    def _create_terrain_mesh(self):
-        if self.data is not None:
+    def create_terrain_mesh(self):
+        if self.feature_data is not None:
             zoom = int(self._zoom.value)
-            self.tile_layer = TileLayerRenderable(self.data.extent, zoom=zoom)
+            self.tile_layer = TileLayerRenderable(self.feature_data.extent, zoom=zoom)
             self.scene.add_object(self.tile_layer)
-            self.feature_layer = FeatureLayer(self.data, zoom=zoom)
-
-            # Register the color function. This operates on each feature in the collection, and determines how we
-            # we want to color the feature
-            self.feature_layer.set_color_function(self.color_feature)
-            self.update_colors()
+            self.feature_layer = FeatureLayer(self.feature_data, zoom=zoom)
+            self.feature_layer.set_color_function(self.color_shapes)
         else:
             self.scene.remove_all_objects()
             self.tile_layer = None
             self.feature_layer = None
 
-    def color_feature(self, feature):
+    def color_shapes(self, feature):
+        """
+        Color features based either on Envision XML style or on a generic color scheme derived from the feature schema.
+        """
+
         if self.current_attribute is None or self.legend is None:
-            return RGBColor(0.5, 0.5, 0.5)
+            return GREY
 
         if self.envision_style is not None:
             envision_attribute = self.envision_style[self.current_attribute]
             shp_attribute = envision_attribute.get('column')
             legend = envision_attribute.get('legend')
             value = feature.get('properties').get(shp_attribute)
-            idu = feature.get('properties').get('OBJECTID')
             minmax = envision_attribute.get('minmax', None)
             string_value = ''
 
             if minmax is not None:
-                # check if we're using the delta array
-                if self.use_delta:
-                    if self.current_delta_array is None:
-                        variable = self.envision_style[self.current_attribute].get('column')
-                        self.current_delta_array = self.delta_data.get_data(variable, Timeline.app().current)
-                        self.current_delta = next(self.current_delta_array)
-                else:
-                    self.current_delta_array = None
-                    self.current_delta = None
-
-                if self.current_delta_array is not None and self._delta_toggle.value:
-                    try:
-                        while self.current_delta.idu < idu:
-                            self.current_delta = next(self.current_delta_array)
-
-                        # If the current_delta's idu is greater than this feature's idu, we just skip it
-                        if self.current_delta.idu == idu:
-                            value += self.current_delta.new_value
-
-                    # Handle if we reached the end of the delta array
-                    except StopIteration:
-                        self.current_delta_array = None
-                        self.current_delta = None
-                        pass
-
                 for i, pair in enumerate(minmax):
                     if pair[0] <= value <= pair[1]:
                         string_value = legend[i].get('label')
                         break
-
             else:
                 for entry in legend:
                     try:
@@ -358,9 +338,64 @@ class EnvisionVisualization(VisualizationPlugin3D):
 
             color = self.legend.get_color(string_value)
             if color is None:
-                color = RGBColor(0.5, 0.5, 0.5)
+                color = GREY
             return color
 
+        # Fallback to coloring based on shapefile schema
         else:
             value = feature.get('properties').get(self.current_attribute)
             return self.legend.get_color(value)
+
+    def color_deltas(self, feature):
+        """
+        Color features based on presence in the Envision Delta Array. Features absent from delta array are colored grey.
+        """
+
+        if self.legend is None:
+            return GREY
+
+        envision_attribute = self.envision_style[self.current_attribute]
+        shp_attribute = envision_attribute.get('column')
+        legend = envision_attribute.get('legend')
+        value = feature.get('properties').get(shp_attribute)
+        idu = int(feature.get('id'))
+        minmax = envision_attribute.get('minmax', None)
+        string_value = ''
+
+        if self.current_delta_array is None:
+            delta_array_generator = self.delta_data.get_data(shp_attribute, Timeline.app().current)
+            if delta_array_generator is not None:
+                self.current_delta_array = delta_array_generator
+                self.current_delta = next(self.current_delta_array)
+            else:
+                self.feature_layer.set_color_function(self.color_shapes)
+                post_message("Could not retrieve deltas, defaulting to base value.", 1)
+                return self.color_shapes(feature)
+
+        try:
+            if self.current_delta.idu == idu:
+                value += self.current_delta.new_value
+                self.current_delta = next(self.current_delta_array)
+            else:
+                if self.current_delta.idu < idu:
+                    while self.current_delta.idu <= idu:
+                        self.current_delta = next(self.current_delta_array)
+
+                return GREY
+
+        # Handle if we reached the end of the delta array
+        except StopIteration:
+            self.current_delta_array = None
+            return GREY
+
+        if minmax is not None:
+            for i, pair in enumerate(minmax):
+                if pair[0] <= value <= pair[1]:
+                    string_value = legend[i].get('label')
+                    break
+
+        color = self.legend.get_color(string_value)
+        if color is None:
+            color = GREY
+
+        return color

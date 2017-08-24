@@ -331,9 +331,8 @@ class FeatureLayer:
     def _default_color_function(feature):
         return RGBColor(0.5, 0.5, 0.5)
 
-    def set_color_function(self, func, needs_color=True):
+    def set_color_function(self, func):
         self._color_func = func
-        self.needs_color = needs_color
 
     def generate_colors(self, task=None):
         """ Generates a color buffer for the feature collection """
