@@ -3,8 +3,8 @@ import struct
 from OpenGL.GL import *
 from pyrr import Matrix44
 
+from vistas.core.bounds import BoundingBox
 from vistas.core.color import RGBColor
-from vistas.core.graphics.bounds import BoundingBox
 
 
 class Scene:

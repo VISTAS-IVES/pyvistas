@@ -1,8 +1,9 @@
-from pyrr import Vector3
 import numpy
-from vistas.core.graphics.raycaster import Ray
-from vistas.core.graphics.bounds import BoundingBox
+from pyrr import Vector3
+
+from vistas.core.bounds import BoundingBox
 from vistas.core.graphics.camera import Camera
+from vistas.core.graphics.raycaster import Ray
 
 
 def test_intersects_bbox():

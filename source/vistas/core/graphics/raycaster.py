@@ -3,8 +3,8 @@ from typing import Optional, List
 import numpy
 from pyrr import Vector3
 
-from vistas.core.graphics.bounds import BoundingBox
-from vistas.core.graphics.renderable import Renderable
+from vistas.core.bounds import BoundingBox
+from vistas.core.graphics.objects import Object3D, Intersection
 
 
 class Ray:
@@ -116,16 +116,24 @@ class Raycaster:
         self.far = far if far else numpy.inf
 
     def set_from_camera(self, coords: tuple, camera):
+        """ Update the Raycaster's ray to extend from the given Camera. """
+
         self.ray.origin = camera.get_position()
         self.ray.direction = camera.unproject(coords)
         self.ray.direction.normalize()
 
-    def intersect_object(self, obj) -> List[Renderable.Intersection]:
-        intersects = obj.raycast(self)
-        intersects.sort(key=lambda i: i.distance)
+    def intersect_object(self, obj) -> List[Intersection]:
+        """ Retrieve intersections, sorted in ascending distance, to a given Object3D. """
+
+        intersects = []
+        if issubclass(obj.__class__, Object3D):
+            intersects = obj.raycast(self)
+            intersects.sort(key=lambda i: i.distance)
         return intersects
 
-    def intersect_objects(self, camera) -> List[Renderable.Intersection]:
+    def intersect_objects(self, camera) -> List[Intersection]:
+        """ Retrieve intersections to all Object3D objects in a given Camera's Scene. """
+
         intersects = []
         for obj in camera.scene.objects:
             intersects += self.intersect_object(obj)

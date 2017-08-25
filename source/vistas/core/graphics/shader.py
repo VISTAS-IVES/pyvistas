@@ -4,7 +4,6 @@ import os
 import numpy
 import wx
 from OpenGL.GL import *
-from pyrr import Matrix33, Matrix44
 
 from vistas.ui.utils import post_redisplay
 
@@ -111,40 +110,40 @@ class ShaderProgram(wx.PyEvtHandler):
     def get_attrib_location(self, name):
         return glGetAttribLocation(self.program, name)
 
-    def uniform1i(self, name, value: int):
+    def uniform1i(self, name, value):
         glUniform1i(self.get_uniform_location(name), value)
 
-    def uniform1f(self, name, value: float):
+    def uniform1f(self, name, value):
         glUniform1f(self.get_uniform_location(name), value)
 
-    def uniform1ui(self, name, value: int):
+    def uniform1ui(self, name, value):
         glUniform1ui(self.get_uniform_location(name), value)
 
-    def uniform2i(self, name, value1: int, value2: int):
+    def uniform2i(self, name, value1, value2):
         glUniform2i(self.get_uniform_location(name), value1, value2)
 
-    def uniform2f(self, name, value1: float, value2: float):
+    def uniform2f(self, name, value1, value2):
         glUniform2f(self.get_uniform_location(name), value1, value2)
 
-    def uniform2ui(self, name, value1: int, value2: int):
+    def uniform2ui(self, name, value1, value2):
         glUniform2ui(self.get_uniform_location(name), value1, value2)
 
-    def uniform3i(self, name, value1: int, value2: int, value3: int):
+    def uniform3i(self, name, value1, value2, value3):
         glUniform3i(self.get_uniform_location(name), value1, value2, value3)
 
-    def uniform3f(self, name, value1: float, value2: float, value3: float):
+    def uniform3f(self, name, value1, value2, value3):
         glUniform3f(self.get_uniform_location(name), value1, value2, value3)
 
-    def uniform3ui(self, name, value1: int, value2: int, value3: int):
+    def uniform3ui(self, name, value1, value2, value3):
         glUniform3ui(self.get_uniform_location(name), value1, value2, value3)
 
-    def uniform4i(self, name, value1: int, value2: int, value3: int, value4: int):
+    def uniform4i(self, name, value1, value2, value3, value4):
         glUniform4i(self.get_uniform_location(name), value1, value2, value3, value4)
 
-    def uniform4f(self, name, value1: float, value2: float, value3: float, value4: float):
+    def uniform4f(self, name, value1, value2, value3, value4):
         glUniform4f(self.get_uniform_location(name), value1, value2, value3, value4)
 
-    def uniform4ui(self, name, value1: int, value2: int, value3: int, value4: int):
+    def uniform4ui(self, name, value1, value2, value3, value4):
         glUniform4ui(self.get_uniform_location(name), value1, value2, value3, value4)
 
     def uniform1iv(self, name, count, value):
@@ -183,8 +182,8 @@ class ShaderProgram(wx.PyEvtHandler):
     def uniform4uiv(self, name, count, value):
         glUniform4uiv(self.get_uniform_location(name), count, value)
 
-    def uniform_matrix3fv(self, name, count, transpose: bool, value: Matrix33):
+    def uniform_matrix3fv(self, name, count, transpose: bool, value):
         glUniformMatrix3fv(self.get_uniform_location(name), count, transpose, numpy.array(value, dtype=numpy.float32))
 
-    def uniform_matrix4fv(self, name, count, transpose: bool, value: Matrix44):
+    def uniform_matrix4fv(self, name, count, transpose: bool, value):
         glUniformMatrix4fv(self.get_uniform_location(name), count, transpose, numpy.array(value, dtype=numpy.float32))

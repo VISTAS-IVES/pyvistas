@@ -10,9 +10,9 @@ from OpenGL.GL import *
 from pyrr import Matrix44, Vector3
 from shapely.ops import transform
 
+from vistas.core.bounds import BoundingBox
 from vistas.core.color import RGBColor
 from vistas.core.gis.elevation import ElevationService, meters_per_px, TILE_SIZE
-from vistas.core.graphics.bounds import BoundingBox
 from vistas.core.graphics.mesh import Mesh
 from vistas.core.graphics.renderable import Renderable
 from vistas.core.graphics.shader import ShaderProgram

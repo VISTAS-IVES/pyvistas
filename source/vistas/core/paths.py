@@ -33,6 +33,10 @@ def get_resources_directory():
         return os.path.join(os.path.dirname(wx.StandardPaths.Get().ExecutablePath), '..', 'resources')
 
 
+def get_builtin_shader(path):
+    return os.path.join(get_resources_directory(), path)
+
+
 def get_config_dir():
     if get_platform() == 'macos':
         return os.path.join(wx.StandardPaths.Get().UserLocalDataDir, 'VISTAS')

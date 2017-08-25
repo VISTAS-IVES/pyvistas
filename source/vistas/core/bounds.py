@@ -21,7 +21,7 @@ class BoundingBox:
         ])
 
     @property
-    def diameter(self):
+    def diameter(self) -> float:
         return max(max(self.max_x - self.min_x, self.max_y - self.min_y), self.max_z - self.min_z)
 
     def scale(self, factor: Vector3):
@@ -44,7 +44,7 @@ class BoundingBox:
         return self.__dict__ == other.__dict__
 
 
-def union_bboxs(bboxs):
+def union_bboxs(bboxs) -> BoundingBox:
     """ Return the largest BoundingBox from a list of bounding boxes. """
 
     bbox = BoundingBox(bboxs[0].min_x, bboxs[0].min_y, bboxs[0].min_z, bboxs[0].max_x, bboxs[0].max_y, bboxs[0].max_z)
