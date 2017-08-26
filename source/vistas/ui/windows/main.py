@@ -1,6 +1,9 @@
+import os
 import wx
+from PIL.Image import Image
 
-from vistas.core.paths import get_resource_bitmap
+from vistas.core.graphics.overlay import BasicOverlayButton
+from vistas.core.paths import get_resource_bitmap, get_resources_directory
 from vistas.core.plugins.visualization import EVT_VISUALIZATION_UPDATED
 from vistas.core.utils import get_platform
 from vistas.ui.controllers.project import ProjectController
@@ -184,12 +187,13 @@ class MainWindow(wx.Frame):
         self.right_panel_sizer.Add(self.viewer_container_panel, 1, wx.EXPAND)
         self.right_panel_sizer.Add(self.timeline_panel, 0, wx.EXPAND)
 
-        self.expand_button = ExpandButton(self.right_panel)
+        self.expand_button = ExpandButton()
+        self.viewer_container_panel.GetMainViewerPanel().gl_canvas.overlay.add_button(self.expand_button)
 
         self.project_controller = ProjectController(self.project_panel)
         self.Bind(EVT_COMMAND_PROJECT_CHANGED, self.OnProjectChanged)
         self.main_splitter.Bind(wx.EVT_SPLITTER_DCLICK, self.OnSplitterDClick)
-        self.expand_button.Bind(wx.EVT_LEFT_DOWN, self.OnExpandButtonClick)
+        self.expand_button.Bind(wx.EVT_BUTTON, self.OnExpandButton)
 
         # Listen to plugin events
         self.Bind(EVT_PLUGIN_OPTION, self.OnPluginOption)
@@ -337,8 +341,10 @@ class MainWindow(wx.Frame):
     def ToggleProjectPanel(self):
         if self.main_splitter.IsSplit():
             self.CollapseProjectPanel()
+            self.expand_button.expanded = False
         else:
             self.RestoreProjectPanel()
+            self.expand_button.expanded = True
         self.InvalidateBestSize()
         self.Refresh()
 
@@ -358,7 +364,7 @@ class MainWindow(wx.Frame):
     def OnSplitterDClick(self, event):
         self.CollapseProjectPanel()
 
-    def OnExpandButtonClick(self, event):
+    def OnExpandButton(self, event):
         self.ToggleProjectPanel()
 
     def SetOptions(self, options=None, plugin=None):
