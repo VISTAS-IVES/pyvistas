@@ -1,7 +1,12 @@
+from PIL import Image
+
+import os
 import wx
 import wx.glcanvas
 
+from vistas.core.graphics.overlay import Button, Overlay
 from vistas.core.observers.camera import CameraObservable
+from vistas.core.paths import get_resources_directory
 from vistas.core.utils import get_platform
 from vistas.ui.controls.gl_camera import GLCameraControls
 from vistas.ui.events import CameraSyncEvent
@@ -35,6 +40,8 @@ class GLCanvas(wx.glcanvas.GLCanvas):
         if get_platform() == 'windows':
             self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
+        self.overlay = Overlay(self)
+
     def OnDestroy(self, event):
         CameraObservable.get().remove_observer(self.camera)
         self.camera_controls.Destroy()
@@ -61,7 +68,7 @@ class GLCanvas(wx.glcanvas.GLCanvas):
             self.SwapBuffers()
 
         self.SetCurrent(GLCanvas.shared_gl_context)
-        self.camera.render(*self.GetSize().Get())
+        self.camera.render(*self.GetSize().Get(), self.overlay)
         self.SwapBuffers()
 
     def OnEraseBackground(self, event: wx.EraseEvent):

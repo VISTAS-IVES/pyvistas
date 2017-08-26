@@ -4,6 +4,7 @@ from PIL import Image
 from pyrr import Matrix44, Vector3, Vector4
 
 from vistas.core.color import RGBColor
+from vistas.core.graphics.overlay import Overlay
 from vistas.core.graphics.raycaster import Raycaster
 from vistas.core.graphics.scene import Scene
 from vistas.core.observers.camera import CameraObservable
@@ -130,7 +131,7 @@ class Camera(Observer):
     def distance_to_object(self, obj):
         return abs((obj.bounds.center - self.get_position()).length)
 
-    def render(self, width, height):
+    def render(self, width, height, overlay: Overlay=None):
         if self.selection_view:
             self.reset(width, height, RGBColor(1, 1, 1, 1))
         else:
@@ -146,6 +147,9 @@ class Camera(Observer):
             self.scene.select_object(self, 0, 0)
         else:
             self.scene.render(self)
+
+            if overlay:
+                overlay.render(width, height)
 
     def render_to_bitmap(self, width, height):
         if not Camera.offscreen_buffers_initialized:
