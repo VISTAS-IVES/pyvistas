@@ -154,6 +154,9 @@ class Overlay:
         glDisable(GL_BLEND)
 
     def on_canvas_motion(self, event):
+        old_target = self.target
+        self.target = None
+
         for button in reversed(self._buttons):
             contains = (
                 button.position[0] <= event.x <= button.position[0] + button.size[0] and
@@ -165,13 +168,10 @@ class Overlay:
                     return
 
                 self.target = button
-
                 wx.PostEvent(button, wx.MouseEvent(wx.wxEVT_ENTER_WINDOW))
-                return
 
-        if self.target:
-            wx.PostEvent(self.target, wx.MouseEvent(wx.wxEVT_LEAVE_WINDOW))
-            self.target = None
+        if old_target is not None and old_target is not self.target:
+            wx.PostEvent(old_target, wx.MouseEvent(wx.wxEVT_LEAVE_WINDOW))
 
         event.Skip()
 
