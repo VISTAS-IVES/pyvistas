@@ -291,6 +291,8 @@ class BasicOverlayButton(Button):
     """ Standard overlay button, partially transparent with more opaque hover mode """
 
     def __init__(self, path_or_image, position):
+        self._opaque = False
+
         if isinstance(path_or_image, Image.Image):
             image = path_or_image
         else:
@@ -298,13 +300,25 @@ class BasicOverlayButton(Button):
 
         super().__init__(position, image.size, image, image)
 
+        self.original_image = image
         self.default_image = image
 
     @Button.default_image.setter
     def default_image(self, image):
+        self.original_image = image
+
         image = Image.alpha_composite(Image.new('RGBA', image.size, (255, 255, 255, 100)), image)
         transparency = Image.new('RGBA', image.size, (0, 0, 0, 0))
         image_70 = Image.blend(transparency, image, .7)
 
-        self._default_image = image_70
+        self._default_image = image if self.opaque else image_70
         self.hover_image = image
+
+    @property
+    def opaque(self):
+        return self._opaque
+
+    @opaque.setter
+    def opaque(self, opaque):
+        self._opaque = opaque
+        self.default_image = self.original_image

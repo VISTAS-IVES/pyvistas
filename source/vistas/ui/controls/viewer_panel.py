@@ -427,7 +427,7 @@ class ViewerPanel(wx.Panel, Observer):
             if observable.need_state_saved:
                 self.saved_interactor_state = self.gl_canvas.camera_interactor
             self.gl_canvas.camera_interactor = interactor
-            self.gl_canvas.camera_controls.Reset()
+            self.gl_canvas.camera_controls.reset()
         else:
             if self.saved_interactor_state is not None:
                 self.gl_canvas.camera_interactor = self.saved_interactor_state
@@ -435,4 +435,4 @@ class ViewerPanel(wx.Panel, Observer):
             if self.reset_interactor:
                 self.gl_canvas.camera_interactor.reset_position()
                 self.reset_interactor = False
-            self.gl_canvas.camera_controls.Reset()
+            self.gl_canvas.camera_controls.reset()

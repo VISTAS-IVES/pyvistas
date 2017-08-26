@@ -126,7 +126,7 @@ class ViewerContainerPanel(wx.Panel):
                     x, y, self.GetSize().GetWidth() * viewer.width,
                     self.GetSize().GetHeight() * viewer.height
                 )
-                viewer.gl_canvas.camera_controls.RepositionAll()
+                viewer.gl_canvas.camera_controls.reposition()
 
     def OnSize(self, event):
         self.UpdateViewerSizes()
