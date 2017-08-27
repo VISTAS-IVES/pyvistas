@@ -110,10 +110,7 @@ class EnvisionDeltaArray(ArrayDataPlugin):
 
     @staticmethod
     def is_valid_file(path):
-        return True     # Todo - assert that time is formatted correctly
-
-    #def calculate_stats(self): # Todo - calculate stats for delta arrays
-    #    pass
+        return True
 
     def get_data(self, variable, date=None):
         if date is None:

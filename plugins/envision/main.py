@@ -246,7 +246,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
                     self.current_attribute = self._attributes.labels[0]
 
                 except (ElementTree.ParseError, ValueError, FileNotFoundError):
-                    post_message("XML parsing failed, defaulting to feature schema.", 1)
+                    post_message('XML parsing failed, defaulting to feature schema.', 1)
 
                     # Use shapefile colors instead
                     self.envision_style = None
@@ -259,7 +259,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
 
         elif role == 1:
             if not isinstance(data, (type(None), VisualizationPlugin3D.by_name('envision_delta_reader'))):
-                raise ValueError("Delta Array role must use the Envision Delta Array Data Plugin.")
+                raise ValueError('Delta Array role must use the Envision Delta Array Data Plugin.')
             self.delta_data = data
 
     def get_data(self, role):
@@ -368,7 +368,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
                 data['index'] = 0
                 if data.get('delta_array') is None:
                     self.feature_layer.set_color_function(self.color_shapes)
-                    post_message("Could not retrieve deltas, defaulting to base value.", 1)
+                    post_message('Could not retrieve deltas, defaulting to base value.', 1)
                     return self.color_shapes(feature, None)
 
             darray = data.get('delta_array')
