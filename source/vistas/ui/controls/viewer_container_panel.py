@@ -126,7 +126,7 @@ class ViewerContainerPanel(wx.Panel):
                     x, y, self.GetSize().GetWidth() * viewer.width,
                     self.GetSize().GetHeight() * viewer.height
                 )
-                viewer.gl_canvas.camera_controls.RepositionAll()
+                viewer.gl_canvas.camera_controls.reposition()
 
     def OnSize(self, event):
         self.UpdateViewerSizes()
@@ -205,7 +205,7 @@ class ViewerContainerPanel(wx.Panel):
             observable.sync_camera(interactor, save_state)
             for panel in self.GetAllViewerPanels():
                 if panel is not self.GetMainViewerPanel():
-                    panel.gl_canvas.camera_controls.Hide()
+                    panel.gl_canvas.camera_controls.hide()
         else:
             main_panel_interactor = observable.global_interactor
             observable.unsync_camera()
@@ -213,4 +213,4 @@ class ViewerContainerPanel(wx.Panel):
                 self.GetMainViewerPanel().gl_canvas.camera_interactor = main_panel_interactor
             for panel in self.GetAllViewerPanels():
                 if panel is not None and panel is not self.GetMainViewerPanel():
-                    panel.gl_canvas.camera_controls.Show()
+                    panel.gl_canvas.camera_controls.show()

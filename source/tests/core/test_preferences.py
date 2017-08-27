@@ -17,25 +17,31 @@ def preferences_cls():
 
 @patch('os.path.exists')
 def test_singleton_makedirs(mock_exists, preferences_cls, generic_app):
-    with patch('{}.open'.format(preferences.__name__), mock_open(read_data='{}')):
-        with patch('os.makedirs') as mock_makedirs:
-            mock_exists.return_value = True
-            preferences_cls.app()
-            assert mock_makedirs.called is False
-            preferences.Preferences._app_preferences = None
+    def run_test():
+        with patch('{}.open'.format(preferences.__name__), mock_open(read_data='{}')):
+            with patch('os.makedirs') as mock_makedirs:
+                mock_exists.return_value = True
+                preferences_cls.app()
+                assert mock_makedirs.called is False
+                preferences.Preferences._app_preferences = None
 
-        with patch('os.makedirs') as mock_makedirs:
-            mock_exists.return_value = False
-            preferences_cls.app()
-            assert mock_makedirs.called
-            preferences.Preferences._app_preferences = None
+            with patch('os.makedirs') as mock_makedirs:
+                mock_exists.return_value = False
+                preferences_cls.app()
+                assert mock_makedirs.called
+                preferences.Preferences._app_preferences = None
+
+    generic_app(run_test)
 
 
 @patch('os.path.exists', MagicMock(return_value=True))
 def test_singleton_cache(preferences_cls, generic_app):
-    with patch('{}.open'.format(preferences.__name__), mock_open(read_data='{}')):
-        prefs = preferences_cls.app()
-        assert preferences_cls.app() == prefs
+    def run_test():
+        with patch('{}.open'.format(preferences.__name__), mock_open(read_data='{}')):
+            prefs = preferences_cls.app()
+            assert preferences_cls.app() == prefs
+
+    generic_app(run_test)
 
 
 @patch('os.path.exists', MagicMock(return_value=False))

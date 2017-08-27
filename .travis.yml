@@ -1,5 +1,6 @@
 os: osx
 osx_image: xcode8.1
+sudo: required
 
 language: generic
 
@@ -19,6 +20,11 @@ before_install:
 install:
   - "pip install -r requirements.txt"
   - "pip install pytest"
+
+before_script:
+  - export DISPLAY=':99.0'
+  - Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+  - sleep 10
 
 script:
   "py.test ."
