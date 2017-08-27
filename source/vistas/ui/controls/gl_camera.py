@@ -24,6 +24,7 @@ class GLCameraControls(wx.EvtHandler):
 
         self.camera = camera
         self.canvas = gl_canvas
+        self.visible = False
 
         self.sphere_button = BasicOverlayButton(
             os.path.join(get_resources_directory(), 'images', 'glyphicons-372-global.png'), (0, 0)
@@ -39,10 +40,7 @@ class GLCameraControls(wx.EvtHandler):
         self.camera_interactor = SphereInteractor(camera=self.camera)
 
         self.reposition()
-
-        self.canvas.overlay.add_button(self.sphere_button)
-        self.canvas.overlay.add_button(self.freelook_button)
-        self.canvas.overlay.add_button(self.pan_button)
+        self.show()
 
         self.canvas.Bind(wx.EVT_SIZE, lambda event: self.reposition())
         self.sphere_button.Bind(wx.EVT_BUTTON, lambda event: self.set_type(self.SPHERE))
@@ -63,20 +61,36 @@ class GLCameraControls(wx.EvtHandler):
 
         self.canvas.Refresh()
 
+    def show(self):
+        if not self.visible:
+            self.canvas.overlay.add_button(self.sphere_button)
+            self.canvas.overlay.add_button(self.freelook_button)
+            self.canvas.overlay.add_button(self.pan_button)
+
+        self.visible = True
+
+    def hide(self):
+        if self.visible:
+            self.canvas.overlay.remove_button(self.sphere_button)
+            self.canvas.overlay.remove_button(self.freelook_button)
+            self.canvas.overlay.remove_button(self.pan_button)
+
+        self.visible = False
+
     def set_type(self, interactor, send_event=True):
         self.sphere_button.opaque = False
         self.freelook_button.opaque = False
         self.pan_button.opaque = False
 
-        if interactor == self.SPHERE:
+        if interactor in (self.SPHERE, CameraInteractor.SPHERE):
             self.sphere_button.opaque = True
             self.camera_interactor = SphereInteractor(self.camera, False)
 
-        elif interactor == self.FREELOOK:
+        elif interactor in (self.FREELOOK, CameraInteractor.FREELOOK):
             self.freelook_button.opaque = True
             self.camera_interactor = FreelookInteractor(self.camera, False)
 
-        elif interactor == self.PAN:
+        elif interactor in (self.PAN, CameraInteractor.PAN):
             self.pan_button.opaque = True
             self.camera_interactor = PanInteractor(self.camera, False)
 
