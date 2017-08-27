@@ -3,13 +3,17 @@ from unittest.mock import patch
 import numpy
 from PIL import Image
 
-from tests.fixtures import vistas_app
+from tests.fixtures import generic_app
 from vistas.core.graphics import texture
 
-vistas_app # Make the fixture import look used to IDEs
+generic_app # Make the fixture import look used to IDEs
 
 
-def test_texture_with_data(vistas_app):
+@patch('{}.glGenTextures'.format(texture.__name__))
+@patch('{}.glBindTexture'.format(texture.__name__))
+@patch('{}.glTexParameteri'.format(texture.__name__))
+@patch('{}.glDeleteTextures'.format(texture.__name__))
+def test_texture_with_data(m1, m2, m3, m4, generic_app):
     def test_callback():
         data = numpy.arange(300)
 
@@ -19,10 +23,14 @@ def test_texture_with_data(vistas_app):
             assert m.call_args[0][-1] is data
             assert m.call_args[0][3:5] == (10, 10)
 
-    vistas_app(test_callback)
+    generic_app(test_callback)
 
 
-def test_texture_with_image(vistas_app):
+@patch('{}.glGenTextures'.format(texture.__name__))
+@patch('{}.glBindTexture'.format(texture.__name__))
+@patch('{}.glTexParameteri'.format(texture.__name__))
+@patch('{}.glDeleteTextures'.format(texture.__name__))
+def test_texture_with_image(m1, m2, m3, m4, generic_app):
     def test_callback():
         im = Image.new('RGB', (10, 10), (0, 0, 0, 0))
 
@@ -32,4 +40,4 @@ def test_texture_with_image(vistas_app):
             assert (m.call_args[0][-1].ravel() == numpy.zeros(300)).all()
             assert m.call_args[0][3:5] == (10, 10)
 
-    vistas_app(test_callback)
+    generic_app(test_callback)
