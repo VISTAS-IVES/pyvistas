@@ -7,6 +7,7 @@ import pyproj
 import shapely.geometry as geometry
 import triangle
 from OpenGL.GL import *
+from pyrr import Matrix44, Vector3
 from shapely.ops import transform
 
 from vistas.core.color import RGBColor
@@ -19,7 +20,6 @@ from vistas.core.paths import get_resources_directory
 from vistas.core.task import Task
 from vistas.core.threading import Thread
 from vistas.ui.utils import post_redisplay
-from pyrr.vector3 import generate_vertex_normals
 
 
 class FeatureShaderProgram(ShaderProgram):
@@ -81,7 +81,7 @@ class FeatureCollectionRenderThread(Thread):
             self.sync_with_main(self.collection.add_features_to_scene, (verts, indices, normals, self.scene), block=True)
             self.collection.needs_vertices = False
 
-        if self.collection.needs_color:
+        if self.collection.needs_color and not self.task.should_stop:
             self.task.status = Task.RUNNING
             self.task.name = 'Coloring meshes'
             colors = self.collection.generate_colors(self.task)
@@ -93,17 +93,26 @@ class FeatureCollectionRenderThread(Thread):
 
 
 class FeatureRenderable(Renderable):
-    def __init__(self, vertices, indices):
+    def __init__(self, vertices, indices, ul, br):
         super().__init__()
+        self.width = (br.x - ul.x + 1) * TILE_SIZE
         self.mesh = FeatureMesh(vertices, indices)
         self.bounding_box = self.mesh.bounding_box
 
     def render(self, camera):
+        camera.push_matrix()
+        camera.matrix *= Matrix44.from_translation(Vector3([self.width, 0, 0]))
+        camera.matrix *= Matrix44.from_x_rotation(numpy.pi / 2)
+        camera.matrix *= Matrix44.from_z_rotation(numpy.pi)
         self.mesh.shader.pre_render(camera)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.mesh.index_buffer)
         glDrawElements(self.mesh.mode, self.mesh.num_indices, GL_UNSIGNED_INT, None)
         self.mesh.shader.post_render(camera)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
+        camera.pop_matrix()
+
+    def raycast(self, raycaster):
+        return []
 
     @property
     def transparency(self):
@@ -152,6 +161,7 @@ class FeatureLayer:
         self.zoom = zoom    # update bounds
 
         self._color_func = None
+        self._render_thread = None
 
         self._cache = self.plugin.path.replace('.shp', '.ttt')
         self._npz_path = self._cache + '.npz'
@@ -174,22 +184,26 @@ class FeatureLayer:
         self.meters_per_px = meters_per_px(self.zoom)
 
         self.bounding_box = BoundingBox(
-            0, -10, 0,
-            (self._br.x - self._ul.x + 1) * TILE_SIZE, 10, (self._br.y - self._ul.y + 1) * TILE_SIZE
+            0, 0, -10,
+            (self._br.x - self._ul.x + 1) * TILE_SIZE, (self._br.y - self._ul.y + 1) * TILE_SIZE, 10
         )
         if self.renderable:
             self.renderable.bounding_box = self.bounding_box
+            self.renderable.width = (self._br.x - self._ul.x + 1) * TILE_SIZE
 
     def render(self, scene):
         """ Renders the feature collection into a given scene. """
-
-        FeatureCollectionRenderThread(self, scene).start()
+        if self._render_thread is not None:
+            self._render_thread.task.status = Task.SHOULD_STOP
+            self._render_thread = None
+        self._render_thread = FeatureCollectionRenderThread(self, scene)
+        self._render_thread.start()
 
     def add_features_to_scene(self, vertices, indices, normals, scene):
         """ Render callback to add the the feature collection's renderable to the specified scene. """
 
         if self.renderable is None:
-            self.renderable = FeatureRenderable(vertices, indices)
+            self.renderable = FeatureRenderable(vertices, indices, self._ul, self._br)
             scene.add_object(self.renderable)
 
         # Allocate buffers for this mesh
@@ -213,7 +227,9 @@ class FeatureLayer:
 
         if self.renderable is not None:
             color_buf = self.renderable.mesh.acquire_color_array()
-            color_buf[:] = colors.ravel()
+            flat = colors.ravel()
+            if flat.size == color_buf.size:
+                color_buf[:] = flat
             self.renderable.mesh.release_color_array()
 
     @property
@@ -315,28 +331,20 @@ class FeatureLayer:
         normal_dem = e.create_data_dem(self.extent, self.zoom, merge=True, src=e.AWS_NORMALS)
         normals = normal_dem[vs, us].ravel()
 
-
-        #dem_indices = numpy.indices(dem.shape)
-        #heightfield = numpy.zeros((dheight, dwidth, 3), dtype=numpy.float32)
-        #heightfield[:, :, 0] = dem_indices[0]
-        #heightfield[:, :, 2] = dem_indices[1]
-        #heightfield[:, :, 1] = dem / self.meters_per_px
-        #_normals = generate_vertex_normals(heightfield.reshape(-1, 3), dem_indices.reshape(-1, 3)).reshape(heightfield.shape)
-        #normals = _normals[vs, us]
-        #print('gotcah')
-        #normals = generate_vertex_normals(
-        #    verts.reshape(-1, 3), indices.reshape(-1, 3)
-        #)
-
         return verts, indices, normals
 
     @staticmethod
-    def _default_color_function(feature):
+    def _default_color_function(feature, data):
+        """
+        Base color function for coloring features.
+        :param feature: The feature to color
+        :param data: Persistent data throughout the life of a single render
+        :return: The RGBColor to color the feature
+        """
         return RGBColor(0.5, 0.5, 0.5)
 
-    def set_color_function(self, func, needs_color=True):
+    def set_color_function(self, func):
         self._color_func = func
-        self.needs_color = needs_color
 
     def generate_colors(self, task=None):
         """ Generates a color buffer for the feature collection """
@@ -352,6 +360,9 @@ class FeatureLayer:
             task.progress = 0
             task.target = self.plugin.get_num_features()
 
+        # We use a mutable data structure that is limited to this thread's scope and can be mutated
+        # based on color_func's scope. This allows multiple color threads to occur without locking.
+        mutable_color_data = {}
         for i, feature in enumerate(self.plugin.get_features()):
             if i == 0:
                 left = 0
@@ -360,13 +371,14 @@ class FeatureLayer:
             right = offsets[i]
 
             if task:
+                if task.should_stop:
+                    break
                 task.inc_progress()
 
             num_vertices = (right - left) // 2
-            color = numpy.array(color_func(feature).rgb.rgb_list, dtype=numpy.float32)
+            color = numpy.array(color_func(feature, mutable_color_data).rgb.rgb_list, dtype=numpy.float32)
             for v in range(num_vertices):
                 colors.append(color)
-
         colors = numpy.stack(colors)
 
         return colors
