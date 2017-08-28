@@ -2,10 +2,10 @@
 
 layout(location = 0) in vec3 position;
 layout(location = 4) in vec3 offset;
-//layout(location = 5) in float direction;
-//layout(location = 6) in float tilt;
-//layout(location = 7) in float magnitude;
-//layout(location = 8) in float value;
+layout(location = 5) in float direction;
+layout(location = 6) in float tilt;
+layout(location = 7) in float magnitude;
+layout(location = 8) in float value;
 
 uniform float scale;
 uniform vec3 vertexScalars;
@@ -31,7 +31,6 @@ mat3  rotateXYZ(vec3 r) {
                 sy, -sx * cy, cx * cy);
 }
 
-/*
 float scaleMagnitude() {
     float mag = magnitude;
     if (scaleMag) {
@@ -44,17 +43,15 @@ float scaleMagnitude() {
 }
 
 vec3 animateInstance() {
-    return position + vec3(0, 0, -timer * .5) * abs(log(log(magnitude + 1))) * vectorSpeed;
+    return position + vec3(0, -timer * .5, 0) * abs(log(log(magnitude + 1))) * vectorSpeed;
 }
-*/
 
 vec3 rotateAndScaleInstance() {
-    return position;
+    return rotateXYZ(vec3(0, 0, direction + 180)) * rotateXYZ(vec3(tilt, 0, 0)) * animateInstance() * scale * scaleMagnitude();
 }
 
 void main() {
-    //gl_Position = projectionMatrix * modelViewMatrix * vec4(rotateAndScaleInstance() + offset * vertexScalars, 1.0);
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position * scale + offset * vertexScalars, 1.0);
-    //fMag = magnitude;
-    //fValue = value;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(rotateAndScaleInstance() + offset * vertexScalars, 1.0);
+    fMag = magnitude;
+    fValue = value;
 }

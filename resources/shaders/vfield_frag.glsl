@@ -10,14 +10,14 @@ out vec4 finalColor;
 uniform bool filterMag;
 uniform float magMin;
 uniform float magMax;
-//in float fMag;
+in float fMag;
 
 // Filter on attribute value
-//in float fValue;
+in float fValue;
 
 void main()
 {
-    //if (filterMag && (fMag > magMax || fMag < magMin)) discard;
-    //if (hideNoData && (round(fValue) == round(noDataValue))) discard;
+    if (filterMag && (fMag > magMax || fMag < magMin)) discard;
+    if (hideNoData && (round(fValue) == round(noDataValue))) discard;
     finalColor = vec4(color, 1.0f);
 }

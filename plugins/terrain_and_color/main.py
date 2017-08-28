@@ -11,7 +11,6 @@ from rasterio import transform
 from vistas.core.color import RGBColor
 from vistas.core.graphics.geometries.terrain import TerrainColorGeometry
 from vistas.core.graphics.geometries.vector import VectorGeometry
-from vistas.core.graphics.geometry import InstancedGeometry
 from vistas.core.graphics.mesh import Mesh
 from vistas.core.graphics.shaders.terrain import TerrainColorShaderProgram
 from vistas.core.graphics.shaders.vector_field import VectorFieldShaderProgram
@@ -500,33 +499,16 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 return
 
             # Clobber all the data into one big array
-
-            #vector_geometry = InstancedGeometry(
-            #    num_indices=VectorGeometry.INDICES.size, num_vertices=VectorGeometry.VERTICES.size // 3,
-            #    max_instances=width * height, mode=InstancedGeometry.TRIANGLES
-            #)
-            #vector_geometry.indices = VectorGeometry.INDICES.copy()
-            #vector_geometry.vertices = VectorGeometry.VERTICES.copy()
-            #vector_geometry.compute_bounding_box()
-            #vector_geometry.instance_data = self.terrain_mesh.geometry.vertices
-
-            vector_positions = self.terrain_mesh.geometry.vertices
-
-            # start with flat array
-            buf = VectorGeometry.BUFFER_WIDTH
-            vector_data = numpy.zeros(height * width * buf, dtype=numpy.float32)
-
-            vector_data[::buf] = vector_positions[::3]          # x
-            vector_data[1::buf] = vector_positions[1::3]        # y
-            vector_data[2::buf] = vector_positions[2::3]        # z
-            #vector_data[3::buf] = flow_dir.ravel() * -45.0 + 45.0       # VELMA flow direction, converted to polar degrees
-            #vector_data[4::buf] = 90 - numpy.arcsin(numpy.abs(
-            #    self.terrain_mesh.geometry.normals[2::3]
-            #)) * 180 / numpy.pi
-            #vector_data[5::buf] = numpy.ones(height * width, dtype=numpy.float32) if self.flow_acc_data is None else \
-            #    self.flow_acc_data.get_data(flow_acc_label, Timeline.app().current).ravel()
-            #vector_data[6::buf] = numpy.zeros(height * width, dtype=numpy.float32) if self.attribute_data is None \
-            #    else self.attribute_data.get_data(attribute_label, Timeline.app().current).ravel()
+            vector_data = numpy.zeros((height, width, VectorGeometry.BUFFER_WIDTH), dtype=numpy.float32)
+            vector_data[:, :, 0:3] = self.terrain_mesh.geometry.vertices.reshape((height, width, 3))
+            vector_data[:, :, 3] = flow_dir * -45.0 + 45.0       # VELMA flow direction, converted to polar degrees
+            vector_data[:, :, 4] = 90 - numpy.arcsin(numpy.abs(
+                self.terrain_mesh.geometry.normals.reshape((height, width, 3))[:, :, 2]
+            )) * 180 / numpy.pi
+            vector_data[:, :, 5] = numpy.ones((height, width), dtype=numpy.float32) if self.flow_acc_data is None else \
+                self.flow_acc_data.get_data(flow_acc_label, Timeline.app().current)
+            vector_data[:, :, 6] = numpy.zeros((height, width), dtype=numpy.float32) if self.attribute_data is None \
+                else self.attribute_data.get_data(attribute_label, Timeline.app().current)
 
             # Inform vector_renderable of attribute grid (if set) so shader knows whether to hide nodata values
             if self.attribute_data is not None:
@@ -537,12 +519,11 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             if self.vector_mesh is None:
                 self.vector_mesh = Mesh(
                     VectorGeometry(max_instances=width * height, data=vector_data),
-                    #vector_geometry,
                     VectorFieldShaderProgram()
                 )
                 self.scene.add_object(self.vector_mesh)
-            #else:
-            #    self.vector_mesh.geometry.vector_data = vector_data
+            else:
+                self.vector_mesh.geometry.vector_data = vector_data
 
             self.vector_mesh.shader.nodata_value = nodata_value
             self.vector_mesh.shader.use_mag_filter = self._acc_filter.value and self.flow_acc_data is not None
