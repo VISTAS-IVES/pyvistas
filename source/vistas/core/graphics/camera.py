@@ -129,7 +129,7 @@ class Camera(Observer):
         return abs((point - self.get_position()).length)
 
     def distance_to_object(self, obj):
-        return abs((obj.bounds.center - self.get_position()).length)
+        return abs((obj.bounding_box.center - self.get_position()).length)
 
     def render(self, width, height, overlay: Overlay=None):
         if self.selection_view:

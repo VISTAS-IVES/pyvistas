@@ -316,7 +316,7 @@ class ViewerPanel(wx.Panel, Observer):
         intersects = self.gl_canvas.camera.raycaster.intersect_objects(self.camera)
         if intersects:
             intersection = intersects[0]
-            result = intersection.object.get_selection_detail(intersection.point)
+            result = intersection.object.plugin.get_identify_detail(intersection.point)
             if self.inspect_window is None:
                 self.inspect_window = InspectWindow(self, wx.ID_ANY)
             self.inspect_window.data = result

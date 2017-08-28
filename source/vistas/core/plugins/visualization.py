@@ -171,6 +171,11 @@ class VisualizationPlugin3D(VisualizationPlugin):
 
         pass
 
+    def get_identify_detail(self, point):
+        """ Returns a dictionary of data specific to the point in question. """
+
+        pass
+
     @property
     def geocoder_info(self):
         """ Returns geolocated items within a given scene. """

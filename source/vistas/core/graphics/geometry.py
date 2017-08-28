@@ -1,8 +1,10 @@
-from ctypes import c_uint, c_float, sizeof
-from pyrr import Vector3
+from ctypes import c_uint, c_float, c_void_p
+from typing import Union, Optional, List
 
 import numpy
 from OpenGL.GL import *
+from pyrr import Vector3
+from pyrr.vector3 import generate_vertex_normals
 
 from core.bounds import BoundingBox
 from vistas.core.graphics.utils import map_buffer
@@ -162,26 +164,45 @@ class Geometry:
         self.release_texcoords_array()
 
     def compute_bounding_box(self):
-        self.bounding_box = BoundingBox(0, 0, 0, 0, 0, 0)
-        pass    # Todo - implement
+        """ Compute the BoundingBox for this geometry directly from the vertex data. """
+
+        vertices = self.vertices.reshape(-1, 3)
+        xs = vertices[:, 0]
+        ys = vertices[:, 1]
+        zs = vertices[:, 2]
+
+        x_min = float(xs.min())
+        x_max = float(xs.max())
+        y_min = float(ys.min())
+        y_max = float(ys.max())
+        z_min = float(zs.min())
+        z_max = float(zs.max())
+
+        self.bounding_box = BoundingBox(x_min, y_min, z_min, x_max, y_max, z_max)
+
+    def compute_normals(self):
+        """ Compute vertex normals for a geometry. """
+
+        if self.has_normal_array:
+            self.normals = generate_vertex_normals(self.vertices.reshape(-1, 3), self.indices.reshape(-1, 3))
 
     def __del__(self):
         if self.has_index_array:
-            glDeleteBuffers(1, self.index_buffer)
+            glDeleteBuffers(1, [self.index_buffer])
 
         if self.has_vertex_array:
-            glDeleteBuffers(1, self.vertex_buffer)
+            glDeleteBuffers(1, [self.vertex_buffer])
 
         if self.has_normal_array:
-            glDeleteBuffers(1, self.normal_buffer)
+            glDeleteBuffers(1, [self.normal_buffer])
 
         if self.has_color_array:
-            glDeleteBuffers(1, self.color_buffer)
+            glDeleteBuffers(1, [self.color_buffer])
 
         if self.has_texture_coords:
-            glDeleteBuffers(1, self.texcoords_buffer)
+            glDeleteBuffers(1, [self.texcoords_buffer])
 
-        glDeleteVertexArrays(1, self.vertex_array_object)
+        glDeleteVertexArrays(1, [self.vertex_array_object])
 
     def acquire_index_array(self, access=GL_WRITE_ONLY):
         """ Note: Mesh.release_index_array() must be called once the buffer is no longer needed """
@@ -240,14 +261,25 @@ class InstancedGeometry(Geometry):
     geometry is the exact same.
     """
 
-    def __init__(self, num_instances=0, instance_buffer_size=0, *args, **kwargs):
+    DEFAULT_LOCATION = 4    # layout(location = DEFAULT_LOCATION) in <type> <name>
+
+    def __init__(
+            self, max_instances=0, instance_buffer_spec: Optional[Union[List[int], int]]=None, *args,
+            **kwargs
+    ):
         """
         Constructor
-        :param num_instances: The number of instances to draw on screen.
-        :param instance_buffer_size: The width of the instance buffer per instance drawn. If 0, this
-        InstancedGeometry will behave just like Geometry.
+        :param max_instances: The maximum number of instances to draw on screen. If this is changed, a new
+        InstancedGeometry should be created instead of changing the max_instances for the existing object.
+        :param instance_buffer_spec: An integer or list of integers specifying the instance buffer size(s) for . Often
+        times, there is a need to define lots of data per instance, but vertex attributes are limited to a max of 4 floats
+        per vertex attribute. If this is the case, specifying the vertex buffer sizes (i.e. [2, 1, 3]) allows for this
+        geometry class to define customized memory layout within the instance buffer, decoupling the memory layout logic
+        from the shader program logic. The shader program only needs to know which buffer to access data from.
+        Layout locations start at position 4 (i.e. layout(location = 4)) and increment by 1
+        (e.x. if instance_buffer_spec=[2, 2]), then there will be buffers at location 4 and location 5 of size vec2.
         :param args: Arguments passed to Geometry.
-        :param kwargs: Keyword arguments passted to Geometry.
+        :param kwargs: Keyword arguments passed to Geometry.
         """
 
         super().__init__(*args, **kwargs)
@@ -256,37 +288,54 @@ class InstancedGeometry(Geometry):
         self.vertex_offsets = Vector3([0.] * 3)
         self.vertex_scalars = Vector3([1.] * 3)
 
-        if instance_buffer_size > 0:
-            self.num_instances = num_instances
-            self.instance_buffer_size = instance_buffer_size
-            self._instance_data = None
+        # We can often have a lot of instance data being passed. We can spread this data across multiple buffers
+        if instance_buffer_spec is None:
+            instance_buffer_spec = [3]
+        else:
+            assert all(0 < x <= 4 for x in instance_buffer_spec)
 
-            self.instance_buffer = glGenBuffers(1)
-            glBindVertexArray(self.vertex_array_object)
+        self.instance_buffer_spec = instance_buffer_spec
+        self.instance_buffer_size = sum(self.instance_buffer_spec)
+        self._instance_data = None
 
-            # Initialize buffer
-            glBindBuffer(GL_ARRAY_BUFFER, self.instance_buffer)
-            glBufferData(
-                GL_ARRAY_BUFFER, self.num_instances * sizeof(GLfloat) * self.instance_buffer_size, None, GL_STATIC_DRAW
-            )
+        self.max_instances = max_instances
+        self.num_instances = max_instances
+
+        glBindVertexArray(self.vertex_array_object)
+        self.instance_buffer = glGenBuffers(1)
+
+        glBindBuffer(GL_ARRAY_BUFFER, self.instance_buffer)
+        glBufferData(
+            GL_ARRAY_BUFFER, self.max_instances * sizeof(GLfloat) * self.instance_buffer_size, None, GL_STATIC_DRAW
+        )
+
+        last_size = 0
+        for i, size in enumerate(self.instance_buffer_spec):
+            loc = self.DEFAULT_LOCATION + i
 
             # Setup location for shaders
-            glEnableVertexAttribArray(4)    # location 4 = 'instanceData'
+            glEnableVertexAttribArray(loc)    # location <loc> = 'instanceData'
             glVertexAttribPointer(
-                4, self.instance_buffer_size, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * self.instance_buffer_size, None
+                loc, size, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * size, c_void_p(last_size)
             )
 
             # Inform OpenGL instance_buffer is an instanced buffer and
-            # should apply instance_buffer_size floats per instance
-            glVertexAttribDivisor(4, 1)
+            # should divide buffer data to each instance
+            glVertexAttribDivisor(loc, 1)
 
-            glBindBuffer(GL_ARRAY_BUFFER, 0)
-            glBindVertexArray(0)
+            last_size += size
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0)
+        glBindVertexArray(0)
+
+    def __del__(self):
+        super().__del__()
+        glDeleteBuffers(1, [self.instance_buffers])
 
     def acquire_instance_array(self, access=GL_WRITE_ONLY):
         glBindBuffer(GL_ARRAY_BUFFER, self.instance_buffer)
         return map_buffer(
-            GL_ARRAY_BUFFER, numpy.float32, access, self.num_instances * self.instance_buffer_size * sizeof(GLfloat)
+            GL_ARRAY_BUFFER, numpy.float32, access, self.max_instances * self.instance_buffer_size * sizeof(GLfloat)
         )
 
     def release_instance_array(self):

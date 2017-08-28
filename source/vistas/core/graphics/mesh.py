@@ -1,24 +1,40 @@
-
 import numpy
 from OpenGL.GL import *
 from pyrr import Vector3
 
 from vistas.core.graphics.bounding_box import BoundingBoxHelper
+from vistas.core.graphics.geometry import Geometry, InstancedGeometry
 from vistas.core.graphics.objects import Object3D, Face, Intersection
 from vistas.core.math import Triangle, distance_from
-from vistas.core.graphics.geometry import Geometry, InstancedGeometry
+from vistas.core.plugins.visualization import VisualizationPlugin3D
 
 
 class Mesh(Object3D):
     """ A customizable object containing a Geometry and a ShaderProgram for rendering custom effects. """
 
-    def __init__(self, geometry, shader):
+    def __init__(self, geometry, shader, plugin=None):
+        """
+        Constructor
+        :param geometry: The Geometry to use when drawing this Mesh.
+        :param shader: The ShaderProgram to use for rendering effects onto this Mesh's Geometry.
+        :param plugin: The visualization plugin associated with this Mesh.
+        """
         super().__init__()
 
         self.geometry = geometry
         self.shader = shader
 
+        if plugin:
+            # Meshes can only be associated with a 3D viz plugin
+            assert isinstance(plugin, VisualizationPlugin3D)
+
+        self.plugin = plugin
         self.bbox_helper = BoundingBoxHelper(self)
+        self.visible = True
+        self.update()
+
+    def __del__(self):
+        del self.geometry
 
     @property
     def bounding_box(self):
@@ -66,21 +82,21 @@ class Mesh(Object3D):
         self.bbox_helper.render(color, camera)
 
     def render(self, camera):
-        if self.geometry.has_index_array and self.geometry.has_vertex_array:
+        if self.geometry.has_index_array and self.geometry.has_vertex_array and self.visible:
             self.shader.pre_render(camera)
             glBindVertexArray(self.geometry.vertex_array_object)
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.geometry.index_buffer)
 
             # Which kind of Geometry do we have?
-            if isinstance(self.geometry, Geometry):
-                glDrawElements(self.geometry.mode, self.geometry.num_indices, GL_UNSIGNED_INT, None)
-            elif isinstance(self.geometry, InstancedGeometry):
-                self.shader.uniform3fv("vertexScalars", numpy.array(self.geometry.vertex_scalars))
-                self.shader.uniform3fv("vertexOffsets", numpy.array(self.geometry.vertex_offsets))
+            if isinstance(self.geometry, InstancedGeometry):
+                self.shader.uniform3fv("vertexScalars", 1, numpy.array(self.geometry.vertex_scalars))
+                self.shader.uniform3fv("vertexOffsets", 1, numpy.array(self.geometry.vertex_offsets))
                 if self.geometry.num_instances:
                     glDrawElementsInstanced(
                         self.geometry.mode, self.geometry.num_indices, GL_UNSIGNED_INT, None, self.geometry.num_instances
                     )
+            elif isinstance(self.geometry, Geometry):
+                glDrawElements(self.geometry.mode, self.geometry.num_indices, GL_UNSIGNED_INT, None)
 
             glBindVertexArray(0)
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)

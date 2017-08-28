@@ -34,7 +34,7 @@ def get_resources_directory():
 
 
 def get_builtin_shader(path):
-    return os.path.join(get_resources_directory(), path)
+    return os.path.join(get_resources_directory(), 'shaders', path)
 
 
 def get_config_dir():

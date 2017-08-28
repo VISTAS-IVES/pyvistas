@@ -20,7 +20,7 @@ class VectorGeometry(InstancedGeometry):
     3:   Direction of the vector in polar degrees.
     4:   Tilt of the vector relative to the xy plane.
     5:   Magnitude of the vector relative to the size of the other vectors.
-    6:   Miscellaneous data, such as a visibility flag.
+    6:   Value data, such as a visibility flag.
     """
 
     VERTICES = numpy.array([
@@ -46,20 +46,27 @@ class VectorGeometry(InstancedGeometry):
         7, 4, 8,
     ], dtype=GLushort)
 
-    def __init__(self, num_instances, instance_buffer_size, data=None):
+    BUFFER_WIDTH = 7
+    BUFFER_SPEC = [3, 1, 1, 1, 1]   # position, direction, tile, magnitude, value
+
+    def __init__(self, max_instances=0, data=None):
         super().__init__(
-            num_indices=self.INDICES.size, num_vertices=self.VERTICES.size, mode=GL_TRIANGLES,
-            num_instances=num_instances, instance_buffer_size=instance_buffer_size
+            num_indices=self.INDICES.size, num_vertices=self.VERTICES.size // 3, mode=GL_TRIANGLES,
+            max_instances=max_instances, instance_buffer_spec=self.BUFFER_SPEC
         )
-        if data:
-            self.instance_data = data
+        self.indices = self.INDICES.copy()
+        self.vertices = self.VERTICES.copy()
+        self.compute_bounding_box()
+        if data is not None:
+            self.vector_data = data
 
     @property
-    def instance_data(self):
-        return super().instance_data
+    def vector_data(self):
+        return self.instance_data
 
-    @instance_data.setter
-    def instance_data(self, data):
-        vector_data = data.ravel()
-        assert vector_data.size % 7 == 0
-        super().instance_data = vector_data
+    @vector_data.setter
+    def vector_data(self, data):
+        data_size = data.nbytes // sizeof(GLfloat)
+        assert data_size % self.BUFFER_WIDTH == 0
+        self.instance_data = data
+        self.num_instances = data_size // self.BUFFER_WIDTH

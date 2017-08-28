@@ -1,11 +1,10 @@
 from numpy import indices, zeros, float32, array
-from pyrr.vector3 import generate_vertex_normals
 
 from vistas.core.graphics.geometry import Geometry
 
 
 class PlaneGeometry(Geometry):
-    """ A flat plane geometry with normals and  """
+    """ A flat plane geometry with normals and texture coordinates for use with Textures. """
 
     def __init__(self, width, height, cellsize):
         num_vertices = width * height
@@ -18,9 +17,9 @@ class PlaneGeometry(Geometry):
         self.height = height
 
         vertices = zeros((height, width, 3), dtype=float32)
-        i = indices((height, width))
-        vertices[:, :, 0] = i[0] * cellsize
-        vertices[:, :, 1] = i[1] * cellsize
+        idx = indices((height, width))
+        vertices[:, :, 0] = idx[0] * cellsize
+        vertices[:, :, 1] = idx[1] * cellsize
 
         index_array = []
         for j in range(height - 1):
@@ -33,13 +32,11 @@ class PlaneGeometry(Geometry):
                 index_array += [b, c, d]
         index_array = array(index_array)
 
-        normals = generate_vertex_normals(vertices.reshape(-1, 3), index_array.reshape(-1, 3))
-
         tex_coords = zeros((height, width, 2))
-        tex_coords[:, :, 0] = i[0] / height     # u
-        tex_coords[:, :, 1] = 1 - i[1] / width  # v
+        tex_coords[:, :, 0] = idx[0] / height     # u
+        tex_coords[:, :, 1] = 1 - idx[1] / width  # v
 
         self.vertices = vertices
         self.indices = index_array
-        self.normals = normals
         self.texcoords = tex_coords
+        self.compute_normals()

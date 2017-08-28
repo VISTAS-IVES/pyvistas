@@ -33,12 +33,13 @@ class BoundingBoxHelper(Object3D):
             BoundingBoxHelper.shader.attach_shader(get_builtin_shader('bbox_frag.glsl'), GL_FRAGMENT_SHADER)
             BoundingBoxHelper.shader.link_program()
 
-        self.geometry = Geometry(24, 8, mode=GL_LINES)
         self.mesh = mesh
+        self.geometry = Geometry(24, 8, mode=GL_LINES)
+        self.geometry.indices = self.indices
         self.update()
 
     def update(self):
-        """ Update the vertex buffer based on the bounding box of the mesh we are attached to. """
+        """ Update the vertex buffer based on the bounding box of the geometry we are attached to. """
 
         self.geometry.bounding_box = self.mesh.geometry.bounding_box
         bbox = self.geometry.bounding_box

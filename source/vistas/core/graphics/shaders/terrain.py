@@ -7,7 +7,9 @@ from vistas.core.paths import get_builtin_shader
 
 
 class TerrainColorShaderProgram(ShaderProgram):
-    """ Applies data-based color effects onto a Terrain. Can render rasterized features as a texture overlay. """
+    """
+    Applies data-based color effects onto a TerrainColorGeometry. Can render rasterized features as a texture overlay.
+    """
 
     def __init__(self):
         super().__init__()
@@ -15,8 +17,6 @@ class TerrainColorShaderProgram(ShaderProgram):
         self.attach_shader(get_builtin_shader('terrain_vert.glsl'), GL_VERTEX_SHADER)
         self.attach_shader(get_builtin_shader('terrain_frag.glsl'), GL_FRAGMENT_SHADER)
         self.link_program()
-
-        self.value_buffer = glGenBuffers(1)
 
         tw, th = 512, 512
         img_data = (numpy.ones((tw, th, 3)).astype(numpy.uint8) * 255).ravel()
@@ -40,18 +40,8 @@ class TerrainColorShaderProgram(ShaderProgram):
         self.nodata_color = [.5, .5, .5, 1]
         self.boundary_color = [0, 0, 0, 1]
 
-    def __del__(self):
-        glDeleteBuffers(1, self.value_buffer)
-
     def pre_render(self, camera):
         super().pre_render(camera)
-
-        if self.has_color:
-            value_loc = self.get_attrib_location("value")
-            glBindBuffer(GL_ARRAY_BUFFER, self.value_buffer)
-            glEnableVertexAttribArray(value_loc)
-            glVertexAttribPointer(value_loc, 1, GL_FLOAT, GL_FALSE, sizeof(GLfloat), None)
-            glBindBuffer(GL_ARRAY_BUFFER, 0)
 
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_2D, self.boundary_texture.texture)

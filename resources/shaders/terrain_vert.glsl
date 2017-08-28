@@ -20,7 +20,7 @@ uniform vec4 noDataColor;
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
 layout(location = 2) in vec2 uv;
-in float value;
+layout(location = 3) in float value;
 
 out vec3 fragPosition;
 out vec3 fragNormal;
@@ -104,7 +104,8 @@ void interpolateColor(out vec4 colorOut) {
 void main() {
     vec3 scale = vec3(1., 1., heightFactor);
 	vec4 eyePosition = modelViewMatrix * vec4(position * scale, 1.0);
-	gl_Position = projectionMatrix * eyePosition;
+	//vec4 eyePosition = modelViewMatrix * vec4(position, 1.0);
+    gl_Position = projectionMatrix * eyePosition;
     fragPosition = eyePosition.xyz;
     fragNormal = normal / scale;
     fragBoundaryTexCoord = uv;
