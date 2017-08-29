@@ -1,34 +1,18 @@
+import mercantile
+from vistas.core.gis.elevation import meters_per_px, TILE_SIZE
 from OpenGL.GL import *
 from vistas.core.graphics.geometries.plane import PlaneGeometry
 from vistas.core.graphics.utils import map_buffer
 
 
-class TerrainColorGeometry(PlaneGeometry):
-    """ A basic terrain-like geometry with attributes for containing per-vertex data. """
+class TerrainGeometry(PlaneGeometry):
+    """ Basic terrain-like geometry with height represented in the z-dimension. """
 
-    def __init__(self, width, height, cellsize, heights=None, values=None, value_size=1):
+    def __init__(self, width, height, cellsize, heights=None):
         super().__init__(width, height, cellsize)
-        self.value_size = value_size
         self._heights = None
-        self._values = None
         if heights is not None:
             self.heights = heights
-
-        # Add a 'value' vertex buffer
-        self.value_buffer = glGenBuffers(1)
-        glBindVertexArray(self.vertex_array_object)
-        glBindBuffer(GL_ARRAY_BUFFER, self.value_buffer)
-        glBufferData(GL_ARRAY_BUFFER, self.num_vertices * value_size * sizeof(GLfloat), None, GL_DYNAMIC_DRAW)
-
-        # Override location 3 to be 'value', since we are not using the 'color' array available from Geometry
-        glEnableVertexAttribArray(3)    # location 3 = 'value'
-        glVertexAttribPointer(3, self.value_size, GL_FLOAT, GL_FALSE, sizeof(GLfloat), None)
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
-        glBindVertexArray(0)
-
-        if values is not None:
-            self.values = values
 
     @property
     def heights(self):
@@ -45,6 +29,32 @@ class TerrainColorGeometry(PlaneGeometry):
         self.vertices = verts
         self.compute_bounding_box()
         self.compute_normals()
+
+
+class TerrainColorGeometry(TerrainGeometry):
+    """ A TerrainGeometry with a float-wide vertex buffer for data. """
+
+    def __init__(self, width, height, cellsize, heights=None, values=None, value_size=1):
+        super().__init__(width, height, cellsize, heights)
+
+        self._values = None
+        self.value_size = value_size
+
+        # Add a 'value' vertex buffer
+        self.value_buffer = glGenBuffers(1)
+        glBindVertexArray(self.vertex_array_object)
+        glBindBuffer(GL_ARRAY_BUFFER, self.value_buffer)
+        glBufferData(GL_ARRAY_BUFFER, self.num_vertices * value_size * sizeof(GLfloat), None, GL_DYNAMIC_DRAW)
+
+        # Override location 3 to be 'value', since we are not using the 'color' array available from Geometry
+        glEnableVertexAttribArray(3)    # location 3 = 'value'
+        glVertexAttribPointer(3, self.value_size, GL_FLOAT, GL_FALSE, sizeof(GLfloat), None)
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0)
+        glBindVertexArray(0)
+
+        if values is not None:
+            self.values = values
 
     def acquire_value_array(self, access=GL_WRITE_ONLY):
         glBindBuffer(GL_ARRAY_BUFFER, self.value_buffer)
@@ -69,3 +79,25 @@ class TerrainColorGeometry(PlaneGeometry):
         values_buf = self.acquire_value_array()
         values_buf[:] = self._values
         self.release_value_array()
+
+
+class TerrainTileGeometry(TerrainGeometry):
+    """ TerrainGeometry that is derived from XYZ tiles. """
+
+    def __init__(self, tile: mercantile.Tile, heights=None):
+        super().__init__(TILE_SIZE, TILE_SIZE, 1, heights=heights)
+        self.mtile = tile
+
+    @property
+    def zoom(self):
+        return self.mtile.z
+
+    @TerrainGeometry.heights.setter
+    def heights(self, heights):
+        assert heights.shape == (TILE_SIZE, TILE_SIZE)
+        self._heights = heights / meters_per_px(self.zoom)
+        verts = self.vertices.reshape((self.height, self.width, 3))
+        verts[:, :, 2] = heights
+        self.vertices = verts
+        self.compute_bounding_box()
+        self.compute_normals()

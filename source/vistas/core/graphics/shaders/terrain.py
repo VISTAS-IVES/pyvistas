@@ -6,7 +6,18 @@ from vistas.core.graphics.texture import Texture
 from vistas.core.paths import get_builtin_shader
 
 
-class TerrainColorShaderProgram(ShaderProgram):
+class TerrainShaderProgram(ShaderProgram):
+    """ Most basic terrain shading program. """
+    def __init__(self):
+        super().__init__()
+        self.height_factor = 1.0
+
+    def pre_render(self, camera):
+        super().pre_render(camera)
+        self.uniform1f("heightFactor", self.height_factor)
+
+
+class TerrainColorShaderProgram(TerrainShaderProgram):
     """
     Applies data-based color effects onto a TerrainColorGeometry. Can render rasterized features as a texture overlay.
     """
@@ -31,7 +42,6 @@ class TerrainColorShaderProgram(ShaderProgram):
         self.is_filtered = False
         self.filter_min = self.filter_max = 0
 
-        self.height_factor = 1.0
         self.nodata_value = 0.0
         self.min_value = 0.0
         self.max_value = 0.0
@@ -57,7 +67,6 @@ class TerrainColorShaderProgram(ShaderProgram):
         self.uniform1f("filterMin", self.filter_min)
         self.uniform1f("filterMax", self.filter_max)
 
-        self.uniform1f("heightFactor", self.height_factor)
         self.uniform1f("noDataValue", self.nodata_value)
         self.uniform1f("minValue", self.min_value)
         self.uniform1f("maxValue", self.max_value)
@@ -69,3 +78,13 @@ class TerrainColorShaderProgram(ShaderProgram):
     def post_render(self, camera):
         glBindTexture(GL_TEXTURE_2D, 0)
         super().post_render(camera)
+
+
+class TerrainTileShaderProgram(TerrainShaderProgram):
+    """ Terrain shading program for TerrainTileGeometry. """
+
+    def __init__(self):
+        super().__init__()
+        self.attach_shader(get_builtin_shader('tile_vert.glsl'), GL_VERTEX_SHADER)
+        self.attach_shader(get_builtin_shader('tile_frag.glsl'), GL_FRAGMENT_SHADER)
+        self.link_program()

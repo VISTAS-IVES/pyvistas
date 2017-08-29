@@ -122,11 +122,14 @@ class Raycaster:
         self.ray.direction = camera.unproject(coords)
         self.ray.direction.normalize()
 
-    def intersect_object(self, obj) -> List[Intersection]:
+    def intersect_object(self, obj, camera) -> List[Intersection]:
         """ Retrieve intersections, sorted in ascending distance, to a given Object3D. """
 
         intersects = []
         if issubclass(obj.__class__, Object3D):
+
+            # Todo - add a translation from obj's position to get raycasting to work with the bounding boxes.
+
             intersects = obj.raycast(self)
             intersects.sort(key=lambda i: i.distance)
         return intersects
@@ -136,6 +139,6 @@ class Raycaster:
 
         intersects = []
         for obj in camera.scene.objects:
-            intersects += self.intersect_object(obj)
+            intersects += self.intersect_object(obj, camera)
         intersects.sort(key=lambda i: i.distance)
         return intersects

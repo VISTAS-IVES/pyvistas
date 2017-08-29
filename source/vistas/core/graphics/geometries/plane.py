@@ -40,3 +40,4 @@ class PlaneGeometry(Geometry):
         self.indices = index_array
         self.texcoords = tex_coords
         self.compute_normals()
+        self.compute_bounding_box()

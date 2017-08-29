@@ -11,7 +11,6 @@ from pyrr.vector3 import generate_vertex_normals
 from vistas.core.bounds import BoundingBox
 from vistas.core.gis.elevation import ElevationService, meters_per_px, TILE_SIZE
 from vistas.core.graphics.mesh import Mesh
-from vistas.core.graphics.renderable import Renderable
 from vistas.core.graphics.shader import ShaderProgram
 from vistas.core.graphics.utils import map_buffer
 from vistas.core.paths import get_resources_directory
@@ -19,94 +18,6 @@ from vistas.core.task import Task
 from vistas.core.threading import Thread
 from vistas.ui.utils import post_redisplay
 
-
-class TileShaderProgram(ShaderProgram):
-    """
-    A simple shader program that is applied across all tiles. Subclasses of this should be constructed to implement
-    specific shader effects.
-    Usage: TileShaderProgram.get()
-    """
-
-    def __init__(self):
-        super().__init__()
-        self.current_tile = None
-        self.attach_shader(os.path.join(get_resources_directory(), 'shaders', 'tile_vert.glsl'), GL_VERTEX_SHADER)
-        self.attach_shader(os.path.join(get_resources_directory(), 'shaders', 'tile_frag.glsl'), GL_FRAGMENT_SHADER)
-        self.link_program()
-
-        self.height_multiplier = 1.0
-
-    def pre_render(self, camera):
-        if self.current_tile is not None:
-            super().pre_render(camera)
-            self.uniform1f('heightMultiplier', self.height_multiplier)
-            glBindVertexArray(self.current_tile.vertex_array_object)
-
-    def post_render(self, camera):
-        if self.current_tile is not None:
-            glBindVertexArray(0)
-            super().post_render(camera)
-
-
-class TileMesh(Mesh):
-    """ Base tile mesh, contains all VAO/VBO objects """
-
-    def __init__(self, tile: mercantile.Tile, meters_per_px):
-        vertices = TILE_SIZE ** 2
-        indices = 6 * (TILE_SIZE - 1) ** 2
-        super().__init__(indices, vertices, True, mode=Mesh.TRIANGLES)
-        self.mtile = tile
-        self.meters_per_px = meters_per_px
-
-    def set_buffers(self, vertices, indices, normals, neighbor_meshes):
-
-        row_count = TILE_SIZE * 3
-        total_count = TILE_SIZE * row_count
-        row = [[], [], [], []]
-        for i in range(0, row_count, 3):
-            row[0].append(math.floor(i + 1))  # top
-            row[1].append(math.floor(i / 3 * row_count + 1))  # left
-            row[2].append(math.floor(i + 1 + total_count - row_count))  # bottom
-            row[3].append(math.floor((i / 3 + 1) * row_count - 2))  # right
-
-        for neighbor in neighbor_meshes:
-
-            if neighbor.mtile.x < self.mtile.x:     # top
-                index = 0
-            elif neighbor.mtile.x > self.mtile.x:   # bottom
-                index = 2
-            elif neighbor.mtile.y < self.mtile.y:   # right
-                index = 1
-            elif neighbor.mtile.y > self.mtile.y:   # left
-                index = 2
-            else:
-                continue    # not a neighbor...
-
-            # Grab neighbor vertices as they exist in OpenGL buffers
-            glBindBuffer(GL_ARRAY_BUFFER, neighbor.vertex_buffer)
-            neighbor_vertices = map_buffer(GL_ARRAY_BUFFER, numpy.float32, GL_READ_ONLY, vertices.nbytes)
-            glUnmapBuffer(GL_ARRAY_BUFFER)
-            glBindBuffer(GL_ARRAY_BUFFER, 0)
-
-            indices_to_change = row[index]
-            neighbor_indices = row[(index + 2) % 4]
-            vertices[indices_to_change] = neighbor_vertices[neighbor_indices]
-
-        # Now allocate everything
-        vert_buf = self.acquire_vertex_array()
-        vert_buf[:] = vertices.ravel()
-        self.release_vertex_array()
-
-        norm_buf = self.acquire_normal_array()
-        norm_buf[:] = normals.ravel()
-        self.release_normal_array()
-
-        index_buf = self.acquire_index_array()
-        index_buf[:] = indices.ravel()
-        self.release_index_array()
-
-        self.bounding_box = BoundingBox(0, float(vertices.min()) / self.meters_per_px, 0, TILE_SIZE,
-                                        float(vertices.max()) / self.meters_per_px, TILE_SIZE)
 
 
 class TileRenderThread(Thread):

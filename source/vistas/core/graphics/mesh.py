@@ -1,6 +1,6 @@
 import numpy
 from OpenGL.GL import *
-from pyrr import Vector3
+from pyrr import Matrix44, Vector3
 
 from vistas.core.graphics.bounding_box import BoundingBoxHelper
 from vistas.core.graphics.geometry import Geometry, InstancedGeometry
@@ -83,6 +83,10 @@ class Mesh(Object3D):
 
     def render(self, camera):
         if self.geometry.has_index_array and self.geometry.has_vertex_array and self.visible:
+
+            camera.push_matrix()
+            camera.matrix *= Matrix44.from_translation(self.position)
+
             self.shader.pre_render(camera)
             glBindVertexArray(self.geometry.vertex_array_object)
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.geometry.index_buffer)
@@ -100,4 +104,5 @@ class Mesh(Object3D):
 
             glBindVertexArray(0)
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
+            camera.pop_matrix()
             self.shader.post_render(camera)

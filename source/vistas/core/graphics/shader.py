@@ -10,6 +10,11 @@ from vistas.ui.utils import post_redisplay
 logger = logging.getLogger(__name__)
 
 
+# Todo - Add shader library for individual shader snippets
+# This change would allow shaders to be much more modular in their construction
+# We could also detect changes to the shader snippets, or have them 'compiled' and then edited.
+
+
 class ShaderProgram(wx.PyEvtHandler):
     """ Base shader program implementation. Programs are recompiled when .glsl files are modified. """
 
