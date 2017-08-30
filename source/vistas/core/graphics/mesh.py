@@ -73,7 +73,10 @@ class Mesh(Object3D):
             face = indices[face_indices[i]]
             a, b, c = face
             intersection = Intersection(distance, point, self)
-            va, vb, vc = Vector3(v1[a]), Vector3(v2[b]), Vector3(v3[c])
+            if indices.size == vertices.shape[0]:                   # Handle when vertices are all unique
+                va, vb, vc = [Vector3(v) for v in vertices[face]]
+            else:
+                va, vb, vc = Vector3(v1[a]), Vector3(v2[b]), Vector3(v3[c])
             if uvs is not None:
                 uv_a = Vector3([*uvs[a * 2: a * 2 + 2], 0])
                 uv_b = Vector3([*uvs[b * 2: b * 2 + 2], 0])

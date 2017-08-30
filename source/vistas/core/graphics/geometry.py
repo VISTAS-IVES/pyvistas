@@ -105,7 +105,7 @@ class Geometry:
 
     @property
     def indices(self):
-        if self._indices is None:
+        if self._indices is None and self.has_index_array:
             index_buf = self.acquire_index_array(GL_READ_ONLY)
             self._indices = index_buf[:]
             self.release_index_array()
@@ -120,7 +120,7 @@ class Geometry:
 
     @property
     def vertices(self):
-        if self._vertices is None:
+        if self._vertices is None and self.has_vertex_array:
             vert_buf = self.acquire_vertex_array(GL_READ_ONLY)
             self._vertices = vert_buf[:]
             self.release_vertex_array()
@@ -135,7 +135,7 @@ class Geometry:
 
     @property
     def normals(self):
-        if self._normals is None:
+        if self._normals is None and self.has_normal_array:
             norm_buf = self.acquire_normal_array(GL_READ_ONLY)
             self._normals = norm_buf[:]
             self.release_normal_array()
@@ -150,7 +150,7 @@ class Geometry:
 
     @property
     def texcoords(self):
-        if self._texcoords is None:
+        if self._texcoords is None and self.has_texture_coords:
             uvs = self.acquire_texcoords_array(GL_READ_ONLY)
             self._texcoords = uvs[:]
             self.release_texcoords_array()
@@ -165,7 +165,7 @@ class Geometry:
 
     @property
     def colors(self):
-        if self._colors is None:
+        if self._colors is None and self.has_color_array:
             colors = self.acquire_color_array(GL_READ_ONLY)
             self._colors = colors[:]
             self.release_color_array()

@@ -1,6 +1,7 @@
 from xml.etree import ElementTree
 
 from vistas.core.color import RGBColor
+from vistas.core.graphics.feature import FeatureFactory
 from vistas.core.graphics.terrain import TerrainTileFactory
 from vistas.core.legend import StretchedLegend, CategoricalLegend
 from vistas.core.plugins.data import DataPlugin
@@ -8,7 +9,6 @@ from vistas.core.plugins.option import Option, OptionGroup
 from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.core.timeline import Timeline
 from vistas.ui.utils import *
-
 
 GREY = RGBColor(0.5, 0.5, 0.5)
 
@@ -47,9 +47,11 @@ class EnvisionVisualization(VisualizationPlugin3D):
         self._height = Option(self, Option.SLIDER, 'Height Multiplier', 1.0, 0.01, 5.0, 0.01)
         self._offset = Option(self, Option.FLOAT, 'Height Offset', 5, 0, 10)
         self._delta_toggle = Option(self, Option.CHECKBOX, 'Use Deltas', False)
+        self._selected_color = Option(self, Option.COLOR, 'Selected Feature Color', RGBColor(0, 1, 0))
         self._options = OptionGroup()
         self._options.items = [
-            self._attributes, self._zoom, self._transparency, self._height, self._offset, self._delta_toggle
+            self._attributes, self._zoom, self._transparency, self._height, self._offset, self._delta_toggle,
+            self._selected_color
         ]
 
     @property
@@ -71,11 +73,10 @@ class EnvisionVisualization(VisualizationPlugin3D):
 
             if self.feature_layer and zoom != self.feature_layer.zoom:
                 self.feature_layer.zoom = zoom
-                self.feature_layer.render(self._scene)
 
         elif option.name == self._transparency.name:
             if self.feature_layer:
-                self.feature_layer.renderable.transparency = self._transparency.value
+                self.feature_layer.shader.alpha = self._transparency.value
 
         elif option.name == self._attributes.name:
             if self._attributes.selected != self.current_attribute:
@@ -87,12 +88,12 @@ class EnvisionVisualization(VisualizationPlugin3D):
             if self.tile_layer:
                 self.tile_layer.shader.height_factor = multiplier
             if self.feature_layer:
-                self.feature_layer.renderable.height_multiplier = multiplier
+                self.feature_layer.shader.height_factor = multiplier
 
         elif option.name == self._offset.name:
             offset = self._offset.value
             if self.feature_layer:
-                self.feature_layer.renderable.height_offset = offset
+                self.feature_layer.shader.height_offset = offset
 
         elif option.name == self._delta_toggle.name:
             if self.delta_data and self.delta_data.time_info.is_temporal and \
@@ -101,7 +102,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
 
         self.refresh()
 
-    def update_colors(self):
+    def update_colors(self, build=True):
         if self.feature_layer is None:
             return
 
@@ -148,7 +149,8 @@ class EnvisionVisualization(VisualizationPlugin3D):
 
         if self.needs_color:
             self.feature_layer.needs_color = True
-            self.feature_layer.render(self.scene)
+            if build:
+                self.feature_layer.build()
 
     def is_delta_attribute(self, variable):
         if self.envision_style is not None:
@@ -247,7 +249,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
                     self._attributes.labels = list(self.envision_style.keys())
                     self.current_attribute = self._attributes.labels[0]
 
-                except (ElementTree.ParseError, ValueError, FileNotFoundError, AttributeError): # Todo - remove attribute error
+                except (ElementTree.ParseError, ValueError, FileNotFoundError):
                     post_message('XML parsing failed, defaulting to feature schema.', 1)
 
                     # Use shapefile colors instead
@@ -298,15 +300,22 @@ class EnvisionVisualization(VisualizationPlugin3D):
     def create_terrain_mesh(self):
         if self.feature_data is not None:
             zoom = int(self._zoom.value)
-            #self.tile_layer = TileLayerRenderable(self.feature_data.extent, zoom=zoom)
             self.tile_layer = TerrainTileFactory(self.feature_data.extent, initial_zoom=zoom, plugin=self)
             self.scene.add_object(self.tile_layer)
-            #self.feature_layer = FeatureLayer(self.feature_data, zoom=zoom)
-            #self.feature_layer.set_color_function(self.color_shapes)
+            self.feature_layer = FeatureFactory(
+                self.feature_data.extent, self.feature_data, initial_zoom=zoom, plugin=self
+            )
+            self.update_colors(build=False)
+            self.scene.add_object(self.feature_layer)
+            self.needs_color = False
         else:
             self.scene.remove_all_objects()
-            self.tile_layer = None
-            self.feature_layer = None
+            if self.tile_layer is not None:
+                self.tile_layer.dispose()
+                self.tile_layer = None
+            if self.feature_layer is not None:
+                self.feature_layer.dispose()
+                self.feature_layer = None
 
     def color_shapes(self, feature, data):
         """

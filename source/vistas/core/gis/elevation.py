@@ -14,7 +14,6 @@ from vistas.core.paths import get_config_dir
 from vistas.core.plugins.data import FeatureDataPlugin
 from vistas.core.plugins.interface import Plugin
 
-
 TILE_SIZE = 256                 # Our tile representation size, can be changed
 DEFAULT_TILE_SIZE = 256         # ZXY tiles
 
@@ -261,19 +260,18 @@ class ElevationService:
         self._zoom = zoom
         wgs84 = extent.project(Proj(init='EPSG:4326'))
         self.get_tiles(wgs84)
-        xmin, ymin, xmax, ymax = wgs84.as_list()
-        ll_tile = mercantile.tile(xmin, ymin, self.zoom)
-        ur_tile = mercantile.tile(xmax, ymax, self.zoom)
         tiles = extent.tiles(self.zoom)
         if merge:
-            shape = ((ll_tile.y - ur_tile.y + 1) * DEFAULT_TILE_SIZE, (ur_tile.x - ll_tile.x + 1) * DEFAULT_TILE_SIZE)
+            ul = tiles[0]
+            br = tiles[-1]
+            shape = ((br.y - ul.y + 1) * DEFAULT_TILE_SIZE, (br.x - ul.x + 1) * DEFAULT_TILE_SIZE)
             if src == self.AWS_ELEVATION:
                 data = numpy.zeros(shape, dtype=numpy.float32)
             else:
                 data = numpy.zeros((*shape, 3), dtype=numpy.float32)
             for tile in tiles:
-                w = (tile.x - ll_tile.x) * DEFAULT_TILE_SIZE
-                h = (tile.y - ur_tile.y) * DEFAULT_TILE_SIZE
+                w = (tile.x - ul.x) * DEFAULT_TILE_SIZE
+                h = (tile.y - ul.y) * DEFAULT_TILE_SIZE
                 data[h: h + DEFAULT_TILE_SIZE, w: w + DEFAULT_TILE_SIZE] = self.get_grid(tile.x, tile.y, src=src)
             return data
         else:

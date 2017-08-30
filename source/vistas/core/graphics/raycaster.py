@@ -9,7 +9,7 @@ from vistas.core.graphics.objects import Object3D, Intersection
 
 class Ray:
     """
-    Representation of a ray in 3D space. Rays emit from an origin along a direction. Implementatin inspired by mrdoob -
+    Representation of a ray in 3D space. Rays emit from an origin along a direction. Implementation inspired by mrdoob -
     https://github.com/mrdoob/three.js/blob/master/src/math/Ray.js
     """
 

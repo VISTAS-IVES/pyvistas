@@ -13,11 +13,11 @@ class FeatureShaderProgram(ShaderProgram):
         self.attach_shader(get_builtin_shader('feature_frag.glsl'), GL_FRAGMENT_SHADER)
         self.link_program()
         self.alpha = 1.0
-        self.height_multiplier = 1.0
+        self.height_factor = 1.0
         self.height_offset = 5.0
 
     def pre_render(self, camera):
         super().pre_render(camera)
         self.uniform1f('alpha', self.alpha)
-        self.uniform1f('heightFactor', self.height_multiplier)
+        self.uniform1f('heightFactor', self.height_factor)
         self.uniform1f('heightOffset', self.height_offset)
