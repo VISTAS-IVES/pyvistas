@@ -2,6 +2,7 @@ import numpy
 from OpenGL.GL import *
 from pyrr import Matrix44, Vector3
 
+from vistas.core.color import RGBColor
 from vistas.core.graphics.bounding_box import BoundingBoxHelper
 from vistas.core.graphics.geometry import Geometry, InstancedGeometry
 from vistas.core.graphics.objects import Object3D, Face, Intersection
@@ -23,6 +24,7 @@ class Mesh(Object3D):
 
         self.geometry = geometry
         self.shader = shader
+        self.selected = False
 
         if plugin:
             # Meshes can only be associated with a 3D viz plugin
@@ -33,9 +35,6 @@ class Mesh(Object3D):
         self.visible = True
         self.update()
 
-    def __del__(self):
-        del self.geometry
-
     @property
     def bounding_box(self):
         return self.geometry.bounding_box
@@ -45,13 +44,19 @@ class Mesh(Object3D):
 
     def raycast(self, raycaster):
         intersects = []
-        if self.bounding_box is None or not raycaster.ray.intersects_bbox(
-                self.bounding_box) or self.shader is None:
+        if self.bounding_box is None or not raycaster.ray.intersects_bbox(self.bounding_box_world) \
+                or self.shader is None:
+            self.selected = False
             return intersects
 
-        vertices = self.geometry.vertices.reshape(-1, 3)
+        vertices = numpy.copy(self.geometry.vertices.reshape(-1, 3))
         indices = self.geometry.indices.reshape(-1, 3)
         uvs = self.geometry.texcoords
+
+        # Translate copied vertices to world coordinates
+        vertices[:, 0] += self.position.x
+        vertices[:, 1] += self.position.y
+        vertices[:, 2] += self.position.z
         v1, v2, v3 = numpy.rollaxis(vertices[indices], axis=-2)
 
         def uv_intersection(point, p1, p2, p3, uv1, uv2, uv3):
@@ -76,10 +81,15 @@ class Mesh(Object3D):
                 intersection.uv = uv_intersection(point, va, vb, vc, uv_a, uv_b, uv_c)
             intersection.face = Face(a, b, c, Triangle(vc, vb, va).normal)
             intersects.append(intersection)
+
+        self.selected = len(intersects) > 0
         return intersects
 
     def render_bounding_box(self, color, camera):
-        self.bbox_helper.render(color, camera)
+        if self.selected:
+            self.bbox_helper.render(color, camera)
+        else:
+            self.bbox_helper.render(RGBColor(1.0, 1.0, 0.0), camera)
 
     def render(self, camera):
         if self.geometry.has_index_array and self.geometry.has_vertex_array and self.visible:

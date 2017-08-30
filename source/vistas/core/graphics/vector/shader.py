@@ -1,6 +1,4 @@
-import numpy
 import wx
-
 from OpenGL.GL import *
 
 from vistas.core.color import RGBColor
@@ -9,7 +7,7 @@ from vistas.core.paths import get_builtin_shader
 from vistas.ui.utils import post_redisplay
 
 
-class VectorFieldShaderProgram(ShaderProgram):
+class VectorShaderProgram(ShaderProgram):
     """ A ShaderProgram for rendering effects onto a VectorGeometry. """
 
     def __init__(self):

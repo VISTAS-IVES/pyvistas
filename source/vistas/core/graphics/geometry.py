@@ -5,7 +5,7 @@ from OpenGL.GL import *
 from pyrr import Vector3
 from pyrr.vector3 import generate_vertex_normals
 
-from core.bounds import BoundingBox
+from vistas.core.bounds import BoundingBox
 from vistas.core.graphics.utils import map_buffer
 
 
@@ -185,7 +185,9 @@ class Geometry:
         if self.has_normal_array:
             self.normals = generate_vertex_normals(self.vertices.reshape(-1, 3), self.indices.reshape(-1, 3))
 
-    def __del__(self):
+    def dispose(self):  # dispose
+        """ Delete this object's vertex buffers. This object should not be used for rendering for now one. """
+
         if self.has_index_array:
             glDeleteBuffers(1, [self.index_buffer])
 
@@ -321,8 +323,8 @@ class InstancedGeometry(Geometry):
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
 
-    def __del__(self):
-        super().__del__()
+    def dispose(self):
+        super().dispose()
         glDeleteBuffers(1, [self.instance_buffer])
 
     def acquire_instance_array(self, access=GL_WRITE_ONLY):

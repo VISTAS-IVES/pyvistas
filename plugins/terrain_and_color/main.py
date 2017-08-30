@@ -9,12 +9,10 @@ from rasterio import features
 from rasterio import transform
 
 from vistas.core.color import RGBColor
-from vistas.core.graphics.geometries.terrain import TerrainColorGeometry
-from vistas.core.graphics.geometries.vector import VectorGeometry
 from vistas.core.graphics.mesh import Mesh
-from vistas.core.graphics.shaders.terrain import TerrainColorShaderProgram
-from vistas.core.graphics.shaders.vector_field import VectorFieldShaderProgram
+from vistas.core.graphics.terrain import TerrainColorGeometry, TerrainColorShaderProgram
 from vistas.core.graphics.texture import Texture
+from vistas.core.graphics.vector import VectorGeometry, VectorShaderProgram
 from vistas.core.histogram import Histogram
 from vistas.core.legend import StretchedLegend
 from vistas.core.plugins.data import DataPlugin
@@ -22,6 +20,9 @@ from vistas.core.plugins.option import Option, OptionGroup
 from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.core.timeline import Timeline
 from vistas.ui.utils import *
+
+
+# Todo - resolve color bug
 
 
 class TerrainAndColorPlugin(VisualizationPlugin3D):
@@ -160,7 +161,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 vector_shader.animation_speed = self._animation_speed.value
 
             elif name == self._elevation_factor.name:
-                self.vector_mesh.vertex_scalars = Vector3(
+                self.vector_mesh.geometry.vertex_scalars = Vector3(
                     [1, 1, self._elevation_factor.value], dtype=numpy.float32
                 )
 
@@ -377,6 +378,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
             if self.terrain_mesh is not None:    # height grid was set before, needs to be removed
                 self._scene.remove_object(self.terrain_mesh)
+                self.terrain_mesh.geometry.dispose()
                 self.terrain_mesh = None
 
             elevation_attribute = self._elevation_attribute.selected
@@ -409,6 +411,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         else:
             if self.terrain_mesh is not None:
                 self._scene.remove_object(self.terrain_mesh)
+                self.terrain_mesh.geometry.dispose()
                 self.terrain_mesh = None
 
     def _update_terrain_color(self):
@@ -486,7 +489,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             height_label = self._elevation_attribute.selected
             flow_dir_label = self.flow_dir_data.variables[0]
             flow_acc_label = self.flow_acc_data.variables[0] if self.flow_acc_data is not None else ""
-            attribute_label = self._attribute.selected
+            attribute_label = self._attribute.selected if self.attribute_data is not None else ""
 
             height_data = self.terrain_data.get_data(height_label, Timeline.app().current)
             flow_dir = self.flow_dir_data.get_data(flow_dir_label, Timeline.app().current)
@@ -519,7 +522,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             if self.vector_mesh is None:
                 self.vector_mesh = Mesh(
                     VectorGeometry(max_instances=width * height, data=vector_data),
-                    VectorFieldShaderProgram()
+                    VectorShaderProgram()
                 )
                 self.scene.add_object(self.vector_mesh)
             else:

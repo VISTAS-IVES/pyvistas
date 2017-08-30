@@ -1,8 +1,9 @@
 from xml.etree import ElementTree
 
 from vistas.core.color import RGBColor
-from vistas.core.graphics.features import FeatureLayer
-from vistas.core.graphics.tile import TileLayerRenderable
+#from vistas.core.graphics.features import FeatureLayer
+#from vistas.core.graphics.tile import TileLayerRenderable
+from vistas.core.graphics.terrain import TerrainTileFactory
 from vistas.core.legend import StretchedLegend, CategoricalLegend
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.option import Option, OptionGroup
@@ -86,7 +87,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
         elif option.name == self._height.name:
             multiplier = self._height.value
             if self.tile_layer:
-                self.tile_layer.height_multiplier = multiplier
+                self.tile_layer.shader.height_factor = multiplier
             if self.feature_layer:
                 self.feature_layer.renderable.height_multiplier = multiplier
 
@@ -103,6 +104,9 @@ class EnvisionVisualization(VisualizationPlugin3D):
         self.refresh()
 
     def update_colors(self):
+        if self.feature_layer is None:
+            return
+
         # Here we determine what type and how we are going to render the viz. Then we're going to send a render request
         sample_feature = next(self.feature_data.get_features())
         props = sample_feature.get('properties')
@@ -245,7 +249,7 @@ class EnvisionVisualization(VisualizationPlugin3D):
                     self._attributes.labels = list(self.envision_style.keys())
                     self.current_attribute = self._attributes.labels[0]
 
-                except (ElementTree.ParseError, ValueError, FileNotFoundError):
+                except (ElementTree.ParseError, ValueError, FileNotFoundError, AttributeError): # Todo - remove attribute error
                     post_message('XML parsing failed, defaulting to feature schema.', 1)
 
                     # Use shapefile colors instead
@@ -296,10 +300,11 @@ class EnvisionVisualization(VisualizationPlugin3D):
     def create_terrain_mesh(self):
         if self.feature_data is not None:
             zoom = int(self._zoom.value)
-            self.tile_layer = TileLayerRenderable(self.feature_data.extent, zoom=zoom)
+            #self.tile_layer = TileLayerRenderable(self.feature_data.extent, zoom=zoom)
+            self.tile_layer = TerrainTileFactory(self.feature_data.extent, initial_zoom=zoom, plugin=self)
             self.scene.add_object(self.tile_layer)
-            self.feature_layer = FeatureLayer(self.feature_data, zoom=zoom)
-            self.feature_layer.set_color_function(self.color_shapes)
+            #self.feature_layer = FeatureLayer(self.feature_data, zoom=zoom)
+            #self.feature_layer.set_color_function(self.color_shapes)
         else:
             self.scene.remove_all_objects()
             self.tile_layer = None

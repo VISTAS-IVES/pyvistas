@@ -1,7 +1,7 @@
 from typing import Optional, List
 
 import numpy
-from pyrr import Vector3
+from pyrr import Matrix44, Vector3
 
 from vistas.core.bounds import BoundingBox
 from vistas.core.graphics.objects import Object3D, Intersection
@@ -122,23 +122,26 @@ class Raycaster:
         self.ray.direction = camera.unproject(coords)
         self.ray.direction.normalize()
 
-    def intersect_object(self, obj, camera) -> List[Intersection]:
+    def intersect_object(self, coords, obj, camera) -> List[Intersection]:
         """ Retrieve intersections, sorted in ascending distance, to a given Object3D. """
 
         intersects = []
         if issubclass(obj.__class__, Object3D):
-
-            # Todo - add a translation from obj's position to get raycasting to work with the bounding boxes.
-
+            camera.push_matrix()
+            self.set_from_camera(coords, camera)
+            camera.matrix *= Matrix44.from_translation(obj.position)
             intersects = obj.raycast(self)
-            intersects.sort(key=lambda i: i.distance)
+            camera.pop_matrix()
+            if intersects:
+                intersects.sort(key=lambda i: i.distance)
         return intersects
 
-    def intersect_objects(self, camera) -> List[Intersection]:
+    def intersect_objects(self, coords: tuple, camera) -> List[Intersection]:
         """ Retrieve intersections to all Object3D objects in a given Camera's Scene. """
 
         intersects = []
         for obj in camera.scene.objects:
-            intersects += self.intersect_object(obj, camera)
-        intersects.sort(key=lambda i: i.distance)
+            intersects += self.intersect_object(coords, obj, camera)
+        if intersects:
+            intersects.sort(key=lambda i: i.distance)
         return intersects

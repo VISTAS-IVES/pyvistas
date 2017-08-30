@@ -3,7 +3,7 @@ import struct
 from OpenGL.GL import *
 from pyrr import Matrix44
 
-from vistas.core.bounds import BoundingBox
+from vistas.core.bounds import union_bboxs
 from vistas.core.color import RGBColor
 
 
@@ -27,19 +27,7 @@ class Scene:
 
     @property
     def bounding_box(self):
-        if not self.objects:
-            return BoundingBox(-1, -1, -1, 1, 1, 1)
-
-        bbox = self.objects[0].bounding_box
-        for obj in self.objects[1:]:
-            bbox.min_x = min(obj.bounding_box.min_x, bbox.min_x)
-            bbox.max_x = max(obj.bounding_box.max_x, bbox.max_x)
-            bbox.min_y = min(obj.bounding_box.min_y, bbox.min_y)
-            bbox.max_y = max(obj.bounding_box.max_y, bbox.max_y)
-            bbox.min_z = min(obj.bounding_box.min_z, bbox.min_z)
-            bbox.max_z = max(obj.bounding_box.max_z, bbox.max_z)
-
-        return bbox
+        return union_bboxs([x.bounding_box for x in self.objects])
 
     def render(self, camera):
         for obj in self.objects:
