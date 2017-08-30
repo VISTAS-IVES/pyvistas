@@ -45,6 +45,7 @@ class Geometry:
         self._vertices = None
         self._normals = None
         self._texcoords = None
+        self._colors = None
 
         glBindVertexArray(self.vertex_array_object)
 
@@ -161,6 +162,21 @@ class Geometry:
         uvs = self.acquire_texcoords_array()
         uvs[:] = self._texcoords
         self.release_texcoords_array()
+
+    @property
+    def colors(self):
+        if self._colors is None:
+            colors = self.acquire_color_array(GL_READ_ONLY)
+            self._colors = colors[:]
+            self.release_color_array()
+        return self._colors
+
+    @colors.setter
+    def colors(self, colors):
+        self._colors = colors.ravel()
+        color_buf = self.acquire_color_array()
+        color_buf[:] = self._colors
+        self.release_color_array()
 
     def compute_bounding_box(self):
         """ Compute the BoundingBox for this geometry directly from the vertex data. """

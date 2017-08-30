@@ -1,8 +1,6 @@
 from xml.etree import ElementTree
 
 from vistas.core.color import RGBColor
-#from vistas.core.graphics.features import FeatureLayer
-#from vistas.core.graphics.tile import TileLayerRenderable
 from vistas.core.graphics.terrain import TerrainTileFactory
 from vistas.core.legend import StretchedLegend, CategoricalLegend
 from vistas.core.plugins.data import DataPlugin
