@@ -76,7 +76,7 @@ class ViewerPanel(wx.Panel, Observer):
         self.camera = Camera(observable=True)
 
         attrib_list = [
-            WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16, WX_GL_CORE_PROFILE, 
+            WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16, WX_GL_CORE_PROFILE,
             WX_GL_MAJOR_VERSION, 3, WX_GL_MINOR_VERSION, 3
         ]
 
