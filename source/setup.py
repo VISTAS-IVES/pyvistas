@@ -27,8 +27,8 @@ if macos:
 
     class bdist_mac(cx_Freeze.bdist_mac):
         def copy_assets(self):
-            shutil.copytree(os.path.join(SOURCE_DIR, '..', 'resources'), self.resourcesDir)
-            shutil.copytree(os.path.join(SOURCE_DIR, '..', 'plugins'), self.resourcesDir)
+            shutil.copytree(os.path.join(SOURCE_DIR, '..', 'resources'), os.path.join(self.resourcesDir, 'resources'))
+            shutil.copytree(os.path.join(SOURCE_DIR, '..', 'plugins'), os.path.join(self.resourcesDir, 'plugins'))
 
         def run(self):
             super().run()

@@ -39,7 +39,7 @@ def get_resources_directory():
     if get_platform() == 'windows':
         return os.path.join(get_assets_dir(), 'resources')
     else:
-        return os.path.join(os.path.dirname(wx.StandardPaths.Get().ExecutablePath), '..', 'resources')
+        return os.path.join(get_assets_dir(), 'resources')
 
 
 def get_builtin_shader(path):
