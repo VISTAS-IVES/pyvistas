@@ -105,7 +105,7 @@ class TerrainTileGeometry(TerrainGeometry):
     @heights.setter
     def heights(self, heights):
         assert heights.shape == (TILE_SIZE, TILE_SIZE)
-        self._heights = heights / meters_per_px(self.zoom)
+        self._heights = heights
         verts = self.vertices.reshape((self.height, self.width, 3))
         verts[:, :, 2] = self._heights
         self.vertices = verts
