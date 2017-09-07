@@ -57,6 +57,12 @@ class Mesh(Object3D):
         vertices[:, 0] += self.position.x
         vertices[:, 1] += self.position.y
         vertices[:, 2] += self.position.z
+
+        # Translate z for shaders that implement height_factor
+        height_factor = getattr(self.shader, 'height_factor', None)
+        if height_factor:
+            vertices[:, 2] *= height_factor
+
         v1, v2, v3 = numpy.rollaxis(vertices[indices], axis=-2)
 
         def uv_intersection(point, p1, p2, p3, uv1, uv2, uv3):
