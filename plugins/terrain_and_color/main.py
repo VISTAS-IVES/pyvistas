@@ -22,9 +22,6 @@ from vistas.core.timeline import Timeline
 from vistas.ui.utils import *
 
 
-# Todo - resolve color bug
-
-
 class TerrainAndColorPlugin(VisualizationPlugin3D):
 
     id = 'terrain_and_color_plugin'
