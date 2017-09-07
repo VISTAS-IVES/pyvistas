@@ -8,6 +8,18 @@ from vistas.core.threading import Thread
 from vistas.ui.utils import post_redisplay
 
 
+def use_event_loop(func):
+    """ Wraps a Thread run function to ensure an event loop is started and refreshes the UI when compeleted. """
+    def decorator(*args, **kwargs):
+        self = args[0]
+        self.task.status = Task.RUNNING
+        self.init_event_loop()
+        func(*args, **kwargs)
+        self.sync_with_main(post_redisplay)
+        self.task.status = Task.COMPLETE
+    return decorator
+
+
 class MeshFactoryWorker(Thread):
     """ Interface for executing work from a MeshFactory in a separate thread. """
 
@@ -18,18 +30,6 @@ class MeshFactoryWorker(Thread):
         super().__init__(*args, **kwargs)
         self.factory = factory
         self.task = Task(self.task_name, self.task_description)
-
-    def work(self):
-        """ The work that should be done by this worker thread. """
-
-        raise NotImplementedError
-
-    def run(self):
-        self.task.status = Task.RUNNING
-        self.init_event_loop()
-        self.work()
-        self.sync_with_main(post_redisplay)
-        self.task.status = Task.COMPLETE
 
 
 class MeshFactory(Object3D):

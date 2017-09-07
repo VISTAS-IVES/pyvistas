@@ -3,7 +3,7 @@ from numpy import arange
 from pyrr import Vector3
 
 from vistas.core.gis.elevation import ElevationService, TILE_SIZE, meters_per_px
-from vistas.core.graphics.factory import MapMeshFactory, MeshFactoryWorker
+from vistas.core.graphics.factory import MapMeshFactory, MeshFactoryWorker, use_event_loop
 from vistas.core.graphics.mesh import Mesh
 from vistas.core.graphics.terrain.geometry import TerrainTileGeometry
 from vistas.core.graphics.terrain.shader import TerrainTileShaderProgram
@@ -13,7 +13,8 @@ class TerrainTileWorker(MeshFactoryWorker):
 
     task_name = "Building Terrain"
 
-    def work(self):
+    @use_event_loop
+    def run(self):
         grids = ElevationService().create_data_dem(self.factory.extent, self.factory.zoom)
         for tile in self.factory.tiles:
             if tile not in grids:       # Race condition

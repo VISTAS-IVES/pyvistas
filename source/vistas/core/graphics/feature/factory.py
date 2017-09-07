@@ -9,7 +9,7 @@ from triangle import triangulate
 
 from vistas.core.color import RGBColor
 from vistas.core.gis.elevation import ElevationService, TILE_SIZE, meters_per_px
-from vistas.core.graphics.factory import MapMeshFactory, MeshFactoryWorker
+from vistas.core.graphics.factory import MapMeshFactory, MeshFactoryWorker, use_event_loop
 from vistas.core.graphics.feature.geometry import FeatureGeometry
 from vistas.core.graphics.feature.shader import FeatureShaderProgram
 from vistas.core.graphics.mesh import Mesh
@@ -20,7 +20,8 @@ class FeatureFactoryWorker(MeshFactoryWorker):
 
     task_name = "Building Features"
 
-    def work(self):
+    @use_event_loop
+    def run(self):
         verts, indices, normals, colors = [None] * 4
         if self.factory.needs_vertices and not self.task.should_stop:
             verts, indices, normals = self.factory.generate_meshes(self.task)
