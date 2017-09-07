@@ -201,7 +201,7 @@ class Geometry:
         if self.has_normal_array:
             self.normals = generate_vertex_normals(self.vertices.reshape(-1, 3), self.indices.reshape(-1, 3))
 
-    def dispose(self):  # dispose
+    def dispose(self):
         """ Delete this object's vertex buffers. This object should not be used for rendering for now one. """
 
         if self.has_index_array:
@@ -299,8 +299,8 @@ class InstancedGeometry(Geometry):
         super().__init__(*args, **kwargs)
 
         # Can be used in shader to inform each instance that it's position needs to shift by some uniform amount
-        self.vertex_offsets = Vector3([0.] * 3)
-        self.vertex_scalars = Vector3([1.] * 3)
+        self.vertex_offsets = Vector3([0., 0., 0.])
+        self.vertex_scalars = Vector3([1., 1., 1.])
 
         # We can often have a lot of instance data being passed. We can spread this data across multiple buffers
         if instance_buffer_spec is None:
@@ -313,7 +313,7 @@ class InstancedGeometry(Geometry):
         self.instance_buffer_spec = instance_buffer_spec
         self.instance_buffer_size = sum(self.instance_buffer_spec)
         self._instance_data = None
-        self.max_instances = self.num_instances =  max_instances
+        self.max_instances = self.num_instances = max_instances
 
         glBindVertexArray(self.vertex_array_object)
         self.instance_buffer = glGenBuffers(1)

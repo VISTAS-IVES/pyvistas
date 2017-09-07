@@ -2,7 +2,7 @@ import numpy
 from OpenGL.GL import *
 
 from vistas.core.graphics.geometry import Geometry
-from vistas.core.graphics.objects import Object3D
+from vistas.core.graphics.object import Object3D
 from vistas.core.graphics.shader import ShaderProgram
 from vistas.core.paths import get_builtin_shader
 

@@ -5,7 +5,7 @@ from pyrr import Matrix44, Vector3
 from vistas.core.color import RGBColor
 from vistas.core.graphics.bounding_box import BoundingBoxHelper
 from vistas.core.graphics.geometry import Geometry, InstancedGeometry
-from vistas.core.graphics.objects import Object3D, Face, Intersection
+from vistas.core.graphics.object import Object3D, Face, Intersection
 from vistas.core.math import Triangle, distance_from
 from vistas.core.plugins.visualization import VisualizationPlugin3D
 

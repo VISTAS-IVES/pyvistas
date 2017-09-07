@@ -2,7 +2,7 @@ import mercantile
 
 from vistas.core.bounds import union_bboxs
 from vistas.core.graphics.bounding_box import BoundingBoxHelper
-from vistas.core.graphics.objects import Object3D
+from vistas.core.graphics.object import Object3D
 from vistas.core.task import Task
 from vistas.core.threading import Thread
 from vistas.ui.utils import post_redisplay

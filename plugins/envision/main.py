@@ -47,11 +47,9 @@ class EnvisionVisualization(VisualizationPlugin3D):
         self._height = Option(self, Option.SLIDER, 'Height Multiplier', 1.0, 0.01, 5.0, 0.01)
         self._offset = Option(self, Option.FLOAT, 'Height Offset', 5, 0, 10)
         self._delta_toggle = Option(self, Option.CHECKBOX, 'Use Deltas', False)
-        self._selected_color = Option(self, Option.COLOR, 'Selected Feature Color', RGBColor(0, 1, 0))
         self._options = OptionGroup()
         self._options.items = [
-            self._attributes, self._zoom, self._transparency, self._height, self._offset, self._delta_toggle,
-            self._selected_color
+            self._attributes, self._zoom, self._transparency, self._height, self._offset, self._delta_toggle
         ]
 
     @property

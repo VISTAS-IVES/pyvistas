@@ -4,7 +4,7 @@ import numpy
 from pyrr import Matrix44, Vector3
 
 from vistas.core.bounds import BoundingBox
-from vistas.core.graphics.objects import Object3D, Intersection
+from vistas.core.graphics.object import Object3D, Intersection
 
 
 class Ray:

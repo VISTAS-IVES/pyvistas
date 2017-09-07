@@ -42,14 +42,12 @@ class FeatureFactory(MapMeshFactory):
     worker_class = FeatureFactoryWorker
 
     def __init__(self, extent, data_src: FeatureDataPlugin, shader=None, plugin=None, initial_zoom=10):
-        if shader is None:
-            shader = FeatureShaderProgram()
-        super().__init__(extent, shader, plugin, initial_zoom)
-
+        super().__init__(extent, shader or FeatureShaderProgram(), plugin, initial_zoom)
         self._color_func = None
         self._render_thread = None
 
-        assert isinstance(data_src, FeatureDataPlugin)
+        if not isinstance(data_src, FeatureDataPlugin):
+            raise TypeError("data_src is not of type FeatureDataPlugin!")
         self.data_src = data_src
 
         self.use_cache = self.data_src is not None
@@ -120,7 +118,7 @@ class FeatureFactory(MapMeshFactory):
             tris = []
             offsets = []
             offset = 0
-            for i, feature in enumerate(self.data_src.get_features()):
+            for feature in self.data_src.get_features():
                 shape = transform(project, shp.shape(feature['geometry']))
                 if task:
                     task.inc_progress()

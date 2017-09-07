@@ -89,16 +89,16 @@ class Overlay:
         self.geometry.vertices = numpy.array([
             [
                 x.position[0], x.position[1], 0,
-                x.position[0] + x.size[0], x.position[1], 0,
-                x.position[0], x.position[1] + x.size[1], 0,
-                x.position[0] + x.size[0], x.position[1] + x.size[1], 0
+                x.position[0]+x.size[0], x.position[1], 0,
+                x.position[0], x.position[1]+x.size[1], 0,
+                x.position[0]+x.size[0], x.position[1]+x.size[1], 0
             ] for x in self._buttons
         ], dtype=numpy.float32)
 
         self.geometry.indices = numpy.array([
             [
-                i, i + 1, i + 2,
-                i + 1, i + 2, i + 3
+                i, i+1, i+2,
+                i+1, i+2, i+3
             ] for i in (x * 4 for x in range(len(self._buttons)))
         ])
 
