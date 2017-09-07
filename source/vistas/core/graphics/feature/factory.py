@@ -52,7 +52,8 @@ class FeatureFactory(MapMeshFactory):
 
         self.use_cache = self.data_src is not None
         if self.use_cache:
-            self._cache = self.data_src.path.replace('.shp', '.ttt')
+            ext = '.{}'.format(self.data_src.path.split('.')[-1])
+            self._cache = self.data_src.path.replace(ext, '.ttt')
             self._npz_path = self._cache + '.npz'
 
         self.offsets = None
@@ -75,7 +76,7 @@ class FeatureFactory(MapMeshFactory):
 
     def update_features(self, vertices=None, indices=None, normals=None, colors=None):
         # Update geometry information
-        if vertices is not None and indices is not None and normals is not None:
+        if all(x is not None for x in (vertices, indices, normals)):
             if not self.items:
                 num_indices = num_vertices = len(indices)
                 geometry = FeatureGeometry(num_indices, num_vertices, indices=indices, vertices=vertices)
