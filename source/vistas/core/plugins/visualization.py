@@ -183,6 +183,11 @@ class VisualizationPlugin3D(VisualizationPlugin):
 
         pass
 
+    def get_zonal_stats_from_feature(self, feature: Dict) -> Optional[Dict]:
+        """ Returns the zonal statistics from a defined feature. """
+
+        pass
+
     @property
     def geocoder_info(self):
         """ Returns geolocated items within a given scene. """

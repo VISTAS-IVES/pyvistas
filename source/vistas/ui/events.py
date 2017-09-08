@@ -70,3 +70,23 @@ class CameraSyncEvent(CameraSyncEventBase):
 
     def __init__(self, interactor=None):
         super().__init__(interactor=interactor)
+
+
+# Event for informing a gl_canvas that the camera is starting a drag selection
+CameraDragSelectStartEventBase, EVT_CAMERA_DRAG_SELECT_START = wx.lib.newevent.NewEvent()
+
+
+class CameraDragSelectStartEvent(CameraDragSelectStartEventBase):
+    def __init__(self, mode=None):
+        super().__init__(mode=mode)
+
+
+# Event for informing a gl_canvas that the camera has finished a drag selection
+CameraDragSelectFinishEventBase, EVT_CAMERA_DRAG_SELECT_FINISH = wx.lib.newevent.NewEvent()
+
+
+class CameraDragSelectFinishEvent(CameraDragSelectFinishEventBase):
+    def __init__(self, mode=None, left=None, bottom=None, right=None, top=None, points=None):
+        if any((left, bottom, right, top)) and points:
+            raise TypeError("CameraDragSelectFinishEvent specified a box and a list of points")
+        super().__init__(mode=mode, left=left, bottom=bottom, right=right, top=top, point=points)
