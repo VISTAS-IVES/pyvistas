@@ -137,6 +137,12 @@ class RasterDataPlugin(DataPlugin):
 
         raise NotImplemented
 
+    @property
+    def affine(self):
+        """ Returns the Affine transformation of the grid """
+
+        raise NotImplemented
+
     def get_data(self, variable, date=None):
         """ Returns a numpy array for the data at the given time """
 
