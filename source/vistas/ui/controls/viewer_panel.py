@@ -1,6 +1,8 @@
 import wx
-from wx.glcanvas import WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, WX_GL_CORE_PROFILE, WX_GL_MAJOR_VERSION 
 from wx.glcanvas import WX_GL_MINOR_VERSION
+from wx.glcanvas import WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, WX_GL_CORE_PROFILE, WX_GL_MAJOR_VERSION
+
+from shapely.geometry import Polygon
 
 from vistas.core.graphics.camera import Camera
 from vistas.core.observers.camera import CameraObservable
@@ -9,11 +11,11 @@ from vistas.core.paths import get_resource_bitmap
 from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.ui.controllers.project import ProjectChangedEvent
 from vistas.ui.controls.gl_canvas import GLCanvas
+from vistas.ui.events import CameraDragSelectFinishEvent, EVT_CAMERA_DRAG_SELECT_FINISH
 from vistas.ui.project import Project
 from vistas.ui.windows.inspect import InspectWindow
-from vistas.ui.windows.zonalstats import ZonalStatisticsWindow
 from vistas.ui.windows.legend import LegendWindow
-from vistas.ui.events import CameraDragSelectFinishEvent, EVT_CAMERA_DRAG_SELECT_FINISH
+from vistas.ui.windows.zonalstats import ZonalStatisticsWindow
 
 
 class ViewerPanel(wx.Panel, Observer):
@@ -337,11 +339,10 @@ class ViewerPanel(wx.Panel, Observer):
     def OnDragSelectFinish(self, event: CameraDragSelectFinishEvent):
 
         # Build a feature from the box
-        if event.mode == 'box':     # Todo - add custom poly interation
-            print("{} {} {} {} {}".format(event.mode, event.left, event.bottom, event.right, event.top))
+        if event.mode == 'box':
             self.ReportBoxSelection(event)
         elif event.mode == 'poly':
-            pass
+            pass        # Todo - add custom poly interation
 
         event.Skip()
 
@@ -352,13 +353,30 @@ class ViewerPanel(wx.Panel, Observer):
         right = event.right / size.x * 2 - 1
         top = - event.right / size.y * 2 + 1
 
-        topleft_intersects = self.gl_canvas.camera.raycaster.intersect_objects((left, top), self.camera)
-        topright_intersects = self.gl_canvas.camera.raycaster.intersect_objects((right, top), self.camera)
-        bottomleft_intersects = self.gl_canvas.camera.raycaster.intersect_objects((left, bottom), self.camera)
-        bottomright_intersects = self.gl_canvas.camera.raycaster.intersect_objects((right, bottom), self.camera)
+        raycast = self.gl_canvas.camera.raycaster.intersect_objects
+        topleft_intersects = raycast((left, top), self.camera)     # Todo - do we need to edit the set_camera function?
+        topright_intersects = raycast((right, top), self.camera)
+        bottomleft_intersects = raycast((left, bottom), self.camera)
+        bottomright_intersects = raycast((right, bottom), self.camera)
 
-        if all((topleft_intersects, topright_intersects, bottomleft_intersects, bottomright_intersects)):
-            print('Got a full box!')
+        intersects = (topleft_intersects, topright_intersects, bottomleft_intersects, bottomright_intersects)
+
+        if all(intersects):
+            plugin = topleft_intersects[0].object.plugin
+            feature = dict(geometry=Polygon([
+                        tuple(topleft_intersects[0].point.xy),
+                        tuple(topright_intersects[0].point.xy),
+                        tuple(bottomleft_intersects[0].point.xy),
+                        tuple(bottomright_intersects[0].point.xy),
+                        tuple(topleft_intersects[0].point.xy)
+                    ]).__geo_interface__, type='Feature')
+
+            zonal_result = plugin.get_zonal_stats_from_feature(feature)
+            if zonal_result:
+                if self.zonalstats_window is None:
+                    self.zonalstats_window = ZonalStatisticsWindow(self, wx.ID_ANY)
+                self.zonalstats_window.data = zonal_result
+                self.zonalstats_window.Show()
 
     def ReportPolySelection(self, event: CameraDragSelectFinishEvent):
         pass    # Todo - implement

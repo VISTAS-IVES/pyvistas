@@ -612,4 +612,14 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         return None
 
     def get_zonal_stats_from_feature(self, feature: Dict):
+        if self.boundary_data and self.terrain_data and self.attribute_data:
+            var = self._attribute.selected
+            raster = self.attribute_data.get_data(var)
+            affine = self.attribute_data.affine
+            res = self.attribute_data.resolution
+            var_stats = self.attribute_data.variable_stats(var)
+            nodata = var_stats.nodata_value
+            coords = [[transform.xy(affine, p[0] / res, p[1] / res) for p in feature['geometry']['coordinates'][0]]]
+            feature['geometry']['coordinates'] = coords
+            return zonal_stats(feature, raster, affine=affine, nodata=nodata)
         return None

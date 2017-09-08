@@ -1,0 +1,2 @@
+# Todo - define a class that allows a user to draw a box on screen, the corners of which intersect and create a plane
+# which can be used to define a rectangular feature to retreive zonal statistics for
