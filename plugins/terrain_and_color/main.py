@@ -1,7 +1,9 @@
 import math
 from collections import OrderedDict
+from typing import Optional, Dict
 
 import numpy
+from rasterstats import zonal_stats
 import shapely.geometry
 from OpenGL.GL import GL_RGB8
 from pyrr import Vector3
@@ -57,7 +59,6 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
         # Primary plugin options
         self._options = OptionGroup()
-
         color_group = OptionGroup("Colors")
         self._min_color = Option(self, Option.COLOR, "Min Color Value", RGBColor(0, 0, 1))
         self._max_color = Option(self, Option.COLOR, "Max Color Value", RGBColor(1, 0, 0))
@@ -544,7 +545,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                                  self._max_color.value)
         return legend.render(width, height)
 
-    def get_identify_detail(self, point):
+    def get_identify_detail(self, point: Vector3) -> Optional[Dict]:
         if self.terrain_data is not None:
             res = self.terrain_data.resolution
             cell_x = int(round((point.x / res)))
@@ -586,5 +587,26 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         self.selected_point = (-1, -1)
         self._needs_boundaries = True
         self.refresh()
+
+        return None
+
+    def get_zonal_stats_from_point(self, point: Vector3) -> Optional[Dict]:
+        if self.boundary_data and self.terrain_data and self.attribute_data:
+            var = self._attribute.selected
+            raster = self.attribute_data.get_data(var)
+            affine = self.attribute_data.affine
+            res = self.attribute_data.resolution
+            var_stats = self.attribute_data.variable_stats(var)
+            nodata = var_stats.nodata_value
+
+            # Transform point coordinates to crs of raster
+            p = transform.xy(affine, point.x / res, point.y / res)
+
+            zones = []
+            for feat in self.boundary_data.get_features():
+                if shapely.geometry.shape(feat['geometry']).contains(shapely.geometry.Point(*p)):
+                    zones.append(feat)
+
+            return zonal_stats(zones, raster, affine=affine, nodata=nodata)
 
         return None

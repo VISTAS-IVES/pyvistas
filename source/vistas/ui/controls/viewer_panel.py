@@ -11,6 +11,7 @@ from vistas.ui.controllers.project import ProjectChangedEvent
 from vistas.ui.controls.gl_canvas import GLCanvas
 from vistas.ui.project import Project
 from vistas.ui.windows.inspect import InspectWindow
+from vistas.ui.windows.zonalstats import ZonalStatisticsWindow
 from vistas.ui.windows.legend import LegendWindow
 
 
@@ -28,6 +29,7 @@ class ViewerPanel(wx.Panel, Observer):
     POPUP_COPY = 1
 
     inspect_window = None   # InspectWindow
+    zonalstats_window = None    # ZonalStatisticsWindow
 
     def __init__(self, parent, id):
         super().__init__(parent, id)
@@ -322,6 +324,13 @@ class ViewerPanel(wx.Panel, Observer):
                     self.inspect_window = InspectWindow(self, wx.ID_ANY)
                 self.inspect_window.data = result
                 self.inspect_window.Show()
+
+                zonal_result = plugin.get_zonal_stats_from_point(intersection.point)
+                if zonal_result:
+                    if self.zonalstats_window is None:
+                        self.zonalstats_window = ZonalStatisticsWindow(self, wx.ID_ANY)
+                    self.zonalstats_window.data = zonal_result
+                    self.zonalstats_window.Show()
 
     def OnCanvasRightClick(self, event):
         menu = wx.Menu()

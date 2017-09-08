@@ -1,7 +1,9 @@
 import os
+from typing import Dict, Optional
 
 import wx
 from PIL import Image
+from pyrr import Vector3
 
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.interface import Plugin
@@ -171,8 +173,13 @@ class VisualizationPlugin3D(VisualizationPlugin):
 
         pass
 
-    def get_identify_detail(self, point):
+    def get_identify_detail(self, point: Vector3) -> Optional[Dict]:
         """ Returns a dictionary of data specific to the point in question. """
+
+        pass
+
+    def get_zonal_stats_from_point(self, point: Vector3) -> Optional[Dict]:
+        """ Returns the zonal statistics at a point from predefined zones. """
 
         pass
 
