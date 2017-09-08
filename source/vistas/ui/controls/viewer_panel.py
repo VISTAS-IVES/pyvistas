@@ -13,6 +13,7 @@ from vistas.ui.project import Project
 from vistas.ui.windows.inspect import InspectWindow
 from vistas.ui.windows.zonalstats import ZonalStatisticsWindow
 from vistas.ui.windows.legend import LegendWindow
+from vistas.ui.events import CameraDragSelectFinishEvent, EVT_CAMERA_DRAG_SELECT_FINISH
 
 
 class ViewerPanel(wx.Panel, Observer):
@@ -128,6 +129,7 @@ class ViewerPanel(wx.Panel, Observer):
         self.gl_canvas.SetFocus()
 
         self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy)
+        self.Bind(EVT_CAMERA_DRAG_SELECT_FINISH, self.OnDragSelectFinish)
 
         self.legend_window = LegendWindow(self, wx.ID_ANY)
 
@@ -331,6 +333,35 @@ class ViewerPanel(wx.Panel, Observer):
                         self.zonalstats_window = ZonalStatisticsWindow(self, wx.ID_ANY)
                     self.zonalstats_window.data = zonal_result
                     self.zonalstats_window.Show()
+
+    def OnDragSelectFinish(self, event: CameraDragSelectFinishEvent):
+
+        # Build a feature from the box
+        if event.mode == 'box':     # Todo - add custom poly interation
+            print("{} {} {} {} {}".format(event.mode, event.left, event.bottom, event.right, event.top))
+            self.ReportBoxSelection(event)
+        elif event.mode == 'poly':
+            pass
+
+        event.Skip()
+
+    def ReportBoxSelection(self, event: CameraDragSelectFinishEvent):
+        size = self.gl_canvas.GetSize()
+        left = event.left / size.x * 2 - 1
+        bottom = - event.bottom / size.y * 2 + 1
+        right = event.right / size.x * 2 - 1
+        top = - event.right / size.y * 2 + 1
+
+        topleft_intersects = self.gl_canvas.camera.raycaster.intersect_objects((left, top), self.camera)
+        topright_intersects = self.gl_canvas.camera.raycaster.intersect_objects((right, top), self.camera)
+        bottomleft_intersects = self.gl_canvas.camera.raycaster.intersect_objects((left, bottom), self.camera)
+        bottomright_intersects = self.gl_canvas.camera.raycaster.intersect_objects((right, bottom), self.camera)
+
+        if all((topleft_intersects, topright_intersects, bottomleft_intersects, bottomright_intersects)):
+            print('Got a full box!')
+
+    def ReportPolySelection(self, event: CameraDragSelectFinishEvent):
+        pass    # Todo - implement
 
     def OnCanvasRightClick(self, event):
         menu = wx.Menu()

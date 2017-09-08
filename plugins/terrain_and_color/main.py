@@ -610,3 +610,6 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             return zonal_stats(zones, raster, affine=affine, nodata=nodata)
 
         return None
+
+    def get_zonal_stats_from_feature(self, feature: Dict):
+        return None
