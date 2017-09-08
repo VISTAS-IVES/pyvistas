@@ -21,6 +21,7 @@ class GeoTIFF(RasterDataPlugin):
     shape = None
     resolution = None
     extent = None
+    affine = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -28,6 +29,7 @@ class GeoTIFF(RasterDataPlugin):
         self.shape = None
         self.extent = None
         self.resolution = None
+        self.affine = None
         self._nodata = None
         self._count = None
 
@@ -40,9 +42,8 @@ class GeoTIFF(RasterDataPlugin):
             projection = Proj(src.crs)
             self.shape = src.shape
             self.resolution = src.res[0]
-            xmin, ymin = src.xy(src.height, 0, 'ul')
-            xmax, ymax = src.xy(0, src.width, 'ul')
-            self.extent = Extent(xmin, ymin, xmax, ymax, projection)
+            self.affine = src.transform
+            self.extent = Extent(*list(src.bounds), projection)
             self._nodata = src.nodata
             self._count = src.count
 
