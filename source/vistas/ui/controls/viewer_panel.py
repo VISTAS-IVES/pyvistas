@@ -351,25 +351,25 @@ class ViewerPanel(wx.Panel, Observer):
         left = event.left / size.x * 2 - 1
         bottom = - event.bottom / size.y * 2 + 1
         right = event.right / size.x * 2 - 1
-        top = - event.right / size.y * 2 + 1
+        top = - event.top / size.y * 2 + 1
 
         raycast = self.gl_canvas.camera.raycaster.intersect_objects
-        topleft_intersects = raycast((left, top), self.camera)     # Todo - do we need to edit the set_camera function?
+        topleft_intersects = raycast((left, top), self.camera)
         topright_intersects = raycast((right, top), self.camera)
         bottomleft_intersects = raycast((left, bottom), self.camera)
         bottomright_intersects = raycast((right, bottom), self.camera)
 
         intersects = (topleft_intersects, topright_intersects, bottomleft_intersects, bottomright_intersects)
 
-        if all(intersects):
+        if all(intersects):                                 # Todo - add handling for when there are partial intersects
             plugin = topleft_intersects[0].object.plugin
             feature = dict(geometry=Polygon([
-                        tuple(topleft_intersects[0].point.xy),
-                        tuple(topright_intersects[0].point.xy),
-                        tuple(bottomleft_intersects[0].point.xy),
-                        tuple(bottomright_intersects[0].point.xy),
-                        tuple(topleft_intersects[0].point.xy)
-                    ]).__geo_interface__, type='Feature')
+                tuple(topleft_intersects[0].point.xy),
+                tuple(bottomleft_intersects[0].point.xy),
+                tuple(bottomright_intersects[0].point.xy),
+                tuple(topright_intersects[0].point.xy),
+                tuple(topleft_intersects[0].point.xy)
+            ]).__geo_interface__, type='Feature')
 
             zonal_result = plugin.get_zonal_stats_from_feature(feature)
             if zonal_result:

@@ -50,6 +50,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         self.flow_acc_data = None
 
         self.selected_point = (-1, -1)
+        self.selected_points = []
         self._needs_terrain = self._needs_color = False
         self._needs_boundaries = False
         self._needs_flow = False
@@ -450,21 +451,21 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             if self.boundary_data is not None:
                 # Burn geometry to texture
                 shapes = self.boundary_data.get_features()
-                image_data[:, :, 0] = numpy.fliplr(features.rasterize(
+                image_data[:, :, 0] = numpy.flipud(features.rasterize(
                     [shapely.geometry.shape(f['geometry']).exterior for f in shapes
                         if f['geometry']['type'] == 'Polygon'],
                     out_shape=(texture_h, texture_w), fill=255, default_value=0,
                     transform=transform.from_bounds(*terrain_extent.as_list(), texture_w, texture_h)
-                )).T
+                ))
 
-            if self.selected_point != (-1, -1):
-                p = self.selected_point
+            def draw(p):
+                nonlocal image_data, texture_h, texture_w
                 cell_size = self.terrain_data.resolution
                 grid_width, grid_height = self.terrain_data.shape
                 xscale = texture_w / terrain_extent.width
                 yscale = texture_h / terrain_extent.height
                 box_w, box_h = cell_size * xscale, cell_size * yscale
-                center = (int(p[0] / grid_width * texture_w), int(512 - p[1] / grid_height * texture_h))
+                center = (int(p[1] / grid_height * texture_h), int(512 - p[0] / grid_width * texture_w))
 
                 # Draw black rectangle directly into data
                 min_x = min(max(center[0] - box_w / 2, 0), 510)
@@ -473,6 +474,13 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 max_y = min(max(center[1] + box_h / 2, min_y + 1), 511)
 
                 image_data[round(min_y): round(max_y), round(min_x): round(max_x), 0] = 0
+
+            if self.selected_point != (-1, -1):
+                draw(self.selected_point)
+
+            if self.selected_points:
+                for p in self.selected_points:
+                    draw(p)
 
             shader.boundary_texture = Texture(
                 data=image_data.ravel(), width=texture_w, height=texture_h, src_format=GL_RGB8
@@ -619,7 +627,11 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             res = self.attribute_data.resolution
             var_stats = self.attribute_data.variable_stats(var)
             nodata = var_stats.nodata_value
+            self.selected_points = [(int(round((point[0] / res))), int(round((point[1] / res)))) for point in feature['geometry']['coordinates'][0]]
+            self._needs_boundaries = True
+            self.refresh()
             coords = [[transform.xy(affine, p[0] / res, p[1] / res) for p in feature['geometry']['coordinates'][0]]]
             feature['geometry']['coordinates'] = coords
             return zonal_stats(feature, raster, affine=affine, nodata=nodata)
+        self.selected_points = []
         return None
