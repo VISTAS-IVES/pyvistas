@@ -5,6 +5,7 @@ from pyrr import Matrix44, Vector3, Vector4
 
 from vistas.core.color import RGBColor
 from vistas.core.graphics.overlay import Overlay
+from vistas.core.graphics.select import DragSelectBox
 from vistas.core.graphics.raycaster import Raycaster
 from vistas.core.graphics.scene import Scene
 from vistas.core.observers.camera import CameraObservable
@@ -24,6 +25,7 @@ class Camera(Observer):
             scene = Scene()
 
         self.raycaster = Raycaster()
+        self.drag_select = DragSelectBox()
         self.scene = scene
         self.color = color
         self._matrix_stack = []
@@ -151,6 +153,9 @@ class Camera(Observer):
             if overlay:
                 overlay.render(width, height)
 
+            if self.drag_select.drawing:
+                self.drag_select.render(self)
+
     def render_to_bitmap(self, width, height):
         if not Camera.offscreen_buffers_initialized:
             Camera.offscreen_frame_buffer = glGenFramebuffers(1)
@@ -205,4 +210,7 @@ class Camera(Observer):
 
         self.raycaster.near = znear
         self.raycaster.far = zfar
+        if self.drag_select.shader:
+            self.drag_select.shader.width = width
+            self.drag_select.shader.height = height
         self.proj_matrix = Matrix44.perspective_projection(80.0, width / height, znear, zfar)

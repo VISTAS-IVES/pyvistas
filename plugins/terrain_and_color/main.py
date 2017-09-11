@@ -50,7 +50,6 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         self.flow_acc_data = None
 
         self.selected_point = (-1, -1)
-        self.selected_points = []
         self._needs_terrain = self._needs_color = False
         self._needs_boundaries = False
         self._needs_flow = False
@@ -478,10 +477,6 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             if self.selected_point != (-1, -1):
                 draw(self.selected_point)
 
-            if self.selected_points:
-                for p in self.selected_points:
-                    draw(p)
-
             shader.boundary_texture = Texture(
                 data=image_data.ravel(), width=texture_w, height=texture_h, src_format=GL_RGB8
             )
@@ -619,7 +614,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
         return None
 
-    def get_zonal_stats_from_feature(self, feature: Dict):
+    def get_zonal_stats_from_feature(self, feature: Dict) -> Optional[Dict]:
         if self.boundary_data and self.terrain_data and self.attribute_data:
             var = self._attribute.selected
             raster = self.attribute_data.get_data(var)
@@ -627,11 +622,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             res = self.attribute_data.resolution
             var_stats = self.attribute_data.variable_stats(var)
             nodata = var_stats.nodata_value
-            self.selected_points = [(int(round((point[0] / res))), int(round((point[1] / res)))) for point in feature['geometry']['coordinates'][0]]
-            self._needs_boundaries = True
-            self.refresh()
             coords = [[transform.xy(affine, p[0] / res, p[1] / res) for p in feature['geometry']['coordinates'][0]]]
             feature['geometry']['coordinates'] = coords
             return zonal_stats(feature, raster, affine=affine, nodata=nodata)
-        self.selected_points = []
         return None

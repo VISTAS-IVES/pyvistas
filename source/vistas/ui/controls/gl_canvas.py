@@ -77,6 +77,23 @@ class GLCanvas(wx.glcanvas.GLCanvas):
     def OnEraseBackground(self, event: wx.EraseEvent):
         pass  # Ignore this event to prevent flickering on Windows
 
+    @property
+    def mouse_box_coords(self):
+        if self.start_x <= self._x:
+            left = self.start_x
+            right = self._x
+        else:
+            left = self._x
+            right = self.start_x
+
+        if self.start_y <= self._y:
+            top = self.start_y
+            bottom = self._y
+        else:
+            top = self._y
+            bottom = self.start_y
+        return dict(left=left, bottom=bottom, right=right, top=top)
+
     def OnMotion(self, event: wx.MouseEvent):
         if event.LeftIsDown():
             x = event.GetX()
@@ -91,6 +108,7 @@ class GLCanvas(wx.glcanvas.GLCanvas):
                 if self.start_x == -1 and self.start_y == -1:
                     self.start_x = self._x
                     self.start_y = self._y
+                self.camera.drag_select.set_screen_coords(**self.mouse_box_coords)
 
             self.Sync()
             self.Refresh()
@@ -100,26 +118,12 @@ class GLCanvas(wx.glcanvas.GLCanvas):
 
     def OnLeftUp(self, event: wx.MouseEvent):
         if self.selection_mode and self.start_x != -1 and self.start_y != -1:
-            if self.start_x <= self._x:
-                left = self.start_x
-                right = self._x
-            else:
-                left = self._x
-                right = self.start_x
-
-            if self.start_y <= self._y:
-                top = self.start_y
-                bottom = self._y
-            else:
-                top = self._y
-                bottom = self.start_y
-
-            wx.PostEvent(self.GetParent(),
-                         CameraDragSelectFinishEvent(
-                             mode=self.selection_mode, left=left, bottom=bottom, right=right,top=top
-                         )
-                         )
+            wx.PostEvent(self.GetParent(), CameraDragSelectFinishEvent(
+                mode=self.selection_mode, **self.mouse_box_coords
+            ))
             self.selection_mode = None
+            self.camera.drag_select.drawing = False
+            self.Refresh()
         event.Skip()
 
     def OnMouseWheel(self, event: wx.MouseEvent):
@@ -140,8 +144,9 @@ class GLCanvas(wx.glcanvas.GLCanvas):
             self.Refresh()
 
     def OnCameraDragSelectStart(self, event):
-        if event.mode == 'box':
-            self.selection_mode = event.mode    # Todo - implement custom polygon drag
+        if event.mode in (GLSelectionControls.BOX, GLSelectionControls.POLY):
+            self.selection_mode = event.mode
+            self.camera.drag_select.drawing = True
         event.Skip()
 
     def OnPostRedisplay(self, event):
