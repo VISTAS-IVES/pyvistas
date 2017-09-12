@@ -35,6 +35,7 @@ class GLCanvas(wx.glcanvas.GLCanvas):
 
         self.Bind(wx.EVT_MOTION, self.OnMotion)
         self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
+        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
         self.Bind(wx.EVT_MOUSEWHEEL, self.OnMouseWheel)
         self.Bind(wx.EVT_KEY_DOWN, self.OnKey)
         self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy)
@@ -105,10 +106,13 @@ class GLCanvas(wx.glcanvas.GLCanvas):
             self._y = y
 
             if self.selection_mode:
-                if self.start_x == -1 and self.start_y == -1:
-                    self.start_x = self._x
-                    self.start_y = self._y
-                self.camera.drag_select.set_screen_coords(**self.mouse_box_coords)
+                if self.selection_mode == 'box':
+                    if self.start_x == -1 and self.start_y == -1:
+                        self.start_x = self._x
+                        self.start_y = self._y
+                    self.camera.box_select.set_screen_coords(**self.mouse_box_coords)
+                elif self.selection_mode == 'poly':
+                    pass    # Update leading line in the poly select
 
             self.Sync()
             self.Refresh()
@@ -118,12 +122,24 @@ class GLCanvas(wx.glcanvas.GLCanvas):
 
     def OnLeftUp(self, event: wx.MouseEvent):
         if self.selection_mode and self.start_x != -1 and self.start_y != -1:
-            wx.PostEvent(self.GetParent(), CameraDragSelectFinishEvent(
-                mode=self.selection_mode, **self.mouse_box_coords
-            ))
-            self.selection_mode = None
-            self.camera.drag_select.drawing = False
+            if self.selection_mode == 'box':
+                select_event = CameraDragSelectFinishEvent(mode=self.selection_mode)
+                coords = self.mouse_box_coords
+                select_event.left = coords.get('left')
+                select_event.bottom = coords.get('bottom')
+                select_event.right = coords.get('right')
+                select_event.top = coords.get('top')
+                self.camera.box_select.drawing = False
+                wx.PostEvent(self.GetParent(), select_event)
+                self.selection_mode = None
             self.Refresh()
+        event.Skip()
+
+    def OnLeftDown(self, event: wx.MouseEvent):
+        if self.selection_mode:
+            if self.selection_mode == 'poly':
+                self.camera.poly_select.append_point(event.GetX(), event.GetY())
+                self.Refresh()
         event.Skip()
 
     def OnMouseWheel(self, event: wx.MouseEvent):
@@ -141,12 +157,38 @@ class GLCanvas(wx.glcanvas.GLCanvas):
         if keycode != wx.WXK_NONE:
             self.camera_interactor.key_down("{:c}".format(keycode))
             self.Sync()
+
+            # Todo - if in selection mode, allow 'esc' to cancel editing
+            # Todo - if selection mode is 'poly', let 'delete', and 'backspace' remove the last created point
+
             self.Refresh()
 
     def OnCameraDragSelectStart(self, event):
         if event.mode in (GLSelectionControls.BOX, GLSelectionControls.POLY):
+            if self.selection_mode is not None:
+                self.camera.box_select.drawing = False
+                self.camera.poly_select.drawing = False
             self.selection_mode = event.mode
-            self.camera.drag_select.drawing = True
+            if self.selection_mode == 'box':
+                self.camera.box_select.drawing = True
+            else:
+                self.camera.poly_select.drawing = True
+
+        elif event.mode == GLSelectionControls.CONFIRM:
+            if self.selection_mode is not None and self.selection_mode == 'poly':
+                self.camera.poly_select.remove_last()
+                points = self.camera.poly_select.points
+                select_event = CameraDragSelectFinishEvent(mode=self.selection_mode, points=points)
+                wx.PostEvent(self.GetParent(), select_event)
+                self.camera.poly_select.drawing = False
+                self.selection_mode = None
+
+        elif event.mode == GLSelectionControls.CANCEL:
+            if self.selection_mode is not None:
+                self.camera.box_select.drawing = False
+                self.camera.poly_select.drawing = False
+                self.selection_mode = None
+
         event.Skip()
 
     def OnPostRedisplay(self, event):
