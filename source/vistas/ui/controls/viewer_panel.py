@@ -342,7 +342,7 @@ class ViewerPanel(wx.Panel, Observer):
         if event.mode == 'box':
             self.ReportBoxSelection(event)
         elif event.mode == 'poly':
-            pass        # Todo - add custom poly interation
+            self.ReportPolySelection(event)
 
         event.Skip()
 
@@ -379,7 +379,22 @@ class ViewerPanel(wx.Panel, Observer):
                 self.zonalstats_window.Show()
 
     def ReportPolySelection(self, event: CameraDragSelectFinishEvent):
-        pass    # Todo - implement
+        size = self.gl_canvas.GetSize()
+        points = event.points
+        raycast = self.gl_canvas.camera.raycaster.intersect_objects
+        intersects = [raycast((p[0] / size.x * 2 - 1, - p[1] / size.y * 2 + 1),  self.camera) for p in points]
+        if all(intersects):                             # Todo - add handling for when there are partial intersects
+            plugin = intersects[0][0].object.plugin
+            feature = dict(geometry=Polygon([
+                tuple(inner_intersects[0].point.xy) for inner_intersects in intersects + [intersects[0]]
+            ]).__geo_interface__, type='Feature')
+
+            zonal_result = plugin.get_zonal_stats_from_feature(feature)
+            if zonal_result:
+                if self.zonalstats_window is None:
+                    self.zonalstats_window = ZonalStatisticsWindow(self, wx.ID_ANY)
+                self.zonalstats_window.data = zonal_result
+                self.zonalstats_window.Show()
 
     def OnCanvasRightClick(self, event):
         menu = wx.Menu()
