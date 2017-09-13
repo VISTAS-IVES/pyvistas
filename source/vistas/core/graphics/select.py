@@ -4,6 +4,7 @@ from OpenGL.GL import *
 from vistas.core.graphics.geometry import Geometry
 from vistas.core.graphics.shader import ShaderProgram
 from vistas.core.paths import get_builtin_shader
+from vistas.core.graphics.simple import Box
 
 
 class SelectShaderProgram(ShaderProgram):
@@ -41,6 +42,7 @@ class BoxSelect:
         self._drawing = False
         self.geometry = None
         self.shader = None
+        self.box = None
 
     @property
     def drawing(self):
@@ -70,6 +72,9 @@ class BoxSelect:
         if self.shader is None:
             self.shader = SelectShaderProgram()
 
+        if self.box is None:
+            self.box = Box()
+
         glDisable(GL_DEPTH_TEST)
         glViewport(0, 0, self.shader.width, self.shader.height)
 
@@ -94,6 +99,7 @@ class PolySelect:
         self._drawing = False
         self.geometry = None
         self.shader = None
+        self.box = None
         self.points = []
         self._x = -1
         self._y = -1
@@ -135,6 +141,9 @@ class PolySelect:
 
         if self.shader is None:
             self.shader = SelectShaderProgram()
+
+        if self.box is None:
+            self.box = Box()
 
         glDisable(GL_DEPTH_TEST)
         glViewport(0, 0, self.shader.width, self.shader.height)

@@ -159,6 +159,9 @@ class Camera(Observer):
             elif self.poly_select.drawing:
                 self.poly_select.render(self)
 
+            if self.poly_select.box:
+                self.scene.render(self, [self.poly_select.box])
+
     def render_to_bitmap(self, width, height):
         if not Camera.offscreen_buffers_initialized:
             Camera.offscreen_frame_buffer = glGenFramebuffers(1)

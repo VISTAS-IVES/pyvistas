@@ -2,6 +2,7 @@ import wx
 import wx.glcanvas
 
 from vistas.core.graphics.overlay import Overlay
+from vistas.core.graphics.simple import Box
 from vistas.core.observers.camera import CameraObservable
 from vistas.core.utils import get_platform
 from vistas.ui.controls.gl_camera import GLCameraControls
@@ -135,11 +136,23 @@ class GLCanvas(wx.glcanvas.GLCanvas):
             self.Refresh()
         event.Skip()
 
+    def update_box_position(self, event: wx.MouseEvent):
+        size = self.GetSize()
+        mouse_x = event.GetX() / size.x * 2 - 1
+        mouse_y = - event.GetY() / size.y * 2 + 1
+        intersects = self.camera.raycaster.intersect_objects((mouse_x, mouse_y), self.camera)
+        if intersects:
+            if self.camera.poly_select.box is None:
+                self.camera.poly_select.box = Box()
+            self.camera.poly_select.box.position = intersects[0].point
+
     def OnLeftDown(self, event: wx.MouseEvent):
         if self.selection_mode:
             if self.selection_mode == 'poly':
                 self.camera.poly_select.append_point(event.GetX(), event.GetY())
+                self.update_box_position(event)
                 self.Refresh()
+
         event.Skip()
 
     def OnMouseWheel(self, event: wx.MouseEvent):
