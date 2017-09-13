@@ -4,7 +4,7 @@ import wx
 
 from vistas.core.graphics.overlay import BasicOverlayButton
 from vistas.core.paths import get_resources_directory
-from vistas.ui.events import CameraDragSelectStartEvent
+from vistas.ui.events import CameraSelectModeEvent
 
 
 class GLSelectionControls(wx.EvtHandler):
@@ -89,4 +89,4 @@ class GLSelectionControls(wx.EvtHandler):
         self.visible = False
 
     def set_mode(self, mode):
-        wx.PostEvent(self.canvas, CameraDragSelectStartEvent(mode=mode))
+        wx.PostEvent(self.canvas, CameraSelectModeEvent(mode=mode))

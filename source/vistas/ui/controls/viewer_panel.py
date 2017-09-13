@@ -10,7 +10,7 @@ from vistas.core.paths import get_resource_bitmap
 from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.ui.controllers.project import ProjectChangedEvent
 from vistas.ui.controls.gl_canvas import GLCanvas
-from vistas.ui.events import CameraDragSelectFinishEvent, EVT_CAMERA_DRAG_SELECT_FINISH
+from vistas.ui.events import CameraSelectFinishEvent, EVT_CAMERA_SELECT_FINISH
 from vistas.ui.project import Project
 from vistas.ui.utils import post_message
 from vistas.ui.windows.inspect import InspectWindow
@@ -131,7 +131,7 @@ class ViewerPanel(wx.Panel, Observer):
         self.gl_canvas.SetFocus()
 
         self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy)
-        self.Bind(EVT_CAMERA_DRAG_SELECT_FINISH, self.OnDragSelectFinish)
+        self.Bind(EVT_CAMERA_SELECT_FINISH, self.OnDragSelectFinish)
 
         self.legend_window = LegendWindow(self, wx.ID_ANY)
 
@@ -336,7 +336,7 @@ class ViewerPanel(wx.Panel, Observer):
                     self.zonalstats_window.data = zonal_result
                     self.zonalstats_window.Show()
 
-    def OnDragSelectFinish(self, event: CameraDragSelectFinishEvent):
+    def OnDragSelectFinish(self, event: CameraSelectFinishEvent):
         plugin = event.plugin
         points = event.points
         if len(points) >= 3:
