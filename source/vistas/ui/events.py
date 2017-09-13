@@ -73,18 +73,18 @@ class CameraSyncEvent(CameraSyncEventBase):
 
 
 # Event for informing a gl_canvas that the camera is starting a drag selection
-CameraDragSelectStartEventBase, EVT_CAMERA_DRAG_SELECT_START = wx.lib.newevent.NewEvent()
+CameraSelectModeBase, EVT_CAMERA_SELECT_MODE = wx.lib.newevent.NewEvent()
 
 
-class CameraDragSelectStartEvent(CameraDragSelectStartEventBase):
+class CameraSelectModeEvent(CameraSelectModeBase):
     def __init__(self, mode=None):
         super().__init__(mode=mode)
 
 
 # Event for informing a gl_canvas that the camera has finished a drag selection
-CameraDragSelectFinishEventBase, EVT_CAMERA_DRAG_SELECT_FINISH = wx.lib.newevent.NewEvent()
+CameraSelectFinishBase, EVT_CAMERA_SELECT_FINISH = wx.lib.newevent.NewEvent()
 
 
-class CameraDragSelectFinishEvent(CameraDragSelectFinishEventBase):
+class CameraSelectFinishEvent(CameraSelectFinishBase):
     def __init__(self, mode=None, plugin=None, points=None):
         super().__init__(mode=mode, plugin=plugin, points=points)

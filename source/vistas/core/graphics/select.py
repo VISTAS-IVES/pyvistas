@@ -57,7 +57,7 @@ class BoxSelect(SelectBase):
         super().reset()
         self.start = None
 
-    def from_screen_coords(self, start=(-1, -1), current=(-1, -1)):
+    def from_screen_coords(self, start, current):
         def coords(x, y):
             mouse_x = x / self.width * 2 - 1
             mouse_y = - y / self.height * 2 + 1
@@ -129,15 +129,17 @@ class PolySelect(SelectBase):
 
     def _add_box(self, box):
         self.points.append(box)
-        if not self.line_mesh:
-            linegeo = PolygonLineGeometry(1, numpy.array([self.start_intersect.point], dtype=numpy.float32))
-        else:
+        self._reset_linemesh()
+
+    def _reset_linemesh(self):
+        if self.line_mesh:
+            self.line_mesh.geometry.dispose()
+            self.line_mesh = None
+        if self.points:
             linegeo = PolygonLineGeometry(
                 len(self.points), numpy.array([b.position for b in self.points], dtype=numpy.float32)
             )
-            self.line_mesh.geometry.dispose()
-            self.line_mesh = None
-        self.line_mesh = Mesh(linegeo, BasicShaderProgram())
+            self.line_mesh = Mesh(linegeo, BasicShaderProgram())
 
     def append_point(self, x, y):
         mouse_x = x / self.width * 2 - 1
@@ -155,6 +157,7 @@ class PolySelect(SelectBase):
             p = self.points.pop()
             p.geometry.dispose()
             del p
+            self._reset_linemesh()
 
     def close_loop(self):
         if self.points:
