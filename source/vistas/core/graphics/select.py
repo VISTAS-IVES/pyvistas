@@ -1,6 +1,9 @@
+import numpy
 from pyrr import Vector3
 
-from vistas.core.graphics.simple import Box
+from vistas.core.graphics.line import BoxLineGeometry, PolygonLineGeometry
+from vistas.core.graphics.mesh import Mesh
+from vistas.core.graphics.simple import Box, BasicShaderProgram
 
 
 class SelectBase:
@@ -12,6 +15,7 @@ class SelectBase:
         self.points = []
         self.width = 800
         self.height = 600
+        self.line_mesh = None
         self.start_intersect = None
 
     def reset(self):
@@ -19,6 +23,9 @@ class SelectBase:
             p.geometry.dispose()
         del self.points[:]
         self.start_intersect = None
+        if self.line_mesh:
+            self.line_mesh.geometry.dispose()
+            self.line_mesh = None
 
     @property
     def coords(self):
@@ -35,10 +42,12 @@ class SelectBase:
             camera.push_matrix()
             point.render(camera)
             camera.pop_matrix()
+        if self.line_mesh:
+            self.line_mesh.render(camera)
 
 
 class BoxSelect(SelectBase):
-    """ Box grouping """
+    """ Box-defined selection """
 
     def __init__(self, raycaster, camera):
         super().__init__(raycaster, camera)
@@ -49,7 +58,6 @@ class BoxSelect(SelectBase):
         self.start = None
 
     def from_screen_coords(self, start=(-1, -1), current=(-1, -1)):
-
         def coords(x, y):
             mouse_x = x / self.width * 2 - 1
             mouse_y = - y / self.height * 2 + 1
@@ -94,15 +102,42 @@ class BoxSelect(SelectBase):
             if not self.points:
                 self.points = [Box() for _ in range(4)]
 
-            z = max(current_point.z, start_point.z) # Todo - any way to get 'z' for each point without perform raycast?
-            self.points[0].position = Vector3([left, bottom, z])
-            self.points[1].position = Vector3([right, bottom, z])
-            self.points[2].position = Vector3([right, top, z])
-            self.points[3].position = Vector3([left, top, z])
+            lb = [left, bottom, self.plugin.get_height_at_point((left, bottom))]
+            rb = [right, bottom, self.plugin.get_height_at_point((right, bottom))]
+            rt = [right, top, self.plugin.get_height_at_point((right, top))]
+            lt = [left, top, self.plugin.get_height_at_point((left, top))]
+            self.points[0].position = Vector3(lb)
+            self.points[1].position = Vector3(rb)
+            self.points[2].position = Vector3(rt)
+            self.points[3].position = Vector3(lt)
+
+            vertices = numpy.array([
+                    *lb, *rb, *rt, *lt
+                ], dtype=numpy.float32)
+
+            if not self.line_mesh:
+                linegeo = BoxLineGeometry(vertices=vertices)
+                self.line_mesh = Mesh(linegeo, BasicShaderProgram())
+            else:
+                self.line_mesh.geometry.vertices = vertices
+                self.line_mesh.geometry.compute_bounding_box()
+                self.line_mesh.update()
 
 
 class PolySelect(SelectBase):
-    """ User-defined polygon grouping """
+    """ User-defined polygon selection """
+
+    def _add_box(self, box):
+        self.points.append(box)
+        if not self.line_mesh:
+            linegeo = PolygonLineGeometry(1, numpy.array([self.start_intersect.point], dtype=numpy.float32))
+        else:
+            linegeo = PolygonLineGeometry(
+                len(self.points), numpy.array([b.position for b in self.points], dtype=numpy.float32)
+            )
+            self.line_mesh.geometry.dispose()
+            self.line_mesh = None
+        self.line_mesh = Mesh(linegeo, BasicShaderProgram())
 
     def append_point(self, x, y):
         mouse_x = x / self.width * 2 - 1
@@ -113,10 +148,14 @@ class PolySelect(SelectBase):
                 self.start_intersect = intersects[0]
             box = Box()
             box.position = intersects[0].point
-            self.points.append(box)
+            self._add_box(box)
 
     def remove_last(self):
         if self.points:
             p = self.points.pop()
             p.geometry.dispose()
             del p
+
+    def close_loop(self):
+        if self.points:
+            self._add_box(self.points[0])

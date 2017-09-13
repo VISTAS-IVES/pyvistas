@@ -188,6 +188,11 @@ class VisualizationPlugin3D(VisualizationPlugin):
 
         pass
 
+    def get_height_at_point(self, point: tuple) -> Optional[float]:
+        """ Returns the height (i.e. 'z' coordinate) at a given xy-coordinate. """
+
+        pass
+
     @property
     def geocoder_info(self):
         """ Returns geolocated items within a given scene. """

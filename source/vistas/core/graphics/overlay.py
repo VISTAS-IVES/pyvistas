@@ -15,7 +15,7 @@ class Overlay:
     shader = None
 
     def __init__(self, canvas):
-        self._buttons = []
+        self.buttons = []
 
         self.geometry = None
         self.needs_mesh_update = True
@@ -37,8 +37,8 @@ class Overlay:
         self.needs_sprite_update = True
 
     def generate_sprite(self):
-        width = max(x.size[0] for x in self._buttons)
-        height = sum(x.size[1] * 3 for x in self._buttons)
+        width = max(x.size[0] for x in self.buttons)
+        height = sum(x.size[1] * 3 for x in self.buttons)
 
         im = Image.new('RGBA', (width, height), (0, 0, 0, 0))
 
@@ -48,7 +48,7 @@ class Overlay:
             return 0, y/height, size[0]/width, y/height, 0, (y+size[1])/height, size[0]/width, (y+size[1])/height
 
         y_offset = 0
-        for button in self._buttons:
+        for button in self.buttons:
             uv = []
 
             for attr in ('default_image', 'hover_image'):
@@ -69,8 +69,8 @@ class Overlay:
         self.needs_mesh_update = True
 
     def generate_mesh(self):
-        num_indices = 6 * len(self._buttons)
-        num_vertices = 4 * len(self._buttons)
+        num_indices = 6 * len(self.buttons)
+        num_vertices = 4 * len(self.buttons)
 
         if self.shader is None:
             self.shader = ShaderProgram()
@@ -92,31 +92,31 @@ class Overlay:
                 x.position[0]+x.size[0], x.position[1], 0,
                 x.position[0], x.position[1]+x.size[1], 0,
                 x.position[0]+x.size[0], x.position[1]+x.size[1], 0
-            ] for x in self._buttons
+            ] for x in self.buttons
         ], dtype=numpy.float32)
 
         self.geometry.indices = numpy.array([
             [
                 i, i+1, i+2,
                 i+1, i+2, i+3
-            ] for i in (x * 4 for x in range(len(self._buttons)))
+            ] for i in (x * 4 for x in range(len(self.buttons)))
         ])
 
-        self.geometry.texcoords = numpy.array([x.uv[0] if x.state == x.DEFAULT else x.uv[1] for x in self._buttons])
+        self.geometry.texcoords = numpy.array([x.uv[0] if x.state == x.DEFAULT else x.uv[1] for x in self.buttons])
         self.needs_mesh_update = False
 
     def add_button(self, button):
         button.overlay = self
-        self._buttons.append(button)
+        self.buttons.append(button)
         self.reset()
 
     def remove_button(self, button):
-        if button in self._buttons:
-            self._buttons.remove(button)
+        if button in self.buttons:
+            self.buttons.remove(button)
             self.reset()
 
     def render(self, width, height):
-        if not self._buttons:
+        if not self.buttons:
             return
 
         if self.needs_sprite_update:
@@ -153,7 +153,7 @@ class Overlay:
         old_target = self.target
         self.target = None
 
-        for button in reversed(self._buttons):
+        for button in reversed(self.buttons):
             contains = (
                 button.position[0] <= event.x <= button.position[0] + button.size[0] and
                 button.position[1] <= event.y <= button.position[1] + button.size[1]
