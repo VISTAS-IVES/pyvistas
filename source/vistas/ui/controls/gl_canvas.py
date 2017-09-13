@@ -81,20 +81,7 @@ class GLCanvas(wx.glcanvas.GLCanvas):
 
     @property
     def mouse_box_coords(self):
-        if self.start_x <= self._x:
-            left = self.start_x
-            right = self._x
-        else:
-            left = self._x
-            right = self.start_x
-
-        if self.start_y <= self._y:
-            top = self.start_y
-            bottom = self._y
-        else:
-            top = self._y
-            bottom = self.start_y
-        return dict(left=left, bottom=bottom, right=right, top=top)
+        return dict(start=(self.start_x, self.start_y), current=(self._x, self._y))
 
     def OnMotion(self, event: wx.MouseEvent):
         if event.LeftIsDown():
@@ -111,7 +98,7 @@ class GLCanvas(wx.glcanvas.GLCanvas):
                     if self.start_x == -1 and self.start_y == -1:
                         self.start_x = self._x
                         self.start_y = self._y
-                    self.camera.box_select.set_screen_coords(**self.mouse_box_coords)
+                    self.camera.box_select.from_screen_coords(**self.mouse_box_coords)
                 elif self.selection_mode == 'poly':
                     pass    # Update leading line in the poly select
 
@@ -124,33 +111,22 @@ class GLCanvas(wx.glcanvas.GLCanvas):
     def OnLeftUp(self, event: wx.MouseEvent):
         if self.selection_mode and self.start_x != -1 and self.start_y != -1:
             if self.selection_mode == 'box':
-                select_event = CameraDragSelectFinishEvent(mode=self.selection_mode)
+                select_event = CameraDragSelectFinishEvent(mode=self.selection_mode)    # Todo - this needs to send the 3D point coordinates, not the screen coordinates!!!
                 coords = self.mouse_box_coords
                 select_event.left = coords.get('left')
                 select_event.bottom = coords.get('bottom')
                 select_event.right = coords.get('right')
                 select_event.top = coords.get('top')
                 self.camera.box_select.drawing = False
-                wx.PostEvent(self.GetParent(), select_event)
+                #wx.PostEvent(self.GetParent(), select_event)
                 self.selection_mode = None
             self.Refresh()
         event.Skip()
-
-    def update_box_position(self, event: wx.MouseEvent):
-        size = self.GetSize()
-        mouse_x = event.GetX() / size.x * 2 - 1
-        mouse_y = - event.GetY() / size.y * 2 + 1
-        intersects = self.camera.raycaster.intersect_objects((mouse_x, mouse_y), self.camera)
-        if intersects:
-            if self.camera.poly_select.box is None:
-                self.camera.poly_select.box = Box()
-            self.camera.poly_select.box.position = intersects[0].point
 
     def OnLeftDown(self, event: wx.MouseEvent):
         if self.selection_mode:
             if self.selection_mode == 'poly':
                 self.camera.poly_select.append_point(event.GetX(), event.GetY())
-                self.update_box_position(event)
                 self.Refresh()
 
         event.Skip()
@@ -179,27 +155,24 @@ class GLCanvas(wx.glcanvas.GLCanvas):
     def OnCameraDragSelectStart(self, event):
         if event.mode in (GLSelectionControls.BOX, GLSelectionControls.POLY):
             if self.selection_mode is not None:
-                self.camera.box_select.drawing = False
-                self.camera.poly_select.drawing = False
+                self.camera.box_select.reset()
+                self.camera.poly_select.reset()
             self.selection_mode = event.mode
             if self.selection_mode == 'box':
-                self.camera.box_select.drawing = True
+                self.camera.box_select.reset()
             else:
-                self.camera.poly_select.drawing = True
+                self.camera.poly_select.reset()
 
         elif event.mode == GLSelectionControls.CONFIRM:
             if self.selection_mode is not None and self.selection_mode == 'poly':
                 self.camera.poly_select.remove_last()
-                points = self.camera.poly_select.points
+                points = self.camera.poly_select.screen_coords      # Todo - this needs to pass the 3D positions, not the screen coordinates!!!
                 select_event = CameraDragSelectFinishEvent(mode=self.selection_mode, points=points)
-                wx.PostEvent(self.GetParent(), select_event)
-                self.camera.poly_select.drawing = False
+                #wx.PostEvent(self.GetParent(), select_event)
                 self.selection_mode = None
 
         elif event.mode == GLSelectionControls.CANCEL:
             if self.selection_mode is not None:
-                self.camera.box_select.drawing = False
-                self.camera.poly_select.drawing = False
                 self.selection_mode = None
 
         event.Skip()

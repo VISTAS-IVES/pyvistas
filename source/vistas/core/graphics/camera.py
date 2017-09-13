@@ -25,8 +25,8 @@ class Camera(Observer):
             scene = Scene()
 
         self.raycaster = Raycaster()
-        self.box_select = BoxSelect()
-        self.poly_select = PolySelect()
+        self.box_select = BoxSelect(self.raycaster, self)
+        self.poly_select = PolySelect(self.raycaster, self)
         self.scene = scene
         self.color = color
         self._matrix_stack = []
@@ -154,13 +154,8 @@ class Camera(Observer):
             if overlay:
                 overlay.render(width, height)
 
-            if self.box_select.drawing:
-                self.box_select.render(self)
-            elif self.poly_select.drawing:
-                self.poly_select.render(self)
-
-            if self.poly_select.box:
-                self.scene.render(self, [self.poly_select.box])
+            self.box_select.render(self)
+            self.poly_select.render(self)
 
     def render_to_bitmap(self, width, height):
         if not Camera.offscreen_buffers_initialized:
@@ -217,11 +212,9 @@ class Camera(Observer):
         self.raycaster.near = znear
         self.raycaster.far = zfar
 
-        if self.box_select.shader:
-            self.box_select.shader.width = width
-            self.box_select.shader.height = height
-        if self.poly_select.shader:
-            self.poly_select.shader.width = width
-            self.poly_select.shader.height = height
+        self.box_select.width = width
+        self.box_select.height = height
+        self.poly_select.width = width
+        self.poly_select.height = height
 
         self.proj_matrix = Matrix44.perspective_projection(80.0, width / height, znear, zfar)

@@ -63,22 +63,6 @@ class BoxGeometry(BasicGeometry):
     ], dtype=numpy.uint8)
 
 
-class SphereGeometry(BasicGeometry):
-
-    VERTS = numpy.array([
-
-    ], dtype=numpy.float32)
-
-    INDICES = numpy.array([
-
-    ], dtype=numpy.uint8)
-
-
-class Sphere(Mesh):
-    def __init__(self):
-        super().__init__(SphereGeometry(), BasicMaterial())
-
-
 class Box(Mesh):
     def __init__(self):
         super().__init__(BoxGeometry(), BasicMaterial())
