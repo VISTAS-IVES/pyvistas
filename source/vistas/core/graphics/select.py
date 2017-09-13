@@ -1,28 +1,23 @@
-import numpy
-from OpenGL.GL import *
 from pyrr import Vector3
+
 from vistas.core.graphics.simple import Box
-# Todo - add lines connecting the boxes
 
 
-# Todo - Combine BoxSelect and PolySelect?
+class SelectBase:
+    """ Object-level selection via grouping """
 
-
-class BoxSelect:
     def __init__(self, raycaster, camera):
         self.raycaster = raycaster
         self.camera = camera
         self.points = []
         self.width = 800
         self.height = 600
-        self.start = None
         self.start_intersect = None
 
     def reset(self):
         for p in self.points:
             p.geometry.dispose()
         del self.points[:]
-        self.start = None
         self.start_intersect = None
 
     @property
@@ -34,6 +29,24 @@ class BoxSelect:
         if self.start_intersect:
             return self.start_intersect.object.plugin
         return None
+
+    def render(self, camera):
+        for point in self.points:
+            camera.push_matrix()
+            point.render(camera)
+            camera.pop_matrix()
+
+
+class BoxSelect(SelectBase):
+    """ Box grouping """
+
+    def __init__(self, raycaster, camera):
+        super().__init__(raycaster, camera)
+        self.start = None
+
+    def reset(self):
+        super().reset()
+        self.start = None
 
     def from_screen_coords(self, start=(-1, -1), current=(-1, -1)):
 
@@ -87,38 +100,9 @@ class BoxSelect:
             self.points[2].position = Vector3([right, top, z])
             self.points[3].position = Vector3([left, top, z])
 
-    def render(self, camera):
-        for point in self.points:
-            camera.push_matrix()
-            point.render(camera)
-            camera.pop_matrix()
 
-
-class PolySelect:
-
-    def __init__(self, raycaster, camera):
-        self.raycaster = raycaster
-        self.camera = camera
-        self.width = 800
-        self.height = 600
-        self.points = []    # List[Box]
-        self.start_intersect = None
-
-    @property
-    def coords(self):
-        return [(p.position.x, p.position.y) for p in self.points]
-
-    def reset(self):
-        for p in self.points:
-            p.geometry.dispose()
-        del self.points[:]
-        self.start_intersect = None
-
-    @property
-    def plugin(self):
-        if self.start_intersect:
-            return self.start_intersect.object.plugin
-        return None
+class PolySelect(SelectBase):
+    """ User-defined polygon grouping """
 
     def append_point(self, x, y):
         mouse_x = x / self.width * 2 - 1
@@ -136,9 +120,3 @@ class PolySelect:
             p = self.points.pop()
             p.geometry.dispose()
             del p
-
-    def render(self, camera):
-        for point in self.points:
-            camera.push_matrix()
-            point.render(camera)
-            camera.pop_matrix()
