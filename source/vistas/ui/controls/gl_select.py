@@ -21,24 +21,26 @@ class GLSelectionControls(wx.EvtHandler):
         self.camera = camera
         self.canvas = gl_canvas
         self.visible = False
+        self.optional_buttons_visible = False
+        self.last_mode = None
 
         self.box_select_button = BasicOverlayButton(
             os.path.join(get_resources_directory(), 'images', 'glyphicons-95-vector-path-square.png'), (0, 0)
         )
-        self.box_select_button.Bind(wx.EVT_BUTTON, lambda event: self.set_drag_mode(self.BOX))
+        self.box_select_button.Bind(wx.EVT_BUTTON, lambda event: self.set_mode(self.BOX))
 
         self.poly_select_button = BasicOverlayButton(
             os.path.join(get_resources_directory(), 'images', 'glyphicons-97-vector-path-polygon.png'), (0, 0)
         )
-        self.poly_select_button.Bind(wx.EVT_BUTTON, lambda event: self.set_drag_mode(self.POLY))
+        self.poly_select_button.Bind(wx.EVT_BUTTON, lambda event: self.set_mode(self.POLY))
         self.cancel_button = BasicOverlayButton(
             os.path.join(get_resources_directory(), 'images', 'glyphicons-193-remove-sign.png'), (0, 0)
         )
-        self.cancel_button.Bind(wx.EVT_BUTTON, lambda event: self.set_drag_mode(self.CANCEL))
+        self.cancel_button.Bind(wx.EVT_BUTTON, lambda event: self.set_mode(self.CANCEL))
         self.confirm_button = BasicOverlayButton(
             os.path.join(get_resources_directory(), 'images', 'glyphicons-194-ok-sign.png'), (0, 0)
         )
-        self.confirm_button.Bind(wx.EVT_BUTTON, lambda event: self.set_drag_mode(self.CONFIRM))
+        self.confirm_button.Bind(wx.EVT_BUTTON, lambda event: self.set_mode(self.CONFIRM))
 
         self.reposition()
         self.show()
@@ -55,12 +57,24 @@ class GLSelectionControls(wx.EvtHandler):
 
         self.canvas.Refresh()
 
+    def show_optional_buttons(self):
+        if not self.optional_buttons_visible:
+            self.canvas.overlay.add_button(self.cancel_button)
+            self.canvas.overlay.add_button(self.confirm_button)
+            self.optional_buttons_visible = True
+
+    def hide_optional_buttons(self):
+        if self.optional_buttons_visible:
+            self.canvas.overlay.remove_button(self.cancel_button)
+            self.canvas.overlay.remove_button(self.confirm_button)
+            self.optional_buttons_visible = False
+
     def show(self):
         if not self.visible:
             self.canvas.overlay.add_button(self.box_select_button)
             self.canvas.overlay.add_button(self.poly_select_button)
-            self.canvas.overlay.add_button(self.cancel_button)
-            self.canvas.overlay.add_button(self.confirm_button)
+            if self.last_mode in (self.BOX, self.POLY):
+                self.show_optional_buttons()
 
         self.visible = True
 
@@ -68,10 +82,9 @@ class GLSelectionControls(wx.EvtHandler):
         if self.visible:
             self.canvas.overlay.remove_button(self.box_select_button)
             self.canvas.overlay.remove_button(self.poly_select_button)
-            self.canvas.overlay.remove_button(self.cancel_button)
-            self.canvas.overlay.remove_button(self.confirm_button)
+            self.hide_optional_buttons()
 
         self.visible = False
 
-    def set_drag_mode(self, mode):
+    def set_mode(self, mode):
         wx.PostEvent(self.canvas, CameraDragSelectStartEvent(mode=mode))

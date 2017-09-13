@@ -86,7 +86,5 @@ CameraDragSelectFinishEventBase, EVT_CAMERA_DRAG_SELECT_FINISH = wx.lib.newevent
 
 
 class CameraDragSelectFinishEvent(CameraDragSelectFinishEventBase):
-    def __init__(self, mode=None, left=None, bottom=None, right=None, top=None, points=None):
-        if any((left, bottom, right, top)) and points:
-            raise TypeError("CameraDragSelectFinishEvent specified a box and a list of points!")
-        super().__init__(mode=mode, left=left, bottom=bottom, right=right, top=top, points=points)
+    def __init__(self, mode=None, plugin=None, points=None):
+        super().__init__(mode=mode, plugin=plugin, points=points)

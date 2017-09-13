@@ -1,8 +1,7 @@
 import wx
+from shapely.geometry import Polygon
 from wx.glcanvas import WX_GL_MINOR_VERSION
 from wx.glcanvas import WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, WX_GL_CORE_PROFILE, WX_GL_MAJOR_VERSION
-
-from shapely.geometry import Polygon
 
 from vistas.core.graphics.camera import Camera
 from vistas.core.observers.camera import CameraObservable
@@ -13,6 +12,7 @@ from vistas.ui.controllers.project import ProjectChangedEvent
 from vistas.ui.controls.gl_canvas import GLCanvas
 from vistas.ui.events import CameraDragSelectFinishEvent, EVT_CAMERA_DRAG_SELECT_FINISH
 from vistas.ui.project import Project
+from vistas.ui.utils import post_message
 from vistas.ui.windows.inspect import InspectWindow
 from vistas.ui.windows.legend import LegendWindow
 from vistas.ui.windows.zonalstats import ZonalStatisticsWindow
@@ -337,64 +337,18 @@ class ViewerPanel(wx.Panel, Observer):
                     self.zonalstats_window.Show()
 
     def OnDragSelectFinish(self, event: CameraDragSelectFinishEvent):
-
-        # Build a feature from the box
-        if event.mode == 'box':
-            self.ReportBoxSelection(event)
-        elif event.mode == 'poly':
-            self.ReportPolySelection(event)
-
-        event.Skip()
-
-    def ReportBoxSelection(self, event: CameraDragSelectFinishEvent):
-        size = self.gl_canvas.GetSize()
-        left = event.left / size.x * 2 - 1
-        bottom = - event.bottom / size.y * 2 + 1
-        right = event.right / size.x * 2 - 1
-        top = - event.top / size.y * 2 + 1
-
-        raycast = self.gl_canvas.camera.raycaster.intersect_objects
-        topleft_intersects = raycast((left, top), self.camera)
-        topright_intersects = raycast((right, top), self.camera)
-        bottomleft_intersects = raycast((left, bottom), self.camera)
-        bottomright_intersects = raycast((right, bottom), self.camera)
-
-        intersects = (topleft_intersects, topright_intersects, bottomleft_intersects, bottomright_intersects)
-
-        if all(intersects):                                 # Todo - add handling for when there are partial intersects
-            plugin = topleft_intersects[0].object.plugin
-            feature = dict(geometry=Polygon([
-                tuple(topleft_intersects[0].point.xy),
-                tuple(bottomleft_intersects[0].point.xy),
-                tuple(bottomright_intersects[0].point.xy),
-                tuple(topright_intersects[0].point.xy),
-                tuple(topleft_intersects[0].point.xy)
-            ]).__geo_interface__, type='Feature')
-
-            zonal_result = plugin.get_zonal_stats_from_feature(feature)
-            if zonal_result:
-                if self.zonalstats_window is None:
-                    self.zonalstats_window = ZonalStatisticsWindow(self, wx.ID_ANY)
-                self.zonalstats_window.data = zonal_result
-                self.zonalstats_window.Show()
-
-    def ReportPolySelection(self, event: CameraDragSelectFinishEvent):
-        size = self.gl_canvas.GetSize()
+        plugin = event.plugin
         points = event.points
-        raycast = self.gl_canvas.camera.raycaster.intersect_objects
-        intersects = [raycast((p[0] / size.x * 2 - 1, - p[1] / size.y * 2 + 1),  self.camera) for p in points]
-        if all(intersects):                             # Todo - add handling for when there are partial intersects
-            plugin = intersects[0][0].object.plugin
-            feature = dict(geometry=Polygon([
-                tuple(inner_intersects[0].point.xy) for inner_intersects in intersects + [intersects[0]]
-            ]).__geo_interface__, type='Feature')
-
-            zonal_result = plugin.get_zonal_stats_from_feature(feature)
-            if zonal_result:
+        if len(points) >= 3:
+            feature = dict(geometry=Polygon([p for p in points + [points[0]]]).__geo_interface__, type='Feature')
+            result = plugin.get_zonal_stats_from_feature(feature)
+            if result:
                 if self.zonalstats_window is None:
                     self.zonalstats_window = ZonalStatisticsWindow(self, wx.ID_ANY)
-                self.zonalstats_window.data = zonal_result
+                self.zonalstats_window.data = result
                 self.zonalstats_window.Show()
+        else:
+            post_message("At least 3 points are required to do zonal statistics!", 1)
 
     def OnCanvasRightClick(self, event):
         menu = wx.Menu()

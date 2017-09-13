@@ -111,15 +111,12 @@ class GLCanvas(wx.glcanvas.GLCanvas):
     def OnLeftUp(self, event: wx.MouseEvent):
         if self.selection_mode and self.start_x != -1 and self.start_y != -1:
             if self.selection_mode == 'box':
-                select_event = CameraDragSelectFinishEvent(mode=self.selection_mode)    # Todo - this needs to send the 3D point coordinates, not the screen coordinates!!!
-                coords = self.mouse_box_coords
-                select_event.left = coords.get('left')
-                select_event.bottom = coords.get('bottom')
-                select_event.right = coords.get('right')
-                select_event.top = coords.get('top')
-                self.camera.box_select.drawing = False
-                #wx.PostEvent(self.GetParent(), select_event)
+                points = self.camera.box_select.coords
+                plugin = self.camera.box_select.plugin
+                select_event = CameraDragSelectFinishEvent(mode=self.selection_mode, points=points, plugin=plugin)
+                wx.PostEvent(self.GetParent(), select_event)
                 self.selection_mode = None
+                self.selection_controls.hide_optional_buttons()
             self.Refresh()
         event.Skip()
 
@@ -147,35 +144,37 @@ class GLCanvas(wx.glcanvas.GLCanvas):
             self.camera_interactor.key_down("{:c}".format(keycode))
             self.Sync()
 
-            # Todo - if in selection mode, allow 'esc' to cancel editing
-            # Todo - if selection mode is 'poly', let 'delete', and 'backspace' remove the last created point
+            # Allow escaping from selection mode
+            if keycode == wx.WXK_ESCAPE:
+                self.selection_mode = None
+
+            # Allow point removal from polygon selection
+            elif self.selection_mode == 'poly' and \
+                    any((keycode == wx.WXK_BACK, keycode == wx.WXK_DELETE, keycode == wx.WXK_NUMPAD_DELETE)):
+                self.camera.poly_select.remove_last()
 
             self.Refresh()
 
     def OnCameraDragSelectStart(self, event):
         if event.mode in (GLSelectionControls.BOX, GLSelectionControls.POLY):
-            if self.selection_mode is not None:
-                self.camera.box_select.reset()
-                self.camera.poly_select.reset()
+            self.camera.box_select.reset()
+            self.camera.poly_select.reset()
             self.selection_mode = event.mode
-            if self.selection_mode == 'box':
-                self.camera.box_select.reset()
-            else:
-                self.camera.poly_select.reset()
+            self.selection_controls.show_optional_buttons()
 
         elif event.mode == GLSelectionControls.CONFIRM:
             if self.selection_mode is not None and self.selection_mode == 'poly':
-                self.camera.poly_select.remove_last()
-                points = self.camera.poly_select.screen_coords      # Todo - this needs to pass the 3D positions, not the screen coordinates!!!
-                select_event = CameraDragSelectFinishEvent(mode=self.selection_mode, points=points)
-                #wx.PostEvent(self.GetParent(), select_event)
+                points = self.camera.poly_select.coords
+                plugin = self.camera.poly_select.plugin
+                select_event = CameraDragSelectFinishEvent(mode=self.selection_mode, points=points, plugin=plugin)
+                wx.PostEvent(self.GetParent(), select_event)
                 self.selection_mode = None
+                self.selection_controls.hide_optional_buttons()
 
         elif event.mode == GLSelectionControls.CANCEL:
             if self.selection_mode is not None:
                 self.selection_mode = None
-
-        event.Skip()
+            self.selection_controls.hide_optional_buttons()
 
     def OnPostRedisplay(self, event):
         self.Refresh()
