@@ -626,3 +626,12 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             feature['geometry']['coordinates'] = coords
             return zonal_stats(feature, raster, affine=affine, nodata=nodata)
         return None
+
+    def get_height_at_point(self, point: tuple) -> Optional[Dict]:
+        if self.terrain_data:
+            res = self.terrain_data.resolution
+            cell_x = int(round((point[0] / res)))
+            cell_y = int(round((point[1] / res)))
+            z = self.terrain_data.get_data(self._elevation_attribute.selected)[cell_x, cell_y]
+            return z * self._elevation_factor.value
+        return None

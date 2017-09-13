@@ -7,14 +7,17 @@ from vistas.core.graphics.shader import ShaderProgram
 from vistas.core.paths import get_builtin_shader
 
 
-class BasicMaterial(ShaderProgram):
+class BasicShaderProgram(ShaderProgram):
+    """ A pass-through shader program that defines a single color to render on the object. """
 
-    def __init__(self):
+    def __init__(self, color=None):
         super().__init__()
         self.attach_shader(get_builtin_shader('simple_vert.glsl'), GL_VERTEX_SHADER)
         self.attach_shader(get_builtin_shader('simple_frag.glsl'), GL_FRAGMENT_SHADER)
         self.link_program()
-        self.color = [0, 1, 0]
+        if not color:
+            color = [0, 1, 0]
+        self.color = color
 
     def pre_render(self, camera):
         super().pre_render(camera)
@@ -22,6 +25,7 @@ class BasicMaterial(ShaderProgram):
 
 
 class BasicGeometry(Geometry):
+    """ A Geometry that has a vertex structure defined at the class level, such as a Box or a Sphere. """
 
     VERTS = None
     INDICES = None
@@ -65,4 +69,4 @@ class BoxGeometry(BasicGeometry):
 
 class Box(Mesh):
     def __init__(self):
-        super().__init__(BoxGeometry(), BasicMaterial())
+        super().__init__(BoxGeometry(), BasicShaderProgram())

@@ -6,8 +6,6 @@ uniform vec3 cameraPosition;
 
 layout(location = 0) in vec3 position;
 
-const vec4 scale = vec4(10.);
-
 void main() {
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0) * scale;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }

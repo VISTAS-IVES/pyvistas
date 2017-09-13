@@ -94,12 +94,12 @@ class GLCanvas(wx.glcanvas.GLCanvas):
             self._y = y
 
             if self.selection_mode:
-                if self.selection_mode == 'box':
+                if self.selection_mode is GLSelectionControls.BOX:
                     if self.start_x == -1 and self.start_y == -1:
                         self.start_x = self._x
                         self.start_y = self._y
                     self.camera.box_select.from_screen_coords(**self.mouse_box_coords)
-                elif self.selection_mode == 'poly':
+                elif self.selection_mode == GLSelectionControls.POLY:
                     pass    # Update leading line in the poly select
 
             self.Sync()
@@ -110,7 +110,7 @@ class GLCanvas(wx.glcanvas.GLCanvas):
 
     def OnLeftUp(self, event: wx.MouseEvent):
         if self.selection_mode and self.start_x != -1 and self.start_y != -1:
-            if self.selection_mode == 'box':
+            if self.selection_mode is GLSelectionControls.BOX:
                 points = self.camera.box_select.coords
                 plugin = self.camera.box_select.plugin
                 select_event = CameraDragSelectFinishEvent(mode=self.selection_mode, points=points, plugin=plugin)
@@ -122,7 +122,20 @@ class GLCanvas(wx.glcanvas.GLCanvas):
 
     def OnLeftDown(self, event: wx.MouseEvent):
         if self.selection_mode:
-            if self.selection_mode == 'poly':
+            if self.selection_mode is GLSelectionControls.POLY:
+
+                # Edge case where the user clicked on the overlay while in POLY mode
+                for button in self.overlay.buttons:
+                    pos = button.position
+                    size = button.size
+                    print(pos)
+                    print(pos + size)
+                    hit_x = pos[0] <= event.GetX() <= pos[0] + size[0]
+                    hit_y = pos[1] <= event.GetY() <= pos[1] + size[1]
+                    if hit_x and hit_y:
+                        event.Skip()
+                        return
+
                 self.camera.poly_select.append_point(event.GetX(), event.GetY())
                 self.Refresh()
 
@@ -149,7 +162,7 @@ class GLCanvas(wx.glcanvas.GLCanvas):
                 self.selection_mode = None
 
             # Allow point removal from polygon selection
-            elif self.selection_mode == 'poly' and \
+            elif self.selection_mode == GLSelectionControls.POLY and \
                     any((keycode == wx.WXK_BACK, keycode == wx.WXK_DELETE, keycode == wx.WXK_NUMPAD_DELETE)):
                 self.camera.poly_select.remove_last()
 
@@ -162,16 +175,17 @@ class GLCanvas(wx.glcanvas.GLCanvas):
             self.selection_mode = event.mode
             self.selection_controls.show_optional_buttons()
 
-        elif event.mode == GLSelectionControls.CONFIRM:
-            if self.selection_mode is not None and self.selection_mode == 'poly':
+        elif event.mode is GLSelectionControls.CONFIRM:
+            if self.selection_mode is not None and self.selection_mode == GLSelectionControls.POLY:
                 points = self.camera.poly_select.coords
                 plugin = self.camera.poly_select.plugin
+                self.camera.poly_select.close_loop()
                 select_event = CameraDragSelectFinishEvent(mode=self.selection_mode, points=points, plugin=plugin)
                 wx.PostEvent(self.GetParent(), select_event)
                 self.selection_mode = None
                 self.selection_controls.hide_optional_buttons()
 
-        elif event.mode == GLSelectionControls.CANCEL:
+        elif event.mode is GLSelectionControls.CANCEL:
             if self.selection_mode is not None:
                 self.selection_mode = None
             self.selection_controls.hide_optional_buttons()

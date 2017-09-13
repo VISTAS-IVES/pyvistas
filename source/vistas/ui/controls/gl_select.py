@@ -48,11 +48,13 @@ class GLSelectionControls(wx.EvtHandler):
         self.canvas.Bind(wx.EVT_SIZE, lambda event: self.reposition())
 
     def reposition(self):
-        height = self.canvas.GetSize().height // 3
+        size = self.canvas.GetSize()
+        width = size.width
+        height = size.height // 3
         y_offset = 0
 
         for button in (self.box_select_button, self.poly_select_button, self.cancel_button, self.confirm_button):
-            button.position = (0, height + y_offset)
+            button.position = (width - button.size[0], height + y_offset)
             y_offset += 5 + button.size[1]
 
         self.canvas.Refresh()
