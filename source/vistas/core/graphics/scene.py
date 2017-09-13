@@ -29,8 +29,11 @@ class Scene:
     def bounding_box(self):
         return union_bboxs([x.bounding_box for x in self.objects])
 
-    def render(self, camera):
-        for obj in self.objects:
+    def render(self, camera, objects=None):
+        if not objects:
+            objects = self.objects
+
+        for obj in objects:
             camera.push_matrix()
             camera.matrix *= Matrix44.from_translation(obj.position) * Matrix44.from_scale(obj.scale)
             obj.render(camera)
