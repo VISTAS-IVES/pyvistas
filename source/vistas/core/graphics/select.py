@@ -5,7 +5,7 @@ from vistas.core.graphics.simple import Box
 # Todo - add lines connecting the boxes
 
 
-# Combine BoxSelect and PolySelect?
+# Todo - Combine BoxSelect and PolySelect?
 
 
 class BoxSelect:
@@ -23,6 +23,17 @@ class BoxSelect:
             p.geometry.dispose()
         del self.points[:]
         self.start = None
+        self.start_intersect = None
+
+    @property
+    def coords(self):
+        return [(p.position.x, p.position.y) for p in self.points]
+
+    @property
+    def plugin(self):
+        if self.start_intersect:
+            return self.start_intersect.object.plugin
+        return None
 
     def from_screen_coords(self, start=(-1, -1), current=(-1, -1)):
 
@@ -49,7 +60,7 @@ class BoxSelect:
             if current_intersect.object != self.start_intersect.object:
                 return
 
-            # Now check that the rectangle made by the landed points all lie within the object's bounding box
+            # Now determine Box positions in world space
             start_point = self.start_intersect.point
             current_point = current_intersect.point
 
@@ -69,7 +80,8 @@ class BoxSelect:
 
             if not self.points:
                 self.points = [Box() for _ in range(4)]
-            z = max(current_point.z, start_point.z)
+
+            z = max(current_point.z, start_point.z) # Todo - any way to get 'z' for each point without perform raycast?
             self.points[0].position = Vector3([left, bottom, z])
             self.points[1].position = Vector3([right, bottom, z])
             self.points[2].position = Vector3([right, top, z])
@@ -89,22 +101,32 @@ class PolySelect:
         self.camera = camera
         self.width = 800
         self.height = 600
-        self.points = []            # List[Box]
+        self.points = []    # List[Box]
+        self.start_intersect = None
 
     @property
     def coords(self):
-        return [(p.x, p.y) for p in self.points]
+        return [(p.position.x, p.position.y) for p in self.points]
 
     def reset(self):
         for p in self.points:
             p.geometry.dispose()
         del self.points[:]
+        self.start_intersect = None
+
+    @property
+    def plugin(self):
+        if self.start_intersect:
+            return self.start_intersect.object.plugin
+        return None
 
     def append_point(self, x, y):
         mouse_x = x / self.width * 2 - 1
         mouse_y = - y / self.height * 2 + 1
         intersects = self.raycaster.intersect_objects((mouse_x, mouse_y), self.camera)
         if intersects:
+            if not self.start_intersect:
+                self.start_intersect = intersects[0]
             box = Box()
             box.position = intersects[0].point
             self.points.append(box)
