@@ -615,7 +615,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         return None
 
     def get_zonal_stats_from_feature(self, feature: Dict) -> Optional[Dict]:
-        if self.boundary_data and self.terrain_data and self.attribute_data:
+        if self.terrain_data and self.attribute_data:
             var = self._attribute.selected
             raster = self.attribute_data.get_data(var)
             affine = self.attribute_data.affine
