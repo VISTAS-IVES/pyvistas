@@ -8,6 +8,7 @@ from vistas.core.observers.camera import CameraObservable
 from vistas.core.observers.interface import Observer
 from vistas.core.paths import get_resource_bitmap
 from vistas.core.plugins.visualization import VisualizationPlugin3D
+from vistas.core.plugins.data import DataPlugin
 from vistas.ui.controllers.project import ProjectChangedEvent
 from vistas.ui.controls.gl_canvas import GLCanvas
 from vistas.ui.events import CameraSelectFinishEvent, EVT_CAMERA_SELECT_FINISH
@@ -413,6 +414,26 @@ class ViewerPanel(wx.Panel, Observer):
             self.RefreshScenes()
             self.gl_canvas.Refresh()
             self.UpdateLegend()
+
+        self.UpdateOverlay()
+
+    def UpdateOverlay(self):
+        self.UpdateScene()
+        plugins = Project.get().find_viz_with_parent_scene(self.selected_scene)
+
+        viz = None
+        for p in plugins:
+            if isinstance(p, VisualizationPlugin3D):
+                viz = p
+
+        if viz is not None:
+            # If the visualization has a raster, show the selection controls
+            for i, role in enumerate(viz.data_roles):
+                if role[0] == DataPlugin.RASTER and viz.get_data(i) is not None:
+                    self.gl_canvas.selection_controls.show()
+                    return
+
+        self.gl_canvas.selection_controls.hide()
 
     def OnSceneChoice(self, event):
         self.UpdateScene()

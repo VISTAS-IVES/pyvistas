@@ -1,7 +1,7 @@
 import json
 import os
-import wx
 
+import wx
 from pyrr import Matrix44
 
 from vistas.core.color import RGBColor

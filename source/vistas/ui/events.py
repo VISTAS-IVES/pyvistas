@@ -14,6 +14,7 @@ class ProjectChangedEvent(ProjectChangedEventBase):
     DELETED_ITEM = 'deleted_item'
     RENAMED_ITEM = 'renamed_item'
     PROJECT_RESET = 'project_reset'
+    VISUALIZATION_SET_DATA = 'visualization_set_data'
 
     def __init__(self, node=None, change=None):
         super().__init__(node=node, change=change)

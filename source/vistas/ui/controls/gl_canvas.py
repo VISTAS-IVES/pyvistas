@@ -28,6 +28,7 @@ class GLCanvas(wx.glcanvas.GLCanvas):
         self.selection_mode = None
         self.last_selection_mode = None
         self.selection_controls = GLSelectionControls(self, camera)
+        self.selection_controls.hide()
 
         self.can_sync = can_sync    # Indicate whether this canvas can sync with global interactor
 
