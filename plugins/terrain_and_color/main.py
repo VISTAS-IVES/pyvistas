@@ -457,14 +457,14 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                     transform=transform.from_bounds(*terrain_extent.as_list(), texture_w, texture_h)
                 ))
 
-            def draw(p):
-                nonlocal image_data, texture_h, texture_w
+            if self.selected_point != (-1, -1):
+                p = (self.selected_point[0], self.selected_point[1] + 1)
                 cell_size = self.terrain_data.resolution
                 grid_width, grid_height = self.terrain_data.shape
                 xscale = texture_w / terrain_extent.width
                 yscale = texture_h / terrain_extent.height
                 box_w, box_h = cell_size * xscale, cell_size * yscale
-                center = (int(p[1] / grid_height * texture_h), int(512 - p[0] / grid_width * texture_w))
+                center = (int(p[0] / grid_height * texture_h), int(512 - p[1] / grid_width * texture_w))
 
                 # Draw black rectangle directly into data
                 min_x = min(max(center[0] - box_w / 2, 0), 510)
@@ -473,9 +473,6 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 max_y = min(max(center[1] + box_h / 2, min_y + 1), 511)
 
                 image_data[round(min_y): round(max_y), round(min_x): round(max_x), 0] = 0
-
-            if self.selected_point != (-1, -1):
-                draw(self.selected_point)
 
             shader.boundary_texture = Texture(
                 data=image_data.ravel(), width=texture_w, height=texture_h, src_format=GL_RGB8
@@ -551,8 +548,8 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
     def get_identify_detail(self, point: Vector3) -> Optional[Dict]:
         if self.terrain_data is not None:
             res = self.terrain_data.resolution
-            cell_x = int(round((point.x / res)))
-            cell_y = int(round((point.y / res)))
+            cell_x = int(round((point.y / res)))
+            cell_y = int(round((point.x / res)))
 
             terrain_attr = self._elevation_attribute.selected
             terrain_ref = self.terrain_data.get_data(terrain_attr)
@@ -561,17 +558,17 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 attribute_ref = self.attribute_data.get_data(
                     self._attribute.selected, Timeline.app().current
                 )
-                attr_width, attr_height = attribute_ref.shape
+                attr_height, attr_width = attribute_ref.shape
                 if 0 <= cell_x < attr_width and 0 <= cell_y < attr_height:
 
                     result = OrderedDict()
                     result['Point'] = "{}, {}".format(cell_x, cell_y)
-                    result['Value'] = attribute_ref[cell_x, cell_y]
-                    result['Height'] = terrain_ref[cell_x, cell_y]
+                    result['Value'] = attribute_ref[cell_y, cell_x]
+                    result['Height'] = terrain_ref[cell_y, cell_x]
 
                     if self.flow_dir_data is not None:
                         flow_dir_ref = self.flow_dir_data.get_data(self.flow_dir_data.variables[0])
-                        direction = flow_dir_ref[cell_x, cell_y]
+                        direction = flow_dir_ref[cell_y, cell_x]
                         result['Flow Direction (input)'] = direction
                         degrees = 45.0 + 45.0 * direction
                         result['Flow Direction (degrees)'] = degrees if degrees < 360.0 else degrees - 360.0
@@ -579,7 +576,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                     if self.flow_acc_data is not None:
                         result['Flow Accumulation'] = self.flow_acc_data.get_data(
                             self.flow_acc_data.variables[0]
-                        )[cell_x, cell_y]
+                        )[cell_y, cell_x]
 
                     self.selected_point = (cell_x, cell_y)
                     self._needs_boundaries = True
