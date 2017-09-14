@@ -26,6 +26,7 @@ class GLCanvas(wx.glcanvas.GLCanvas):
         self.camera_controls = GLCameraControls(self, camera)
 
         self.selection_mode = None
+        self.last_selection_mode = None
         self.selection_controls = GLSelectionControls(self, camera)
 
         self.can_sync = can_sync    # Indicate whether this canvas can sync with global interactor
@@ -150,11 +151,15 @@ class GLCanvas(wx.glcanvas.GLCanvas):
                 self.selection_mode = None
                 self.camera.poly_select.reset()
                 self.camera.box_select.reset()
+                self.selection_controls.set_mode(self.selection_controls.CANCEL)
 
             # Allow point removal from polygon selection
             elif self.selection_mode == GLSelectionControls.POLY and \
                     any((keycode == wx.WXK_BACK, keycode == wx.WXK_DELETE, keycode == wx.WXK_NUMPAD_DELETE)):
                 self.camera.poly_select.remove_last()
+
+            elif keycode == wx.WXK_RETURN or keycode == wx.WXK_NUMPAD_ENTER:
+                self.selection_controls.set_mode(self.selection_controls.CONFIRM)
 
             self.Refresh()
 
@@ -162,11 +167,11 @@ class GLCanvas(wx.glcanvas.GLCanvas):
         if event.mode in (GLSelectionControls.BOX, GLSelectionControls.POLY):
             self.camera.box_select.reset()
             self.camera.poly_select.reset()
-            self.selection_mode = event.mode
+            self.selection_mode = self.last_selection_mode = event.mode
             self.selection_controls.show_optional_buttons()
 
         elif event.mode is GLSelectionControls.CONFIRM:
-            if self.selection_mode is not None and self.selection_mode == GLSelectionControls.POLY:
+            if GLSelectionControls.POLY in (self.selection_mode, self.last_selection_mode):
                 points = self.camera.poly_select.coords
                 plugin = self.camera.poly_select.plugin
                 self.camera.poly_select.close_loop()
@@ -176,9 +181,17 @@ class GLCanvas(wx.glcanvas.GLCanvas):
                 self.selection_controls.hide_optional_buttons()
 
         elif event.mode is GLSelectionControls.CANCEL:
-            if self.selection_mode is not None:
+            if any(x is not None for x in (self.selection_mode, self.last_selection_mode)):
                 self.selection_mode = None
+                self.camera.poly_select.reset()
+                self.camera.box_select.reset()
             self.selection_controls.hide_optional_buttons()
+
+        elif event.mode is GLSelectionControls.PAUSE:
+            self.selection_mode = None
+
+        elif event.mode is GLSelectionControls.RESUME:
+            self.selection_mode = self.last_selection_mode
 
     def OnPostRedisplay(self, event):
         self.Refresh()

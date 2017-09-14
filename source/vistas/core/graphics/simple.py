@@ -16,7 +16,7 @@ class BasicShaderProgram(ShaderProgram):
         self.attach_shader(get_builtin_shader('simple_frag.glsl'), GL_FRAGMENT_SHADER)
         self.link_program()
         if not color:
-            color = [0, 1, 0]
+            color = [1, 0, 0]
         self.color = color
 
     def pre_render(self, camera):
@@ -27,20 +27,19 @@ class BasicShaderProgram(ShaderProgram):
 class BasicGeometry(Geometry):
     """ A Geometry that has a vertex structure defined at the class level, such as a Box or a Sphere. """
 
-    VERTS = None
+    VERTICES = None
     INDICES = None
 
     def __init__(self):
-        super().__init__(len(self.INDICES), len(self.VERTS) // 3, mode=Geometry.TRIANGLES)
-        self.vertices = self.VERTS
+        super().__init__(len(self.INDICES), len(self.VERTICES) // 3, mode=Geometry.TRIANGLES)
+        self.vertices = self.VERTICES
         self.indices = self.INDICES
         self.compute_bounding_box()
         self.compute_normals()
 
 
 class BoxGeometry(BasicGeometry):
-
-    VERTS = numpy.array([
+    VERTICES = numpy.array([
         1, -1, -1,
         1, -1, 1,
         -1, -1, 1,
