@@ -37,7 +37,7 @@ class VisualizationPlugin(Plugin):
         """ Get the number of inputs for a specific role """
         return 1
 
-    def set_data(self, data: DataPlugin, role):
+    def set_data(self, data: Optional[DataPlugin], role):
         """ Set data in a specific role for the visualization """
 
         raise NotImplemented
