@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Optional
+from typing import List, Dict, Optional
 
 import wx
 from PIL import Image
@@ -178,12 +178,12 @@ class VisualizationPlugin3D(VisualizationPlugin):
 
         pass
 
-    def get_zonal_stats_from_point(self, point: Vector3) -> Optional[Dict]:
+    def get_zonal_stats_from_point(self, point: Vector3) -> List[Optional[Dict]]:
         """ Returns the zonal statistics at a point from predefined zones. """
 
         pass
 
-    def get_zonal_stats_from_feature(self, feature: Dict) -> Optional[Dict]:
+    def get_zonal_stats_from_feature(self, feature: Dict) -> List[Optional[Dict]]:
         """ Returns the zonal statistics from a defined feature. """
 
         pass
