@@ -33,6 +33,8 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
     version = '1.0'
     visualization_name = 'Terrain & Color'
 
+    zonal_stats = dict(median=numpy.median, stdev=numpy.std, range=lambda array: numpy.max(array) - numpy.min(array))
+
     def __init__(self):
         super().__init__()
 
@@ -606,9 +608,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             for feat in self.boundary_data.get_features():
                 if shapely.geometry.shape(feat['geometry']).contains(shapely.geometry.Point(*p)):
                     zones.append(feat)
-
-            return zonal_stats(zones, raster, affine=affine, nodata=nodata)
-
+            return zonal_stats(zones, raster, affine=affine, nodata=nodata, add_stats=self.zonal_stats)
         return None
 
     def get_zonal_stats_from_feature(self, feature: Dict) -> Optional[Dict]:
@@ -621,7 +621,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             nodata = var_stats.nodata_value
             coords = [[transform.xy(affine, p[0] / res, p[1] / res) for p in feature['geometry']['coordinates'][0]]]
             feature['geometry']['coordinates'] = coords
-            return zonal_stats(feature, raster, affine=affine, nodata=nodata)
+            return zonal_stats(feature, raster, affine=affine, nodata=nodata, add_stats=self.zonal_stats)
         return None
 
     def get_height_at_point(self, point: tuple) -> Optional[Dict]:
