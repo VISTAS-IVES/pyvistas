@@ -1,7 +1,6 @@
 import os
 
 import fiona
-from osgeo import ogr
 from pyproj import Proj
 
 from vistas.core.gis.extent import Extent
@@ -29,21 +28,11 @@ class Shapefile(FeatureDataPlugin):
 
     def load_data(self):
         self.data_name = self.path.split(os.sep)[-1].split('.')[0]
-
         with fiona.open(self.path, 'r') as shp:
             self.metadata = shp.meta
             projection = Proj(init=self.metadata['crs']['init'])
             self._num_features = len(shp)
-
-        driver = ogr.GetDriverByName('ESRI Shapefile')
-        src = driver.Open(self.path, 0)
-
-        if src is None:
-            print("OGR Failed...")
-        else:
-            layer = src.GetLayer()
-            xmin, xmax, ymin, ymax = layer.GetExtent()
-            self.extent = Extent(xmin, ymin, xmax, ymax, projection)
+            self.extent = Extent(*shp.bounds, projection)
 
     @staticmethod
     def is_valid_file(path):

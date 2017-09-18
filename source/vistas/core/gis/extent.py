@@ -64,7 +64,7 @@ class Extent:
         return self.projection.is_latlong()
 
     def tiles(self, zoom):
-        return tiles(*self.project(Proj(init='EPSG:4326')).as_list(), [zoom])
+        return list(tiles(*self.project(Proj(init='EPSG:4326')).as_list(), [zoom]))
 
     def project(self, target_projection, edge_points=9):
         """

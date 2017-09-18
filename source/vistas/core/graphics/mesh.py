@@ -1,244 +1,127 @@
-from ctypes import c_uint, sizeof, c_float
-
 import numpy
 from OpenGL.GL import *
+from pyrr import Matrix44, Vector3
 
-from vistas.core.graphics.bounds import BoundingBox
-from vistas.core.graphics.shader import ShaderProgram
-from vistas.core.graphics.utils import map_buffer
-
-
-class Mesh:
-    """ Base geometry class for 3D objects. """
-
-    POINTS = GL_POINTS
-    LINE_STRIP = GL_LINE_STRIP
-    LINES = GL_LINES
-    TRIANGLE_STRIP = GL_TRIANGLE_STRIP
-    TRIANGLE_FAN = GL_TRIANGLE_FAN
-    TRIANGLES = GL_TRIANGLES
-    QUAD_STRIP = GL_QUAD_STRIP
-    QUADS = GL_QUADS
-    POLYGON = GL_POLYGON
-
-    def __init__(
-            self, num_indices=0, num_vertices=0, has_normal_array=False, has_color_array=False,
-            has_texture_coords=False, use_rgba=False, mode=TRIANGLE_STRIP
-    ):
-        self.bounding_box = BoundingBox(0, 0, 0, 0, 0, 0)
-        self.shader = None
-
-        self.num_indices = num_indices
-        self.num_vertices = num_vertices
-
-        self.mode = mode
-        self.has_index_array = num_indices > 0
-        self.has_vertex_array = num_vertices > 0
-        self.has_normal_array = has_normal_array
-        self.has_color_array = has_color_array
-        self.has_texture_coords = has_texture_coords
-        self.use_rgba = use_rgba
-
-        self.vertex_array_object = glGenVertexArrays(1)
-
-        # Client-side copy of vertex and uv data for quick access. Properties handle necessary updates to GPU buffers
-        self._indices = None
-        self._vertices = None
-        self._normals = None
-        self._texcoords = None
-
-        glBindVertexArray(self.vertex_array_object)
-
-        if self.has_index_array:
-            self.index_buffer = glGenBuffers(1)
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.index_buffer)
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, num_indices * sizeof(c_uint), None, GL_DYNAMIC_DRAW)
-
-        if self.has_vertex_array:
-            self.vertex_buffer = glGenBuffers(1)
-            glBindBuffer(GL_ARRAY_BUFFER, self.vertex_buffer)
-            glBufferData(GL_ARRAY_BUFFER, num_vertices * 3 * sizeof(c_float), None, GL_DYNAMIC_DRAW)
-
-        if self.has_normal_array:
-            self.normal_buffer = glGenBuffers(1)
-            glBindBuffer(GL_ARRAY_BUFFER, self.normal_buffer)
-            glBufferData(GL_ARRAY_BUFFER, num_vertices * 3 * sizeof(c_float), None, GL_DYNAMIC_DRAW)
-
-        if self.has_color_array:
-            size = 4 if self.use_rgba else 3
-
-            self.color_buffer = glGenBuffers(1)
-            glBindBuffer(GL_ARRAY_BUFFER, self.color_buffer)
-            glBufferData(GL_ARRAY_BUFFER, num_vertices * size * sizeof(c_float), None, GL_DYNAMIC_DRAW)
-
-        if self.has_texture_coords:
-            self.texcoords_buffer = glGenBuffers(1)
-            glBindBuffer(GL_ARRAY_BUFFER, self.texcoords_buffer)
-            glBufferData(GL_ARRAY_BUFFER, num_vertices * 2 * sizeof(c_float), None, GL_STATIC_DRAW)
-
-        # Inform OpenGL where each of the VBOs are located in a given shader program.
-        if self.has_vertex_array:
-            glBindBuffer(GL_ARRAY_BUFFER, self.vertex_buffer)  # location 0 = 'position'
-            glEnableVertexAttribArray(0)
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, None)
-
-        if self.has_normal_array:
-            glBindBuffer(GL_ARRAY_BUFFER, self.normal_buffer)  # location 1 = 'normal'
-            glEnableVertexAttribArray(1)
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, None)
-
-        if self.has_color_array:
-            size = 4 if self.use_rgba else 3
-
-            glBindBuffer(GL_ARRAY_BUFFER, self.color_buffer)   # location 3 = 'color'
-            glEnableVertexAttribArray(3)
-            glVertexAttribPointer(3, size, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * size, None)
-
-        if self.has_texture_coords:
-            glBindBuffer(GL_ARRAY_BUFFER, self.texcoords_buffer)   # location 2 = 'uv', i.e. texcoords
-            glEnableVertexAttribArray(2)
-            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 2, None)
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
-        glBindVertexArray(0)
-
-    @property
-    def indices(self):
-        if self._indices is None:
-            index_buf = self.acquire_index_array(GL_READ_ONLY)
-            self._indices = index_buf[:]
-            self.release_index_array()
-        return self._indices
-
-    @indices.setter
-    def indices(self, indices):
-        self._indices = indices.ravel()
-        index_buf = self.acquire_index_array()
-        index_buf[:] = self._indices
-        self.release_index_array()
-
-    @property
-    def vertices(self):
-        if self._vertices is None:
-            vert_buf = self.acquire_vertex_array(GL_READ_ONLY)
-            self._vertices = vert_buf[:]
-            self.release_vertex_array()
-        return self._vertices
-
-    @vertices.setter
-    def vertices(self, verts):
-        self._vertices = verts.ravel()
-        vert_buf = self.acquire_vertex_array()
-        vert_buf[:] = self._vertices
-        self.release_vertex_array()
-
-    @property
-    def normals(self):
-        if self._normals is None:
-            norm_buf = self.acquire_normal_array(GL_READ_ONLY)
-            self._normals = norm_buf[:]
-            self.release_normal_array()
-        return self._normals
-
-    @normals.setter
-    def normals(self, norms):
-        self._normals = norms.ravel()
-        norm_buf = self.acquire_normal_array()
-        norm_buf[:] = self._normals
-        self.release_normal_array()
-
-    @property
-    def texcoords(self):
-        if self._texcoords is None:
-            uvs = self.acquire_texcoords_array(GL_READ_ONLY)
-            self._texcoords = uvs[:]
-            self.release_texcoords_array()
-        return self._texcoords
-
-    @texcoords.setter
-    def texcoords(self, texcoords):
-        self._texcoords = texcoords.ravel()
-        uvs = self.acquire_texcoords_array()
-        uvs[:] = self._texcoords
-        self.release_texcoords_array()
-
-    def __del__(self):
-        if self.has_index_array:
-            glDeleteBuffers(1, [self.index_buffer])
-
-        if self.has_vertex_array:
-            glDeleteBuffers(1, [self.vertex_buffer])
-
-        if self.has_normal_array:
-            glDeleteBuffers(1, [self.normal_buffer])
-
-        if self.has_color_array:
-            glDeleteBuffers(1, [self.color_buffer])
-
-        if self.has_texture_coords:
-            glDeleteBuffers(1, [self.texcoords_buffer])
-
-        glDeleteVertexArrays(1, [self.vertex_array_object])
-
-    def acquire_index_array(self, access=GL_WRITE_ONLY):
-        """ Note: Mesh.release_index_array() must be called once the buffer is no longer needed """
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.index_buffer)
-        return map_buffer(GL_ELEMENT_ARRAY_BUFFER, numpy.uint32, access, self.num_indices * sizeof(c_uint))
-
-    def acquire_vertex_array(self, access=GL_WRITE_ONLY):
-        """ Note: Mesh.release_vertex_array() must be called once the buffer is no longer needed """
-
-        glBindBuffer(GL_ARRAY_BUFFER, self.vertex_buffer)
-        return map_buffer(GL_ARRAY_BUFFER, numpy.float32, access, self.num_vertices * 3 * sizeof(c_float))
-
-    def acquire_normal_array(self, access=GL_WRITE_ONLY):
-        """ Note: Mesh.release_normal_array() must be called once the buffer is no longer needed """
-
-        glBindBuffer(GL_ARRAY_BUFFER, self.normal_buffer)
-        return map_buffer(GL_ARRAY_BUFFER, numpy.float32, access, self.num_vertices * 3 * sizeof(c_float))
-
-    def acquire_color_array(self, access=GL_WRITE_ONLY):
-        """ Note: Mesh.release_color_array() must be called once the buffer is no longer needed """
-
-        size = 4 if self.use_rgba else 3
-
-        glBindBuffer(GL_ARRAY_BUFFER, self.color_buffer)
-        return map_buffer(GL_ARRAY_BUFFER, numpy.float32, access, self.num_vertices * size * sizeof(c_float))
-
-    def acquire_texcoords_array(self, access=GL_WRITE_ONLY):
-        glBindBuffer(GL_ARRAY_BUFFER, self.texcoords_buffer)
-        return map_buffer(GL_ARRAY_BUFFER, numpy.float32, access, self.num_vertices * 2 * sizeof(c_float))
-
-    def release_index_array(self):
-        glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
-
-    def release_normal_array(self):
-        glUnmapBuffer(GL_ARRAY_BUFFER)
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
-
-    def release_color_array(self):
-        self.release_normal_array()
-
-    def release_vertex_array(self):
-        self.release_normal_array()
-
-    def release_texcoords_array(self):
-        self.release_normal_array()
+from vistas.core.color import RGBColor
+from vistas.core.graphics.bounding_box import BoundingBoxHelper
+from vistas.core.graphics.geometry import Geometry, InstancedGeometry
+from vistas.core.graphics.object import Object3D, Face, Intersection
+from vistas.core.math import Triangle, distance_from
+from vistas.core.plugins.visualization import VisualizationPlugin3D
 
 
-class MeshShaderProgram(ShaderProgram):
-    def __init__(self, mesh):
+class Mesh(Object3D):
+    """ A customizable object containing a Geometry and a ShaderProgram for rendering custom effects. """
+
+    def __init__(self, geometry, shader, plugin=None):
+        """
+        Constructor
+        :param geometry: The Geometry to use when drawing this Mesh.
+        :param shader: The ShaderProgram to use for rendering effects onto this Mesh's Geometry.
+        :param plugin: The visualization plugin associated with this Mesh.
+        """
         super().__init__()
 
-        self.mesh = mesh
+        self.geometry = geometry
+        self.shader = shader
+        self.selected = False
 
-    def pre_render(self, camera):
-        super().pre_render(camera)
-        glBindVertexArray(self.mesh.vertex_array_object)
+        if plugin:
+            # Meshes can only be associated with a 3D viz plugin
+            assert isinstance(plugin, VisualizationPlugin3D)
 
-    def post_render(self, camera):
-        glBindVertexArray(0)
-        super().post_render(camera)
+        self.plugin = plugin
+        self.bbox_helper = BoundingBoxHelper(self)
+        self.visible = True
+        self.update()
+
+    @property
+    def bounding_box(self):
+        return self.geometry.bounding_box
+
+    def update(self):
+        self.bbox_helper.update()
+
+    def raycast(self, raycaster):
+        intersects = []
+        if self.bounding_box is None or not raycaster.ray.intersects_bbox(self.bounding_box_world) \
+                or self.shader is None:
+            self.selected = False
+            return intersects
+
+        vertices = numpy.copy(self.geometry.vertices.reshape(-1, 3))
+        indices = self.geometry.indices.reshape(-1, 3)
+        uvs = self.geometry.texcoords
+
+        # Translate copied vertices to world coordinates
+        vertices[:, 0] += self.position.x
+        vertices[:, 1] += self.position.y
+        vertices[:, 2] += self.position.z
+
+        # Translate z for shaders that implement height_factor
+        height_factor = getattr(self.shader, 'height_factor', None)
+        if height_factor:
+            vertices[:, 2] *= height_factor
+
+        v1, v2, v3 = numpy.rollaxis(vertices[indices], axis=-2)
+
+        def uv_intersection(point, p1, p2, p3, uv1, uv2, uv3):
+            barycoord = Triangle(p1, p2, p3).barycoord_from_pos(point)
+            uv1 *= barycoord.x
+            uv2 *= barycoord.y
+            uv3 *= barycoord.z
+            return uv1 + uv2 + uv3
+
+        distances, face_indices = raycaster.ray.intersect_triangles(v3, v2, v1)
+        for i, d in enumerate(distances):
+            point = raycaster.ray.at(d)
+            distance = distance_from(raycaster.ray.origin, point)
+            face = indices[face_indices[i]]
+            a, b, c = face
+            intersection = Intersection(distance, point, self)
+            if indices.size == vertices.shape[0]:                   # Handle when vertices are all unique
+                va, vb, vc = [Vector3(v) for v in vertices[face]]
+            else:
+                va, vb, vc = Vector3(v1[a]), Vector3(v2[b]), Vector3(v3[c])
+            if uvs is not None:
+                uv_a = Vector3([*uvs[a * 2: a * 2 + 2], 0])
+                uv_b = Vector3([*uvs[b * 2: b * 2 + 2], 0])
+                uv_c = Vector3([*uvs[c * 2: c * 2 + 2], 0])
+                intersection.uv = uv_intersection(point, va, vb, vc, uv_a, uv_b, uv_c)
+            intersection.face = Face(a, b, c, Triangle(vc, vb, va).normal)
+            intersects.append(intersection)
+
+        self.selected = len(intersects) > 0
+        return intersects
+
+    def render_bounding_box(self, color, camera):
+        if self.selected:
+            self.bbox_helper.render(color, camera)
+        else:
+            self.bbox_helper.render(RGBColor(1.0, 1.0, 0.0), camera)
+
+    def render(self, camera):
+        if self.geometry.has_index_array and self.geometry.has_vertex_array and self.visible:
+
+            camera.push_matrix()
+            camera.matrix *= Matrix44.from_translation(self.position)
+
+            self.shader.pre_render(camera)
+            glBindVertexArray(self.geometry.vertex_array_object)
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.geometry.index_buffer)
+
+            # Which kind of Geometry do we have?
+            if isinstance(self.geometry, InstancedGeometry):
+                self.shader.uniform3fv("vertexScalars", 1, numpy.array(self.geometry.vertex_scalars))
+                self.shader.uniform3fv("vertexOffsets", 1, numpy.array(self.geometry.vertex_offsets))
+                if self.geometry.num_instances:
+                    glDrawElementsInstanced(
+                        self.geometry.mode, self.geometry.num_indices, GL_UNSIGNED_INT, None, self.geometry.num_instances
+                    )
+            elif isinstance(self.geometry, Geometry):
+                glDrawElements(self.geometry.mode, self.geometry.num_indices, GL_UNSIGNED_INT, None)
+
+            glBindVertexArray(0)
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
+            camera.pop_matrix()
+            self.shader.post_render(camera)

@@ -1,23 +1,23 @@
-import os
-from PIL import Image
-
 import numpy
 import wx
 from OpenGL.GL import *
+from PIL import Image
 
-from vistas.core.graphics.mesh import Mesh
+from vistas.core.graphics.geometry import Geometry
 from vistas.core.graphics.shader import ShaderProgram
 from vistas.core.graphics.texture import Texture
-from vistas.core.paths import get_resources_directory
+from vistas.core.paths import get_builtin_shader
 
 
 class Overlay:
     """ A 2D overlay of UI buttons rendered on top of the scene """
 
+    shader = None
+
     def __init__(self, canvas):
         self._buttons = []
 
-        self.mesh = None
+        self.geometry = None
         self.needs_mesh_update = True
 
         self.sprite = None
@@ -31,7 +31,7 @@ class Overlay:
         canvas.Bind(wx.EVT_LEFT_DOWN, self.on_canvas_click)
 
     def reset(self):
-        self.mesh = None
+        self.geometry = None
         self.needs_mesh_update = True
         self.sprite = None
         self.needs_sprite_update = True
@@ -43,7 +43,7 @@ class Overlay:
         im = Image.new('RGBA', (width, height), (0, 0, 0, 0))
 
         def make_uv(y, size):
-            """ Returns uv coords to match the mesh vertices for a button """
+            """ Returns uv coords to match the geometry vertices for a button """
 
             return 0, y/height, size[0]/width, y/height, 0, (y+size[1])/height, size[0]/width, (y+size[1])/height
 
@@ -72,22 +72,21 @@ class Overlay:
         num_indices = 6 * len(self._buttons)
         num_vertices = 4 * len(self._buttons)
 
-        if self.mesh is None:
-            self.mesh = Mesh(num_indices, num_vertices, has_texture_coords=True, mode=Mesh.TRIANGLES)
-            self.mesh.shader = ShaderProgram()
-            self.mesh.shader.attach_shader(
-                os.path.join(get_resources_directory(), 'shaders', 'overlay_vert.glsl'), GL_VERTEX_SHADER
-            )
-            self.mesh.shader.attach_shader(
-                os.path.join(get_resources_directory(), 'shaders', 'overlay_frag.glsl'), GL_FRAGMENT_SHADER
-            )
+        if self.shader is None:
+            self.shader = ShaderProgram()
+            self.shader.attach_shader(get_builtin_shader('overlay_vert.glsl'), GL_VERTEX_SHADER)
+            self.shader.attach_shader(get_builtin_shader('overlay_frag.glsl'), GL_FRAGMENT_SHADER)
+            self.shader.link_program()
 
-        # Create new mesh if buttons are added or removed; otherwise can use existing buffers
-        if self.mesh.num_indices != num_indices or self.mesh.num_vertices != num_vertices:
-            self.mesh = None
+        if self.geometry is None:
+            self.geometry = Geometry(num_indices, num_vertices, has_texture_coords=True, mode=Geometry.TRIANGLES)
+
+        # Create new geometry if buttons are added or removed; otherwise can use existing buffers
+        if self.geometry.num_indices != num_indices or self.geometry.num_vertices != num_vertices:
+            self.geometry = None
             return self.generate_mesh()
 
-        self.mesh.vertices = numpy.array([
+        self.geometry.vertices = numpy.array([
             [
                 x.position[0], x.position[1], 0,
                 x.position[0]+x.size[0], x.position[1], 0,
@@ -96,15 +95,14 @@ class Overlay:
             ] for x in self._buttons
         ], dtype=numpy.float32)
 
-        self.mesh.indices = numpy.array([
+        self.geometry.indices = numpy.array([
             [
                 i, i+1, i+2,
                 i+1, i+2, i+3
-            ] for i in (x*4 for x in range(len(self._buttons)))
+            ] for i in (x * 4 for x in range(len(self._buttons)))
         ])
 
-        self.mesh.texcoords = numpy.array([x.uv[0] if x.state == x.DEFAULT else x.uv[1] for x in self._buttons])
-
+        self.geometry.texcoords = numpy.array([x.uv[0] if x.state == x.DEFAULT else x.uv[1] for x in self._buttons])
         self.needs_mesh_update = False
 
     def add_button(self, button):
@@ -127,25 +125,23 @@ class Overlay:
         if self.needs_mesh_update:
             self.generate_mesh()
 
-        self.mesh.shader.link_program()
-
         glDisable(GL_DEPTH_TEST)
         glViewport(0, 0, width, height)
 
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
-        glUseProgram(self.mesh.shader.program)
-        glBindVertexArray(self.mesh.vertex_array_object)
+        glUseProgram(self.shader.program)
+        glBindVertexArray(self.geometry.vertex_array_object)
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_2D, self.sprite.texture)
-        self.mesh.shader.uniform1i('overlay', 0)
-        self.mesh.shader.uniform1f('width', width)
-        self.mesh.shader.uniform1f('height', height)
+        self.shader.uniform1i('overlay', 0)
+        self.shader.uniform1f('width', width)
+        self.shader.uniform1f('height', height)
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.mesh.index_buffer)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.geometry.index_buffer)
 
-        glDrawElements(GL_TRIANGLES, self.mesh.num_indices, GL_UNSIGNED_INT, None)
+        glDrawElements(GL_TRIANGLES, self.geometry.num_indices, GL_UNSIGNED_INT, None)
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
         glBindVertexArray(0)

@@ -129,7 +129,7 @@ class ESRIGridAscii(RasterDataPlugin):
     def get_data(self, variable, date=None):
 
         if self._current_grid is not None and self._current_time == date and self._current_variable == variable:
-            return self._current_grid
+            return self._current_grid.copy()
 
         path = os.path.abspath(self.path)
         nodata_value = self._header['nodata_value']
@@ -161,7 +161,7 @@ class ESRIGridAscii(RasterDataPlugin):
         self._current_grid = data
         self._current_variable = variable
         self._current_time = date
-        return self._current_grid
+        return self._current_grid.copy()
 
     @property
     def shape(self):
