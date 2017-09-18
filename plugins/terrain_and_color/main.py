@@ -625,7 +625,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                     # Retrieve zonal stats for this raster
                     result = zonal_stats(zones, raster, affine=affine, nodata=nodata, add_stats=self.zonal_stats)
                     for j, row in enumerate(result):
-                        row['Data Name'] = "{} (Zone {})".format(plugin.data_name, zones[j].get('id'))
+                        row['Name'] = "{} (Zone {})".format(plugin.data_name, zones[j].get('id'))
                     results.append(result)
         return results
 
@@ -644,7 +644,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 elif i == 1:
                     var = self._attribute.selected
                 else:
-                    var = ''
+                    var = plugin.data_name
 
                 raster = plugin.get_data(var)
                 affine = plugin.affine
@@ -658,7 +658,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
                 # Retrieve zonal stats for this raster
                 result = zonal_stats(feature, raster, affine=affine, nodata=nodata, add_stats=self.zonal_stats)[0]
-                result['Data Name'] = plugin.data_name
+                result['Name'] = plugin.data_name
                 results.append(result)
         return results
 

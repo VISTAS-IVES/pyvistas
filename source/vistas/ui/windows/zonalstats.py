@@ -45,8 +45,8 @@ class ZonalStatisticsWindow(wx.Frame):
 
         # Ensure name is first
         labels = list(self._data[0].keys() if isinstance(self._data[0], dict) else self._data[0][0].keys())
-        if 'Data Name' in labels:
-            label = labels.pop(labels.index('Data Name'))
+        if 'Name' in labels:
+            label = labels.pop(labels.index('Name'))
             labels.insert(0, label)
 
         self.grid.AppendRows(1)
@@ -55,21 +55,22 @@ class ZonalStatisticsWindow(wx.Frame):
             self.grid.SetCellValue(0, i, label)
 
         num_rows = 0
+
+        def add_rows(data):
+            nonlocal self, num_rows
+            self.grid.AppendRows(1)
+            num_rows += 1
+            for key in data.keys():
+                col = labels.index(key)
+                self.grid.SetCellValue(num_rows, col, str(data[key]))
+
         for data in self._data:
             if isinstance(data, dict):
-                self.grid.AppendRows(1)
-                num_rows += 1
-                for key in data.keys():
-                    col = labels.index(key)
-                    self.grid.SetCellValue(num_rows, col, str(data[key]))
+                add_rows(data)
             elif isinstance(data, list):
                 for inner_row in data:
                     if isinstance(inner_row, dict):
-                        self.grid.AppendRows(1)
-                        num_rows += 1
-                        for key in inner_row.keys():
-                            col = labels.index(key)
-                            self.grid.SetCellValue(num_rows, col, str(inner_row[key]))
+                        add_rows(inner_row)
 
         self.grid.AutoSizeRows(setAsMin=True)
         if not self.IsShown():
