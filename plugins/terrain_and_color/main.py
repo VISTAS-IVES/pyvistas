@@ -630,36 +630,37 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         return results
 
     def get_zonal_stats_from_feature(self, feature: Dict) -> List[Optional[Dict]]:
-        original_coords = feature['geometry']['coordinates'][0]
         results = []
-        for i, data_role in enumerate(self.data_roles):
-            dtype, _ = data_role
-            if dtype is DataPlugin.RASTER:
-                plugin = self.get_data(i)
-                if plugin is None:
-                    continue
+        if self.terrain_data:
 
-                if i == 0:
-                    var = self._elevation_attribute.selected
-                elif i == 1:
-                    var = self._attribute.selected
-                else:
-                    var = plugin.data_name
+            # Normalize feature coordinates to terrain resolution
+            t_res = self.terrain_data.resolution
+            normalized_coords = [(p[0] / t_res, p[1] / t_res) for p in feature['geometry']['coordinates'][0]]
 
-                raster = plugin.get_data(var)
-                affine = plugin.affine
-                res = plugin.resolution
-                var_stats = plugin.variable_stats(var)
-                nodata = var_stats.nodata_value
+            for i, data_role in enumerate(self.data_roles):
+                dtype, _ = data_role
+                if dtype is DataPlugin.RASTER:
+                    plugin = self.get_data(i)
+                    if plugin is None:
+                        continue
 
-                # Transform feature coordinates to crs of raster
-                coords = [[transform.xy(affine, p[0] / res, p[1] / res) for p in original_coords]]
-                feature['geometry']['coordinates'] = coords
+                    if i == 0:
+                        var = self._elevation_attribute.selected
+                    elif i == 1:
+                        var = self._attribute.selected
+                    else:
+                        var = plugin.data_name
 
-                # Retrieve zonal stats for this raster
-                result = zonal_stats(feature, raster, affine=affine, nodata=nodata, add_stats=self.zonal_stats)[0]
-                result['Name'] = plugin.data_name
-                results.append(result)
+                    raster = plugin.get_data(var, Timeline.app().current)
+                    affine = plugin.affine
+                    var_stats = plugin.variable_stats(var)
+                    nodata = var_stats.nodata_value
+
+                    # Transform normalized raster coordinates to CRS of raster to query and obtain results
+                    feature['geometry']['coordinates'] = [[transform.xy(affine, *p) for p in normalized_coords]]
+                    result = zonal_stats(feature, raster, affine=affine, nodata=nodata, add_stats=self.zonal_stats)[0]
+                    result['Name'] = plugin.data_name
+                    results.append(result)
         return results
 
     def get_height_at_point(self, point: tuple) -> Optional[Dict]:
