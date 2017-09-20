@@ -285,8 +285,13 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
     def filter_histogram(self):
         if self.attribute_data is not None:
             variable = self._attribute.selected
-            nodata_value = self.attribute_data.variable_stats(variable).nodata_value
-            return Histogram(self.attribute_data.get_data(variable, Timeline.app().current), nodata_value)
+            stats = self.attribute_data.variable_stats(variable)
+            return Histogram(
+                self.attribute_data.get_data(variable, Timeline.app().current),
+                min_value=stats.min_value,
+                max_value=stats.max_value,
+                nodata_value=stats.nodata_value
+            )
         else:
             return Histogram()
 
