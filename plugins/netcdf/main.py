@@ -104,7 +104,7 @@ class NetCDF4DataPlugin(RasterDataPlugin):
         if date is None:
             date = Timeline.app().current
 
-        if not (variable == self._current_variable):
+        if variable != self._current_variable:
             with Dataset(self.path, 'r') as ds:
                 self._current_grid = BoundsCoordinateVariable(ds.variables[variable])
             self._current_variable = variable
