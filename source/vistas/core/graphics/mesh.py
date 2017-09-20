@@ -2,6 +2,7 @@ import numpy
 from OpenGL.GL import *
 from pyrr import Matrix44, Vector3
 
+from vistas.core.bounds import BoundingBox
 from vistas.core.color import RGBColor
 from vistas.core.graphics.bounding_box import BoundingBoxHelper
 from vistas.core.graphics.geometry import Geometry, InstancedGeometry
@@ -44,51 +45,100 @@ class Mesh(Object3D):
 
     def raycast(self, raycaster):
         intersects = []
-        if self.bounding_box is None or not raycaster.ray.intersects_bbox(self.bounding_box_world) \
+        ray = raycaster.ray
+        if self.bounding_box is None or not ray.intersects_bbox(self.bounding_box_world) \
                 or self.shader is None:
             self.selected = False
             return intersects
 
         vertices = numpy.copy(self.geometry.vertices.reshape(-1, 3))
         indices = self.geometry.indices.reshape(-1, 3)
-        uvs = self.geometry.texcoords
 
         # Translate copied vertices to world coordinates
         vertices[:, 0] += self.position.x
         vertices[:, 1] += self.position.y
         vertices[:, 2] += self.position.z
 
+        top = BoundingBox(
+            self.bounding_box_world.min_x,
+            self.bounding_box_world.min_y,
+            self.bounding_box_world.min_z,
+            self.bounding_box_world.max_x,
+            self.bounding_box_world.max_y,
+            self.bounding_box_world.max_z,
+        )
+
+        bottom = BoundingBox(
+            top.min_x,
+            top.min_y,
+            top.min_z,
+            top.max_x,
+            top.max_y,
+            top.min_z
+        )
+
         # Translate z for shaders that implement height_factor
         height_factor = getattr(self.shader, 'height_factor', None)
         if height_factor:
             vertices[:, 2] *= height_factor
+            top.max_z *= height_factor
 
-        v1, v2, v3 = numpy.rollaxis(vertices[indices], axis=-2)
+        top = ray.intersect_bbox(top)
+        bottom = ray.intersect_bbox(bottom)
+        cellsize = getattr(self.geometry, 'cellsize', None)
 
-        def uv_intersection(point, p1, p2, p3, uv1, uv2, uv3):
-            barycoord = Triangle(p1, p2, p3).barycoord_from_pos(point)
-            uv1 *= barycoord.x
-            uv2 *= barycoord.y
-            uv3 *= barycoord.z
-            return uv1 + uv2 + uv3
+        # Attempt to minimize the number of vertices we test against.
+        if all(x is not None for x in (top, bottom)) and cellsize is not None:
 
+            # Determine the smallest grid from the bbox ray intersections to minimize the triangle calculation
+            min_x = min(top.x, bottom.x)
+            min_y = min(top.y, bottom.y)
+            max_x = max(top.x, bottom.x)
+            max_y = max(top.y, bottom.y)
+            width = getattr(self.geometry, 'width')
+            height = getattr(self.geometry, 'height')
+            verts = vertices.reshape((height, width, 3))
+
+            # Grid indices
+            min_x = int(min_x // cellsize)
+            min_y = int(min_y // cellsize)
+            max_x = int(max_x // cellsize)
+            max_y = int(max_y // cellsize)
+            if min_x == max_x:              # Must be at least 1x1 grid
+                max_x += 1
+            if min_y == max_y:
+                max_y += 1
+
+            grid = verts[min_x:max_x+1, min_y:max_y+1]
+            height, width, _ = grid.shape
+            grid = grid.reshape(-1, 3)
+
+            index_array = []
+            for j in range(height - 1):
+                for i in range(width - 1):
+                    a = i + width * j
+                    b = i + width * (j + 1)
+                    c = (i + 1) + width * (j + 1)
+                    d = (i + 1) + width * j
+                    index_array += [a, b, d]
+                    index_array += [b, c, d]
+
+            if not index_array:
+                return intersects
+
+            index_array = numpy.array(index_array).reshape(-1, 3)
+            v1, v2, v3 = numpy.rollaxis(grid[index_array], axis=-2)
+
+        # Otherwise, use all triangles
+        else:
+            v1, v2, v3 = numpy.rollaxis(vertices[indices], axis=-2)
+
+        # Compute triangle intersections and return hits
         distances, face_indices = raycaster.ray.intersect_triangles(v3, v2, v1)
         for i, d in enumerate(distances):
             point = raycaster.ray.at(d)
             distance = distance_from(raycaster.ray.origin, point)
-            face = indices[face_indices[i]]
-            a, b, c = face
             intersection = Intersection(distance, point, self)
-            if indices.size == vertices.shape[0]:                   # Handle when vertices are all unique
-                va, vb, vc = [Vector3(v) for v in vertices[face]]
-            else:
-                va, vb, vc = Vector3(v1[a]), Vector3(v2[b]), Vector3(v3[c])
-            if uvs is not None:
-                uv_a = Vector3([*uvs[a * 2: a * 2 + 2], 0])
-                uv_b = Vector3([*uvs[b * 2: b * 2 + 2], 0])
-                uv_c = Vector3([*uvs[c * 2: c * 2 + 2], 0])
-                intersection.uv = uv_intersection(point, va, vb, vc, uv_a, uv_b, uv_c)
-            intersection.face = Face(a, b, c, Triangle(vc, vb, va).normal)
             intersects.append(intersection)
 
         self.selected = len(intersects) > 0
