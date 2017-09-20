@@ -4,6 +4,7 @@ from typing import List, Dict, Optional
 import wx
 from PIL import Image
 from pyrr import Vector3
+from shapely.geometry import Polygon
 
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.interface import Plugin
@@ -183,7 +184,7 @@ class VisualizationPlugin3D(VisualizationPlugin):
 
         pass
 
-    def get_zonal_stats_from_feature(self, feature: Dict) -> List[Optional[Dict]]:
+    def get_zonal_stats_from_feature(self, feature: Polygon) -> List[Optional[Dict]]:
         """ Returns the zonal statistics from a defined feature. """
 
         pass

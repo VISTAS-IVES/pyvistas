@@ -9,6 +9,7 @@ from pyrr import Vector3
 from rasterio import features
 from rasterio import transform
 from rasterstats import zonal_stats
+from shapely.geometry import Polygon
 
 from vistas.core.color import RGBColor
 from vistas.core.graphics.mesh import Mesh
@@ -42,7 +43,6 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         self.vector_mesh = None
 
         self._scene = None
-        self._histogram = None
 
         # data inputs
         self.terrain_data = None
@@ -595,72 +595,62 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
     def get_zonal_stats_from_point(self, point: Vector3) -> List[Optional[Dict]]:
         results = []
         if self.boundary_data:
-            for i, data_role in enumerate(self.data_roles):
-                dtype, _ = data_role
-                if dtype is DataPlugin.RASTER:
-                    plugin = self.get_data(i)
-                    if plugin is None:
-                        continue
+            for plugin in (x for x in (self.terrain_data, self.attribute_data, self.flow_dir_data, self.flow_dir_data)
+                           if x is not None):
+                if plugin is self.terrain_data:
+                    var = self._elevation_attribute.selected
+                elif plugin is self.attribute_data:
+                    var = self._attribute.selected
+                else:
+                    var = ''
 
-                    if i == 0:
-                        var = self._elevation_attribute.selected
-                    elif i == 1:
-                        var = self._attribute.selected
-                    else:
-                        var = ''
+                raster = plugin.get_data(var)
+                affine = plugin.affine
+                res = plugin.resolution
+                var_stats = plugin.variable_stats(var)
+                nodata = var_stats.nodata_value
 
-                    raster = plugin.get_data(var)
-                    affine = plugin.affine
-                    res = plugin.resolution
-                    var_stats = plugin.variable_stats(var)
-                    nodata = var_stats.nodata_value
+                # Transform point coordinates to crs of raster
+                p = shapely.geometry.Point(*transform.xy(affine, point.x / res, point.y / res))
+                zones = []
+                for feat in self.boundary_data.get_features():
+                    if shapely.geometry.shape(feat['geometry']).contains(p):
+                        zones.append(feat)
 
-                    # Transform point coordinates to crs of raster
-                    p = transform.xy(affine, point.x / res, point.y / res)
-                    zones = []
-                    for feat in self.boundary_data.get_features():
-                        if shapely.geometry.shape(feat['geometry']).contains(shapely.geometry.Point(*p)):
-                            zones.append(feat)
-
-                    # Retrieve zonal stats for this raster
-                    result = zonal_stats(zones, raster, affine=affine, nodata=nodata, add_stats=self.zonal_stats)
-                    for j, row in enumerate(result):
-                        row['Name'] = "{} (Zone {})".format(plugin.data_name, zones[j].get('id'))
-                    results.append(result)
+                # Retrieve zonal stats for this raster
+                result = zonal_stats(zones, raster, affine=affine, nodata=nodata, add_stats=self.zonal_stats)
+                for j, row in enumerate(result):
+                    row['Name'] = "{} (Zone {})".format(plugin.data_name, zones[j].get('id'))
+                results.append(result)
         return results
 
-    def get_zonal_stats_from_feature(self, feature: Dict) -> List[Optional[Dict]]:
+    def get_zonal_stats_from_feature(self, feature: Polygon) -> List[Optional[Dict]]:
         results = []
         if self.terrain_data:
 
             # Normalize feature coordinates to terrain resolution
             t_res = self.terrain_data.resolution
-            normalized_coords = [(p[0] / t_res, p[1] / t_res) for p in feature['geometry']['coordinates'][0]]
+            normalized_coords = [(p[0] / t_res, p[1] / t_res) for p in feature.exterior.coords]
 
-            for i, data_role in enumerate(self.data_roles):
-                dtype, _ = data_role
-                if dtype is DataPlugin.RASTER:
-                    plugin = self.get_data(i)
-                    if plugin is None:
-                        continue
+            for plugin in (x for x in (self.terrain_data, self.attribute_data, self.flow_dir_data, self.flow_dir_data)
+                           if x is not None):
+                if plugin is self.terrain_data:
+                    var = self._elevation_attribute.selected
+                elif plugin is self.attribute_data:
+                    var = self._attribute.selected
+                else:
+                    var = ''
 
-                    if i == 0:
-                        var = self._elevation_attribute.selected
-                    elif i == 1:
-                        var = self._attribute.selected
-                    else:
-                        var = plugin.data_name
+                raster = plugin.get_data(var, Timeline.app().current)
+                affine = plugin.affine
+                var_stats = plugin.variable_stats(var)
+                nodata = var_stats.nodata_value
+                feat = Polygon(*[[transform.xy(affine, *p) for p in normalized_coords]])
 
-                    raster = plugin.get_data(var, Timeline.app().current)
-                    affine = plugin.affine
-                    var_stats = plugin.variable_stats(var)
-                    nodata = var_stats.nodata_value
-
-                    # Transform normalized raster coordinates to CRS of raster to query and obtain results
-                    feature['geometry']['coordinates'] = [[transform.xy(affine, *p) for p in normalized_coords]]
-                    result = zonal_stats(feature, raster, affine=affine, nodata=nodata, add_stats=self.zonal_stats)[0]
-                    result['Name'] = plugin.data_name
-                    results.append(result)
+                # Transform normalized raster coordinates to CRS of raster to query and obtain results
+                result = zonal_stats(feat, raster, affine=affine, nodata=nodata, add_stats=self.zonal_stats)[0]
+                result['Name'] = plugin.data_name
+                results.append(result)
         return results
 
     def get_height_at_point(self, point: tuple) -> Optional[Dict]:

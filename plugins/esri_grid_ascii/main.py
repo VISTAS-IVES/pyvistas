@@ -117,8 +117,7 @@ class ESRIGridAscii(RasterDataPlugin):
     def is_valid_file(path):
         try:
             with rasterio.open(path, 'r') as src:
-                if src.bounds:
-                    return True
+                return src.bounds is not None
         except rasterio.RasterioIOError:
             return False
 

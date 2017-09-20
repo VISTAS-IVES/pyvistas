@@ -341,8 +341,7 @@ class ViewerPanel(wx.Panel, Observer):
         plugin = event.plugin
         points = event.points
         if len(points) >= 3:
-            feature = dict(geometry=Polygon([p for p in points + [points[0]]]).__geo_interface__, type='Feature')
-            result = plugin.get_zonal_stats_from_feature(feature)
+            result = plugin.get_zonal_stats_from_feature(Polygon([p for p in points + [points[0]]]))
             if result:
                 if self.zonalstats_window is None:
                     self.zonalstats_window = ZonalStatisticsWindow(self, wx.ID_ANY)
