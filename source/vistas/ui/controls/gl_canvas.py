@@ -117,15 +117,10 @@ class GLCanvas(wx.glcanvas.GLCanvas):
     def OnLeftDown(self, event: wx.MouseEvent):
         if self.selection_mode and self.selection_mode is GLSelectionControls.POLY:
 
-            # Edge case where the user clicked on the overlay while in POLY mode
-            for button in self.overlay.buttons:
-                pos = button.position
-                size = button.size
-                hit_x = pos[0] <= event.GetX() <= pos[0] + size[0]
-                hit_y = pos[1] <= event.GetY() <= pos[1] + size[1]
-                if hit_x and hit_y:
-                    event.Skip()
-                    return
+            # Catch when the user clicked on the overlay while in POLY mode
+            if self.overlay.target:
+                event.Skip()
+                return
 
             self.camera.poly_select.append_point(event.GetX(), event.GetY())
             self.Refresh()
