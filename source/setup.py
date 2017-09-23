@@ -1,9 +1,13 @@
 import os
 import platform
+import shutil
 
 import cx_Freeze
-import shutil
 from cx_Freeze import setup, Executable
+
+import vistas
+
+version = vistas.__version__
 
 macos = platform.uname().system == 'Darwin'
 SOURCE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -27,8 +31,15 @@ if macos:
 
     class bdist_mac(cx_Freeze.bdist_mac):
         def copy_assets(self):
-            shutil.copytree(os.path.join(SOURCE_DIR, '..', 'resources'), os.path.join(self.resourcesDir, 'resources'))
-            shutil.copytree(os.path.join(SOURCE_DIR, '..', 'plugins'), os.path.join(self.resourcesDir, 'plugins'))
+            resources_dir = os.path.join(self.resourcesDir, 'resources')
+            if os.path.exists(resources_dir):
+                shutil.rmtree(resources_dir)
+            shutil.copytree(os.path.join(SOURCE_DIR, '..', 'resources'), resources_dir)
+
+            plugins_dir = os.path.join(self.resourcesDir, 'plugins')
+            if os.path.exists(plugins_dir):
+                shutil.rmtree(plugins_dir)
+            shutil.copytree(os.path.join(SOURCE_DIR, '..', 'plugins'), plugins_dir)
 
         def run(self):
             super().run()
@@ -36,7 +47,10 @@ if macos:
 
     options = dict(
         build_exe=build_options,
-        bdist_mac=dict(iconfile='../resources/images/VISTAS.icns', bundle_name='VISTAS')
+        bdist_mac=dict(
+            iconfile='../resources/images/VISTAS.icns', bundle_name='VISTAS', #codesign_identity='VISTAS Release'
+        ),
+        bdist_dmg=dict(volume_label='VISTAS {}'.format(version), applications_shortcut=True)
     )
 
     cmdclass = dict(bdist_mac=bdist_mac)
