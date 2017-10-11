@@ -1,5 +1,5 @@
 import wx
-from shapely.geometry import Polygon
+from shapely.geometry import LinearRing
 from wx.glcanvas import WX_GL_MINOR_VERSION
 from wx.glcanvas import WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, WX_GL_CORE_PROFILE, WX_GL_MAJOR_VERSION
 
@@ -7,8 +7,8 @@ from vistas.core.graphics.camera import Camera
 from vistas.core.observers.camera import CameraObservable
 from vistas.core.observers.interface import Observer
 from vistas.core.paths import get_resource_bitmap
-from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.core.plugins.data import DataPlugin
+from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.ui.controllers.project import ProjectChangedEvent
 from vistas.ui.controls.gl_canvas import GLCanvas
 from vistas.ui.events import CameraSelectFinishEvent, EVT_CAMERA_SELECT_FINISH
@@ -341,7 +341,7 @@ class ViewerPanel(wx.Panel, Observer):
         plugin = event.plugin
         points = event.points
         if len(points) >= 3:
-            result = plugin.get_zonal_stats_from_feature(Polygon([p for p in points + [points[0]]]))
+            result = plugin.get_zonal_stats_from_feature(LinearRing([p for p in points + [points[0]]]))
             if result:
                 if self.zonalstats_window is None:
                     self.zonalstats_window = ZonalStatisticsWindow(self, wx.ID_ANY)

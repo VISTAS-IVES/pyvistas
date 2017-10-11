@@ -154,9 +154,6 @@ class Camera(Observer):
             if overlay:
                 overlay.render(width, height)
 
-            self.box_select.render(self)
-            self.poly_select.render(self)
-
     def render_to_bitmap(self, width, height):
         if not Camera.offscreen_buffers_initialized:
             Camera.offscreen_frame_buffer = glGenFramebuffers(1)
