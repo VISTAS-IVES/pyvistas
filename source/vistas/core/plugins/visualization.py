@@ -1,10 +1,10 @@
 import os
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 
 import wx
 from PIL import Image
 from pyrr import Vector3
-from shapely.geometry import Polygon
+from shapely.geometry import LinearRing, Point
 
 from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.interface import Plugin
@@ -184,13 +184,13 @@ class VisualizationPlugin3D(VisualizationPlugin):
 
         pass
 
-    def get_zonal_stats_from_feature(self, feature: Polygon) -> List[Optional[Dict]]:
+    def get_zonal_stats_from_feature(self, feature: LinearRing) -> List[Optional[Dict]]:
         """ Returns the zonal statistics from a defined feature. """
 
         pass
 
-    def get_height_at_point(self, point: tuple) -> Optional[float]:
-        """ Returns the height (i.e. 'z' coordinate) at a given xy-coordinate. """
+    def update_zonal_boundary(self, feature: Union[LinearRing, Point]):
+        """ Signals the visualization to update it's representation of a zonal/area boundary. """
 
         pass
 

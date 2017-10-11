@@ -1,6 +1,6 @@
 import math
 from collections import OrderedDict
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Union
 
 import numpy
 import shapely.geometry
@@ -9,7 +9,7 @@ from pyrr import Vector3
 from rasterio import features
 from rasterio import transform
 from rasterstats import zonal_stats
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, Point, LinearRing
 
 from vistas.core.color import RGBColor
 from vistas.core.graphics.mesh import Mesh
@@ -492,8 +492,14 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             image_data = numpy.ones((texture_h, texture_w, 3), dtype=numpy.uint8) * 255
             if self.feature_boundary is not None:
                 shader.has_zonal_boundary = True
+                t_res = self.terrain_data.resolution
+                normalized_coords = [(p[0] / t_res, p[1] / t_res) for p in self.feature_boundary.coords]
+                if isinstance(self.feature_boundary, Point):
+                    feat = Point(*[[transform.xy(self.terrain_data.affine, *p) for p in normalized_coords]])
+                else:
+                    feat = LinearRing(*[[transform.xy(self.terrain_data.affine, *p) for p in normalized_coords]])
                 image_data[:, :, 0] = numpy.flipud(features.rasterize(
-                    [self.feature_boundary.exterior.buffer(self._boundary_width.value)],
+                    [feat.buffer(self._boundary_width.value)],
                     out_shape=(texture_h, texture_w), fill=255, default_value=1, all_touched=True,
                     transform=transform.from_bounds(*terrain_extent.as_list(), texture_w, texture_h)
                 ))
@@ -651,13 +657,13 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 results.append(result)
         return results
 
-    def get_zonal_stats_from_feature(self, feature: Polygon) -> List[Optional[Dict]]:
+    def get_zonal_stats_from_feature(self, feature: LinearRing) -> List[Optional[Dict]]:
         results = []
         if self.terrain_data:
 
             # Normalize feature coordinates to terrain resolution
             t_res = self.terrain_data.resolution
-            normalized_coords = [(p[0] / t_res, p[1] / t_res) for p in feature.exterior.coords]
+            normalized_coords = [(p[0] / t_res, p[1] / t_res) for p in feature.coords]
 
             for plugin in (x for x in (self.terrain_data, self.attribute_data, self.flow_dir_data, self.flow_dir_data)
                            if x is not None):
@@ -674,20 +680,13 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 nodata = var_stats.nodata_value
                 feat = Polygon(*[[transform.xy(affine, *p) for p in normalized_coords]])
 
-                if plugin is self.terrain_data:
-                    self.feature_boundary = feat
-
                 # Transform normalized raster coordinates to CRS of raster to query and obtain results
                 result = zonal_stats(feat, raster, affine=affine, nodata=nodata, add_stats=self.zonal_stats)[0]
                 result['Name'] = plugin.data_name
                 results.append(result)
         return results
 
-    def get_height_at_point(self, point: tuple) -> Optional[Dict]:
-        if self.terrain_data:
-            res = self.terrain_data.resolution
-            cell_x = int(round((point[0] / res)))
-            cell_y = int(round((point[1] / res)))
-            z = self.terrain_data.get_data(self._elevation_attribute.selected)[cell_x, cell_y]
-            return z * self._elevation_factor.value
-        return None
+    def update_zonal_boundary(self, feature: Union[LinearRing, Point]):
+        self.feature_boundary = feature
+        self._needs_boundaries = True
+        self.refresh()

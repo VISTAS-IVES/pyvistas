@@ -1,9 +1,4 @@
-import numpy
-from pyrr import Vector3
-
-from vistas.core.graphics.line import BoxLineGeometry, PolygonLineGeometry
-from vistas.core.graphics.mesh import Mesh
-from vistas.core.graphics.simple import Box, BasicShaderProgram
+from shapely.geometry import LinearRing, Point
 
 
 class SelectBase:
@@ -12,24 +7,14 @@ class SelectBase:
     def __init__(self, raycaster, camera):
         self.raycaster = raycaster
         self.camera = camera
-        self.points = []
+        self.coords = []
         self.width = 800
         self.height = 600
-        self.line_mesh = None
         self.start_intersect = None
 
     def reset(self):
-        for p in self.points:
-            p.geometry.dispose()
-        del self.points[:]
         self.start_intersect = None
-        if self.line_mesh:
-            self.line_mesh.geometry.dispose()
-            self.line_mesh = None
-
-    @property
-    def coords(self):
-        return [(p.position.x, p.position.y) for p in self.points]
+        del self.coords[:]
 
     @property
     def plugin(self):
@@ -37,13 +22,14 @@ class SelectBase:
             return self.start_intersect.object.plugin
         return None
 
-    def render(self, camera):
-        for point in self.points:
-            camera.push_matrix()
-            point.render(camera)
-            camera.pop_matrix()
-        if self.line_mesh:
-            self.line_mesh.render(camera)
+    def update_mesh_boundary(self):
+        poly = None
+        if len(self.coords) > 0:
+            if len(self.coords) == 1:
+                poly = Point(self.coords[0])
+            else:
+                poly = LinearRing(self.coords + [self.coords[0]])
+        self.plugin.update_zonal_boundary(poly)
 
 
 class BoxSelect(SelectBase):
@@ -99,47 +85,18 @@ class BoxSelect(SelectBase):
                 top = current_point.y
                 bottom = start_point.y
 
-            if not self.points:
-                self.points = [Box() for _ in range(4)]
+            self.coords = [
+                (left, bottom),
+                (right, bottom),
+                (right, top),
+                (left, top)
+            ]
 
-            lb = [left, bottom, self.plugin.get_height_at_point((left, bottom))]
-            rb = [right, bottom, self.plugin.get_height_at_point((right, bottom))]
-            rt = [right, top, self.plugin.get_height_at_point((right, top))]
-            lt = [left, top, self.plugin.get_height_at_point((left, top))]
-            self.points[0].position = Vector3(lb)
-            self.points[1].position = Vector3(rb)
-            self.points[2].position = Vector3(rt)
-            self.points[3].position = Vector3(lt)
-
-            vertices = numpy.array([
-                    *lb, *rb, *rt, *lt
-                ], dtype=numpy.float32)
-
-            if not self.line_mesh:
-                linegeo = BoxLineGeometry(vertices=vertices)
-                self.line_mesh = Mesh(linegeo, BasicShaderProgram())
-            else:
-                self.line_mesh.geometry.vertices = vertices
-                self.line_mesh.geometry.compute_bounding_box()
-                self.line_mesh.update()
+            self.update_mesh_boundary()
 
 
 class PolySelect(SelectBase):
     """ User-defined polygon selection """
-
-    def _add_box(self, box):
-        self.points.append(box)
-        self._reset_linemesh()
-
-    def _reset_linemesh(self):
-        if self.line_mesh:
-            self.line_mesh.geometry.dispose()
-            self.line_mesh = None
-        if self.points:
-            linegeo = PolygonLineGeometry(
-                len(self.points), numpy.array([b.position for b in self.points], dtype=numpy.float32)
-            )
-            self.line_mesh = Mesh(linegeo, BasicShaderProgram())
 
     def append_point(self, x, y):
         mouse_x = x / self.width * 2 - 1
@@ -148,17 +105,15 @@ class PolySelect(SelectBase):
         if intersects:
             if not self.start_intersect:
                 self.start_intersect = intersects[0]
-            box = Box()
-            box.position = intersects[0].point
-            self._add_box(box)
+            self.coords.append((intersects[0].point.x, intersects[0].point.y))
+            self.update_mesh_boundary()
 
     def remove_last(self):
-        if self.points:
-            p = self.points.pop()
-            p.geometry.dispose()
-            del p
-            self._reset_linemesh()
+        if self.coords:
+            self.coords.pop()
+        self.update_mesh_boundary()
 
     def close_loop(self):
-        if self.points:
-            self._add_box(self.points[0])
+        if self.coords:
+            self.coords.append(self.coords[0])
+            self.update_mesh_boundary()
