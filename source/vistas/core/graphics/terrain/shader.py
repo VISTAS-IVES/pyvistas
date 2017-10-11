@@ -32,9 +32,11 @@ class TerrainColorShaderProgram(TerrainShaderProgram):
         tw, th = 512, 512
         img_data = (numpy.ones((tw, th, 3)).astype(numpy.uint8) * 255).ravel()
         self.boundary_texture = Texture(data=img_data, width=tw, height=tw)
+        self.zonal_texture = Texture(data=img_data, width=tw, height=tw)
 
         self.has_color = False
         self.has_boundaries = False
+        self.has_zonal_boundary = False
         self.hide_no_data = False
         self.per_vertex_color = True
         self.per_vertex_lighting = False
@@ -49,6 +51,7 @@ class TerrainColorShaderProgram(TerrainShaderProgram):
         self.max_color = [1, 0, 0, 1]
         self.nodata_color = [.5, .5, .5, 1]
         self.boundary_color = [0, 0, 0, 1]
+        self.zonal_color = [.5, .5, 0, 1]
 
     def pre_render(self, camera):
         super().pre_render(camera)
@@ -57,11 +60,16 @@ class TerrainColorShaderProgram(TerrainShaderProgram):
         glBindTexture(GL_TEXTURE_2D, self.boundary_texture.texture)
         self.uniform1i("boundaryTexture", 0)
 
+        glActiveTexture(GL_TEXTURE1)
+        glBindTexture(GL_TEXTURE_2D, self.zonal_texture.texture)
+        self.uniform1i("zonalTexture", 1)
+
         self.uniform1i("hideNoData", self.hide_no_data)
         self.uniform1i("perVertexColor", self.per_vertex_color)
         self.uniform1i("perVertexLighting", self.per_vertex_lighting)
         self.uniform1i("hasColor", self.has_color)
         self.uniform1i("hasBoundaries", self.has_boundaries)
+        self.uniform1i("hasZonalBoundary", self.has_zonal_boundary)
 
         self.uniform1i("isFiltered", self.is_filtered)
         self.uniform1f("filterMin", self.filter_min)
@@ -74,6 +82,7 @@ class TerrainColorShaderProgram(TerrainShaderProgram):
         self.uniform4fv("maxColor", 1, self.max_color)
         self.uniform4fv("noDataColor", 1, self.nodata_color)
         self.uniform4fv("boundaryColor", 1, self.boundary_color)
+        self.uniform4fv("zonalBoundaryColor", 1, self.zonal_color)
 
     def post_render(self, camera):
         glBindTexture(GL_TEXTURE_2D, 0)

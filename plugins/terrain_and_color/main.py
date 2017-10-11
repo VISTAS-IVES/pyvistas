@@ -52,6 +52,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         self.flow_acc_data = None
 
         self.selected_point = (-1, -1)
+        self.feature_boundary = None
         self._needs_terrain = self._needs_color = False
         self._needs_boundaries = False
         self._needs_flow = False
@@ -89,8 +90,9 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         # Secondary plugin options
         self._boundary_group = OptionGroup("Boundary")
         self._boundary_color = Option(self, Option.COLOR, "Boundary Color", RGBColor(0, 0, 0))
+        self._zonal_boundary_color = Option(self, Option.COLOR, "Zonal Boundary Color", RGBColor(1, 1, 0))
         self._boundary_width = Option(self, Option.FLOAT, "Boundary Width", 1.0)
-        self._boundary_group.items = [self._boundary_color, self._boundary_width]
+        self._boundary_group.items = [self._boundary_color, self._zonal_boundary_color, self._boundary_width]
 
         self._flow_group = OptionGroup("Flow Options")
         self._show_flow = Option(self, Option.CHECKBOX, "Show Flow Direction", True)
@@ -369,6 +371,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             shader.max_color = self._max_color.value.hsv.hsva_list
             shader.nodata_color = self._nodata_color.value.hsv.hsva_list
             shader.boundary_color = self._boundary_color.value.hsv.hsva_list
+            shader.zonal_color = self._zonal_boundary_color.value.hsv.hsva_list
 
             shader.height_factor = self._elevation_factor.value if self._elevation_factor.value > 0 else 0.01
 
@@ -458,7 +461,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 # Burn geometry to texture
                 shapes = self.boundary_data.get_features()
                 image_data[:, :, 0] = numpy.flipud(features.rasterize(
-                    [shapely.geometry.shape(f['geometry']).exterior for f in shapes
+                    [shapely.geometry.shape(f['geometry']).exterior.buffer(self._boundary_width.value) for f in shapes
                         if f['geometry']['type'] == 'Polygon'],
                     out_shape=(texture_h, texture_w), fill=255, default_value=0,
                     transform=transform.from_bounds(*terrain_extent.as_list(), texture_w, texture_h)
@@ -484,9 +487,28 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             shader.boundary_texture = Texture(
                 data=image_data.ravel(), width=texture_w, height=texture_h, src_format=GL_RGB8
             )
+
+            # Update zonal stats texture
+            image_data = numpy.ones((texture_h, texture_w, 3), dtype=numpy.uint8) * 255
+            if self.feature_boundary is not None:
+                shader.has_zonal_boundary = True
+                image_data[:, :, 0] = numpy.flipud(features.rasterize(
+                    [self.feature_boundary.exterior.buffer(self._boundary_width.value)],
+                    out_shape=(texture_h, texture_w), fill=255, default_value=1, all_touched=True,
+                    transform=transform.from_bounds(*terrain_extent.as_list(), texture_w, texture_h)
+                ))
+            else:
+                shader.has_zonal_boundary = False
+
+            shader.zonal_texture = Texture(
+                data=image_data.ravel(), width=texture_w, height=texture_h, src_format=GL_RGB8
+            )
+
         else:
             shader.has_boundaries = False
+            shader.has_zonal_boundary = False
             shader.boundary_texture = Texture()
+            shader.zonal_texture = Texture()
 
     def _update_flow(self):
         if self.terrain_data is not None and self.flow_dir_data is not None:
@@ -651,6 +673,9 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 var_stats = plugin.variable_stats(var)
                 nodata = var_stats.nodata_value
                 feat = Polygon(*[[transform.xy(affine, *p) for p in normalized_coords]])
+
+                if plugin is self.terrain_data:
+                    self.feature_boundary = feat
 
                 # Transform normalized raster coordinates to CRS of raster to query and obtain results
                 result = zonal_stats(feat, raster, affine=affine, nodata=nodata, add_stats=self.zonal_stats)[0]

@@ -10,6 +10,7 @@ uniform bool isFiltered;
 uniform float filterMin;
 uniform float filterMax;
 uniform bool hasBoundaries;
+uniform bool hasZonalBoundary;
 uniform bool hideNoData;
 uniform float noDataValue;
 uniform float minValue;
@@ -18,7 +19,9 @@ uniform vec4 minColor;
 uniform vec4 maxColor;
 uniform vec4 noDataColor;
 uniform vec4 boundaryColor;
+uniform vec4 zonalBoundaryColor;
 uniform sampler2D boundaryTexture;
+uniform sampler2D zonalTexture;
 
 in vec3 fragPosition;
 in vec3 fragNormal;
@@ -144,6 +147,13 @@ void main() {
         vec4 fragBoundaryColor = texture(boundaryTexture, fragBoundaryTexCoord);
         if (fragBoundaryColor.r < 1) {
             hsvToRGB(boundaryColor, baseColor);
+        }
+    }
+
+    if (hasZonalBoundary) {
+        vec4 fragZonalColor = texture(zonalTexture, fragBoundaryTexCoord);
+        if (fragZonalColor.r < 1) {
+            hsvToRGB(zonalBoundaryColor, baseColor);
         }
     }
 
