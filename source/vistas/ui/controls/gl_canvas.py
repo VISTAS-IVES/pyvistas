@@ -38,6 +38,8 @@ class GLCanvas(wx.glcanvas.GLCanvas):
         self.Bind(wx.EVT_MOTION, self.OnMotion)
         self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+        self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDClick)
+        self.Bind(wx.EVT_RIGHT_DOWN, self.OnRightDown)
         self.Bind(wx.EVT_MOUSEWHEEL, self.OnMouseWheel)
         self.Bind(wx.EVT_KEY_DOWN, self.OnKey)
         self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy)
@@ -81,15 +83,18 @@ class GLCanvas(wx.glcanvas.GLCanvas):
         pass  # Ignore this event to prevent flickering on Windows
 
     def OnMotion(self, event: wx.MouseEvent):
+        x = event.GetX()
+        y = event.GetY()
         if event.LeftIsDown():
-            x = event.GetX()
-            y = event.GetY()
+
+            # Normal scene movement without selection
             if not self.selection_mode and self._x > -1 and self._y > -1:
                 self.camera_interactor.mouse_motion(x - self._x, y - self._y, event.ShiftDown(), event.AltDown(),
                                                     event.ControlDown())
             self._x = x
             self._y = y
 
+            # Left-mouse drag selection, movement disabled
             if self.selection_mode and self.selection_mode is GLSelectionControls.BOX:
                     if self.start_x == -1 and self.start_y == -1:
                         self.start_x = self._x
@@ -98,6 +103,16 @@ class GLCanvas(wx.glcanvas.GLCanvas):
 
             self.Sync()
             self.Refresh()
+
+        # Scene movement with selection enabled
+        elif event.RightIsDown() and self.selection_mode:
+            if self._x > -1 and self._y > -1:
+                self.camera_interactor.mouse_motion(x - self._x, y - self._y, event.ShiftDown(), event.AltDown(),
+                                                    event.ControlDown())
+            self._x = x
+            self._y = y
+
+        # Reset mouse coordinates
         else:
             self._x = self._y = self.start_x = self.start_y = -1
         event.Skip()
@@ -125,6 +140,14 @@ class GLCanvas(wx.glcanvas.GLCanvas):
             self.camera.poly_select.append_point(event.GetX(), event.GetY())
             self.Refresh()
         event.Skip()
+
+    def OnLeftDClick(self, event: wx.MouseEvent):
+        if self.selection_mode is GLSelectionControls.POLY:
+            self.selection_controls.set_mode(self.selection_controls.CONFIRM)
+
+    def OnRightDown(self, event: wx.MouseEvent):
+        if self.selection_mode is None:
+            event.Skip()
 
     def OnMouseWheel(self, event: wx.MouseEvent):
         if self.selection_mode:
@@ -182,12 +205,6 @@ class GLCanvas(wx.glcanvas.GLCanvas):
                 self.camera.poly_select.reset()
                 self.camera.box_select.reset()
             self.selection_controls.hide_optional_buttons()
-
-        elif event.mode is GLSelectionControls.PAUSE:
-            self.selection_mode = None
-
-        elif event.mode is GLSelectionControls.RESUME:
-            self.selection_mode = self.last_selection_mode
 
     def OnPostRedisplay(self, event):
         self.Refresh()
