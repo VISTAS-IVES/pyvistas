@@ -316,6 +316,10 @@ class ViewerPanel(wx.Panel, Observer):
         self.GetParent().UpdateViewerSizes()
 
     def OnCanvasDClick(self, event: wx.MouseEvent):
+        if self.gl_canvas.selection_mode:
+            event.Skip()
+            return
+
         size = self.gl_canvas.GetSize()
         mouse_x = event.GetX() / size.x * 2 - 1
         mouse_y = - event.GetY() / size.y * 2 + 1
@@ -351,6 +355,10 @@ class ViewerPanel(wx.Panel, Observer):
             post_message("At least 3 points are required to do zonal statistics!", 1)
 
     def OnCanvasRightClick(self, event):
+        if self.gl_canvas.selection_mode:
+            event.Skip()
+            return
+
         menu = wx.Menu()
         menu.Append(self.POPUP_COPY, 'Copy')
         menu.Bind(wx.EVT_MENU, self.OnCanvasPopupMenu)
