@@ -21,7 +21,7 @@ from vistas.ui.windows.zonalstats import ZonalStatisticsWindow
 
 class ViewerPanel(wx.Panel, Observer):
     """
-    Container Panel for rendering a 3D visualization. Controls which 3D visualization is currently being rendered and
+    Container for rendering a 3D visualization. Controls which 3D visualization is currently being rendered and
     how to resize itself relative to it's neighbors in the parent window.
     """
 
