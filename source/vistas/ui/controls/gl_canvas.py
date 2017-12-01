@@ -27,6 +27,7 @@ class GLCanvas(wx.glcanvas.GLCanvas):
 
         self.selection_mode = None
         self.last_selection_mode = None
+        self.selection_mode_depressed = None
         self.selection_controls = GLSelectionControls(self, camera)
         self.selection_controls.hide()
 
@@ -95,7 +96,8 @@ class GLCanvas(wx.glcanvas.GLCanvas):
             self._y = y
 
             # Left-mouse drag selection, movement disabled
-            if self.selection_mode and self.selection_mode is GLSelectionControls.BOX:
+            if self.selection_mode and self.selection_mode is GLSelectionControls.BOX and \
+                    not self.selection_mode_depressed:
                     if self.start_x == -1 and self.start_y == -1:
                         self.start_x = self._x
                         self.start_y = self._y
@@ -118,7 +120,8 @@ class GLCanvas(wx.glcanvas.GLCanvas):
         event.Skip()
 
     def OnLeftUp(self, event: wx.MouseEvent):
-        if self.selection_mode and self.start_x != -1 and self.start_y != -1:
+        if self.selection_mode and self.start_x != -1 and self.start_y != -1 and \
+                not self.selection_mode_depressed:
             if self.selection_mode is GLSelectionControls.BOX:
                 points = self.camera.box_select.coords
                 plugin = self.camera.box_select.plugin
@@ -127,6 +130,11 @@ class GLCanvas(wx.glcanvas.GLCanvas):
                 self.selection_mode = None
                 self.selection_controls.hide_optional_buttons()
             self.Refresh()
+
+        # If we clicked on the selection controls button, release it
+        if self.selection_mode_depressed:
+            self.selection_mode_depressed = False
+
         event.Skip()
 
     def OnLeftDown(self, event: wx.MouseEvent):
@@ -187,6 +195,7 @@ class GLCanvas(wx.glcanvas.GLCanvas):
             self.camera.box_select.reset()
             self.camera.poly_select.reset()
             self.selection_mode = self.last_selection_mode = event.mode
+            self.selection_mode_depressed = True
             self.selection_controls.show_optional_buttons()
 
         elif event.mode is GLSelectionControls.CONFIRM:
