@@ -654,7 +654,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 result = zonal_stats(zones, raster, affine=affine, nodata=nodata, add_stats=self.zonal_stats)
                 for j, row in enumerate(result):
                     row['Name'] = "{} (Zone {})".format(plugin.data_name, zones[j].get('id'))
-                results.append(result)
+                    results.append(row)
         return results
 
     def get_zonal_stats_from_feature(self, feature: LinearRing) -> List[Optional[Dict]]:
