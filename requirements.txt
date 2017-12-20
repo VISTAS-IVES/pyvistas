@@ -11,7 +11,7 @@ PyOpenGL-accelerate==3.1.1a1
 pyproj==1.9.5.1
 rasterio==1.0a5
 Shapely==1.5.17
-wxPython==4.0.0a1
+wxPython==4.0.0b2
 git+https://github.com/imageio/imageio.git
 matplotlib==2.0.2
 netCDF4==1.2.9
