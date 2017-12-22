@@ -109,7 +109,7 @@ class Mesh(Object3D):
             if min_y == max_y:
                 max_y += 1
 
-            grid = verts[min_x:max_x+1, min_y:max_y+1]
+            grid = verts[min_x:max_x+2, min_y:max_y+2]
             height, width, _ = grid.shape
             grid = grid.reshape(-1, 3)
 
