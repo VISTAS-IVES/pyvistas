@@ -246,11 +246,16 @@ class AppController(wx.EvtHandler):
         return self.GetDefaultExporter().export_current_frame()
 
     def RenderCurrentViewToClipboard(self):
-        if wx.TheClipboard.Open():
-            image = self.RenderCurrentView()
-            wximage = wx.Image(*image.size)
-            wximage.SetData(image.convert("RGB").tobytes())
-            wx.TheClipboard.SetData(wx.BitmapDataObject(wximage.ConvertToBitmap()))
+        if not wx.TheClipboard.IsOpened():
+            if not wx.TheClipboard.Open():
+                return
+        try:
+           image = self.RenderCurrentView()
+           wximage = wx.Image(*image.size)
+           wximage.SetData(image.convert("RGB").tobytes())
+           wx.TheClipboard.SetData(wx.BitmapDataObject(wximage.ConvertToBitmap()))
+        finally:
+           wx.TheClipboard.Close()
 
     def RenderCurrentViewToFile(self):
         fd = wx.FileDialog(self.main_window, "Choose a file", wildcard="*.png", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
