@@ -141,7 +141,7 @@ class Raycaster:
 
         intersects = []
         for obj in camera.scene.objects:
-            intersects += self.intersect_object(coords, obj, camera)
+            intersects += self.intersect_object(coords, obj, camera) or []
         if intersects:
             intersects.sort(key=lambda i: i.distance)
         return intersects

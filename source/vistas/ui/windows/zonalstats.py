@@ -30,7 +30,7 @@ class ZonalStatisticsWindow(wx.Frame):
     def _format_sig_figs(value, limit):
         """ Format cell values to use significant figures. """
         if not value:
-            return 0
+            return '0'
         power = -int(math.floor(math.log10(abs(value)))) + (limit - 1)
         factor = (10 ** power)
         return '{}'.format(round(value * factor) / factor)
