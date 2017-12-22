@@ -457,6 +457,8 @@ class ProjectController(wx.EvtHandler):
         if node is not None:
             if not event.IsEditCancelled():
                 node.label = event.GetLabel()
+                node._scene.name = node.label
+
 
             pce = ProjectChangedEvent(node=node, change=ProjectChangedEvent.RENAMED_ITEM)
             wx.PostEvent(wx.GetTopLevelParent(self.project_panel), pce)
