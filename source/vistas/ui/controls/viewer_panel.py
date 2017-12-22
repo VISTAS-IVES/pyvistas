@@ -339,6 +339,7 @@ class ViewerPanel(wx.Panel, Observer):
                     if self.zonalstats_window is None:
                         self.zonalstats_window = ZonalStatisticsWindow(self, wx.ID_ANY)
                     self.zonalstats_window.data = zonal_result
+                    self.zonalstats_window.plugin = plugin
                     self.zonalstats_window.Show()
 
     def OnDragSelectFinish(self, event: CameraSelectFinishEvent):
@@ -350,6 +351,7 @@ class ViewerPanel(wx.Panel, Observer):
                 if self.zonalstats_window is None:
                     self.zonalstats_window = ZonalStatisticsWindow(self, wx.ID_ANY)
                 self.zonalstats_window.data = result
+                self.zonalstats_window.plugin = plugin
                 self.zonalstats_window.Show()
         else:
             post_message("At least 3 points are required to do zonal statistics!", 1)

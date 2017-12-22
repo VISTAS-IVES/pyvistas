@@ -8,10 +8,12 @@ import wx.lib.scrolledpanel as scrolled
 class ZonalStatisticsWindow(wx.Frame):
     """ A window for displaying data collected from a zonal statistics operation. """
 
-    def __init__(self, parent, id):
+    def __init__(self, parent, id, plugin=None):
         super().__init__(parent, id, "Zonal Statistics", style=wx.FRAME_TOOL_WINDOW | wx.SYSTEM_MENU | wx.CAPTION |
                                                                wx.CLOSE_BOX | wx.FRAME_FLOAT_ON_PARENT |
                                                                wx.RESIZE_BORDER)
+
+        self.plugin = plugin
 
         scroll_sizer = wx.BoxSizer(wx.VERTICAL)
         scroll_panel = scrolled.ScrolledPanel(self)
@@ -93,3 +95,6 @@ class ZonalStatisticsWindow(wx.Frame):
 
     def OnClose(self, event):
         self.Hide()
+
+        if self.plugin:
+            self.plugin.update_zonal_boundary(None)
