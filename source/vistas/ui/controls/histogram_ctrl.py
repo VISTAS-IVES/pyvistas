@@ -184,8 +184,8 @@ class HistogramCtrl(wx.Control):
         width = self.GetSize().x
         self.bins = self.histogram.generate_histogram(width)
         self.max_count = self.bins.max()
-        self.min_value = self.histogram.data.min()
-        self.max_value = self.histogram.data.max()
+        self.min_value = self.histogram.min_value
+        self.max_value = self.histogram.max_value
         if self.min_value != self.max_value:
             self._px_per_value = (width - self.HANDLE_WIDTH) / (self.max_value - self.min_value)
         else:

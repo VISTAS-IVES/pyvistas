@@ -1,4 +1,3 @@
-import json
 import os
 
 import rasterio
@@ -21,6 +20,7 @@ class GeoTIFF(RasterDataPlugin):
     shape = None
     resolution = None
     extent = None
+    affine = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -28,8 +28,11 @@ class GeoTIFF(RasterDataPlugin):
         self.shape = None
         self.extent = None
         self.resolution = None
+        self.affine = None
         self._nodata = None
         self._count = None
+        self._current_band = None
+        self._current_grid = None
 
     def load_data(self):
         file_name = self.path.split(os.sep)[-1]
@@ -40,9 +43,8 @@ class GeoTIFF(RasterDataPlugin):
             projection = Proj(src.crs)
             self.shape = src.shape
             self.resolution = src.res[0]
-            xmin, ymin = src.xy(src.height, 0, 'ul')
-            xmax, ymax = src.xy(0, src.width, 'ul')
-            self.extent = Extent(xmin, ymin, xmax, ymax, projection)
+            self.affine = src.transform
+            self.extent = Extent(*list(src.bounds), projection)
             self._nodata = src.nodata
             self._count = src.count
 
@@ -56,8 +58,12 @@ class GeoTIFF(RasterDataPlugin):
 
     def get_data(self, variable, date=None):
         band = int(self._band(variable))
+        if band == self._current_band:
+            return self._current_grid.copy()
+        self._current_band = band
         with rasterio.open(self.path, 'r') as src:
-            return src.read(band)
+            self._current_grid = src.read(band)
+        return self._current_grid.copy()
 
     @property
     def variables(self):

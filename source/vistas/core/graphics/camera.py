@@ -7,6 +7,7 @@ from vistas.core.color import RGBColor
 from vistas.core.graphics.overlay import Overlay
 from vistas.core.graphics.raycaster import Raycaster
 from vistas.core.graphics.scene import Scene
+from vistas.core.graphics.select import BoxSelect, PolySelect
 from vistas.core.observers.camera import CameraObservable
 from vistas.core.observers.interface import Observer
 
@@ -24,6 +25,8 @@ class Camera(Observer):
             scene = Scene()
 
         self.raycaster = Raycaster()
+        self.box_select = BoxSelect(self.raycaster, self)
+        self.poly_select = PolySelect(self.raycaster, self)
         self.scene = scene
         self.color = color
         self._matrix_stack = []
@@ -205,4 +208,10 @@ class Camera(Observer):
 
         self.raycaster.near = znear
         self.raycaster.far = zfar
+
+        self.box_select.width = width
+        self.box_select.height = height
+        self.poly_select.width = width
+        self.poly_select.height = height
+
         self.proj_matrix = Matrix44.perspective_projection(80.0, width / height, znear, zfar)

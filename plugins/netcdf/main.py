@@ -1,11 +1,13 @@
 import datetime
 import os
 
-import numpy
+from clover.netcdf.utilities import get_fill_value_for_variable
+from clover.netcdf.variable import SpatialCoordinateVariable, SpatialCoordinateVariables, BoundsCoordinateVariable
 from netCDF4 import Dataset
 
 from vistas.core.gis.extent import Extent
 from vistas.core.plugins.data import RasterDataPlugin, TemporalInfo, VariableStats
+from vistas.core.timeline import Timeline
 
 
 class NetCDF4DataPlugin(RasterDataPlugin):
@@ -17,31 +19,41 @@ class NetCDF4DataPlugin(RasterDataPlugin):
     version = '1.0'
     extensions = [('nc', 'NetCDF')]
 
+    extent = None
+    time_info = None
+    variables = None
+    data_name = None
+    affine = None
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._header = {}
-        self._temporal_info = None
-        self._name = None
-        self._extent = None
-        self._variables = []
+        self.time_info = None
+        self.data_name = None
+        self.extent = None
+        self.variables = []
 
         # NetCDF-specific variables
         self.x_dim = None
         self.y_dim = None
         self.t_dim = None
         self.y_increasing = False
+        self.x = None
+        self.y = None
         self.x_length = None
         self.y_length = None
-        self.x_cellsize = None
-        self.y_cellsize = None
+        self.affine = None
+
+        # Grid caching
+        self._current_variable = None
+        self._current_grid = None
 
     def load_data(self):
 
-        self._name = self.path.split(os.sep)[-1].split('.')[0]
+        self.data_name = self.path.split(os.sep)[-1].split('.')[0]
         with Dataset(self.path, 'r') as ds:
             dimensions = list(ds.dimensions.keys())
-            self._variables = [var for var in ds.variables if var not in dimensions]
+            self.variables = [var for var in ds.variables if var not in dimensions]
 
             if 'x' in dimensions:
                 self.x_dim, self.y_dim = 'x', 'y'
@@ -57,33 +69,29 @@ class NetCDF4DataPlugin(RasterDataPlugin):
 
                 if 'time' not in ds.variables:  # No actual timestamps, make generic timestamps
                     start_date = datetime.datetime(1970, 1, 1)
-                    self._temporal_info = TemporalInfo()
-                    self._temporal_info.timestamps = [start_date + datetime.timedelta(days=365 * i)
+                    self.time_info = TemporalInfo()
+                    self.time_info.timestamps = [start_date + datetime.timedelta(days=365 * i)
                                                       for i in range(ds.dimensions['time'].size)]
 
                 else:
                     pass    # What if 'time' is in the variables?
 
             # Determine spatial extent
-            x_values = ds.variables[self.x_dim][:]
-            y_values = ds.variables[self.y_dim][:]
-            xmin = x_values[0]
-            xmax = x_values[-1]
-            ymin = y_values[0]
-            ymax = y_values[-1]
+            self.x = SpatialCoordinateVariable(ds.variables[self.x_dim])
+            self.y = SpatialCoordinateVariable(ds.variables[self.y_dim])
+            xmin = self.x.values[0]
+            xmax = self.x.values[-1]
+            ymin = self.y.values[0]
+            ymax = self.y.values[-1]
             self.y_increasing = ymax < ymin
             if self.y_increasing:
                 ymax, ymin = ymin, ymax
 
-            self.x_length = x_values.size
-            self.y_length = y_values.size
-            self.x_cellsize = x_values[1] - x_values[0]
-            self.y_cellsize = y_values[0] - y_values[1] if self.y_increasing else y_values[1] - y_values[0]
-
-            self._extent = Extent(xmin - self.x_cellsize / 2,
-                                  xmax + self.x_cellsize / 2,
-                                  ymin - self.y_cellsize / 2,
-                                  ymax + self.y_cellsize / 2)    # Todo - projection info?
+            self.extent = Extent(xmin - self.x.pixel_size / 2,
+                                 ymin - self.x.pixel_size / 2,
+                                 xmax + self.y.pixel_size / 2,
+                                 ymax + self.y.pixel_size / 2)    # Todo - projection info?
+            self.affine = SpatialCoordinateVariables(self.x, self.y, None).affine
 
     @staticmethod
     def is_valid_file(path):
@@ -92,42 +100,31 @@ class NetCDF4DataPlugin(RasterDataPlugin):
                 return True
         return False
 
-    @property
-    def data_name(self):
-        return self._name
-
     def get_data(self, variable, date=None):
-        with Dataset(self.path, 'r') as ds:
-            data = ds.variables[variable][:][self._temporal_info.timestamps.index(date)]
-        return data
+        if date is None:
+            date = Timeline.app().current
+
+        if variable != self._current_variable:
+            with Dataset(self.path, 'r') as ds:
+                self._current_grid = BoundsCoordinateVariable(ds.variables[variable])
+            self._current_variable = variable
+
+        return self._current_grid.values[self.time_info.timestamps.index(date)]
 
     @property
     def shape(self):
         with Dataset(self.path, 'r') as ds:
-            return ds.variables[self._variables[0]].shape   # Shape assumed to be uniform across variables
-
-    @property
-    def extent(self):
-        return self._extent
+            return ds.variables[self.variables[0]].shape   # Shape assumed to be uniform across variables
 
     @property
     def resolution(self):
-        return (self._extent.xmax - self._extent.xmin) / self.x_length
-
-    @property
-    def time_info(self):
-        return self._temporal_info
-
-    @property
-    def variables(self):
-        return self._variables
+        return self.x.pixel_size
 
     def calculate_stats(self):
         with Dataset(self.path, 'r') as ds:
-            for var in self._variables:
-                data = ds.variables[var][:]
+            for var in self.variables:
+                variable = ds.variables[var]
+                data = BoundsCoordinateVariable(variable)
                 self.stats[var] = VariableStats(
-                    min_value=float(data.min()),
-                    max_value=float(data.max()),
-                    nodata_value=float(ds.variables[var]._FillValue) if isinstance(data, numpy.ma.MaskedArray) else None
+                    data.values.min(), data.values.max(), get_fill_value_for_variable(variable)
                 )

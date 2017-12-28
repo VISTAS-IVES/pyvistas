@@ -1,5 +1,6 @@
 import math
 from collections import OrderedDict
+from typing import Optional, Dict, List, Union
 
 import numpy
 import shapely.geometry
@@ -7,6 +8,8 @@ from OpenGL.GL import GL_RGB8
 from pyrr import Vector3
 from rasterio import features
 from rasterio import transform
+from rasterstats import zonal_stats
+from shapely.geometry import Polygon, Point, LinearRing
 
 from vistas.core.color import RGBColor
 from vistas.core.graphics.mesh import Mesh
@@ -31,6 +34,8 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
     version = '1.0'
     visualization_name = 'Terrain & Color'
 
+    zonal_stats = dict(median=numpy.median, stdev=numpy.std, range=lambda array: numpy.max(array) - numpy.min(array))
+
     def __init__(self):
         super().__init__()
 
@@ -38,7 +43,6 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         self.vector_mesh = None
 
         self._scene = None
-        self._histogram = None
 
         # data inputs
         self.terrain_data = None
@@ -48,6 +52,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         self.flow_acc_data = None
 
         self.selected_point = (-1, -1)
+        self.feature_boundary = None
         self._needs_terrain = self._needs_color = False
         self._needs_boundaries = False
         self._needs_flow = False
@@ -57,7 +62,6 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
 
         # Primary plugin options
         self._options = OptionGroup()
-
         color_group = OptionGroup("Colors")
         self._min_color = Option(self, Option.COLOR, "Min Color Value", RGBColor(0, 0, 1))
         self._max_color = Option(self, Option.COLOR, "Max Color Value", RGBColor(1, 0, 0))
@@ -86,8 +90,9 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         # Secondary plugin options
         self._boundary_group = OptionGroup("Boundary")
         self._boundary_color = Option(self, Option.COLOR, "Boundary Color", RGBColor(0, 0, 0))
+        self._zonal_boundary_color = Option(self, Option.COLOR, "Zonal Boundary Color", RGBColor(1, 1, 0))
         self._boundary_width = Option(self, Option.FLOAT, "Boundary Width", 1.0)
-        self._boundary_group.items = [self._boundary_color, self._boundary_width]
+        self._boundary_group.items = [self._boundary_color, self._zonal_boundary_color, self._boundary_width]
 
         self._flow_group = OptionGroup("Flow Options")
         self._show_flow = Option(self, Option.CHECKBOX, "Show Flow Direction", True)
@@ -282,8 +287,13 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
     def filter_histogram(self):
         if self.attribute_data is not None:
             variable = self._attribute.selected
-            nodata_value = self.attribute_data.variable_stats(variable).nodata_value
-            return Histogram(self.attribute_data.get_data(variable, Timeline.app().current), nodata_value)
+            stats = self.attribute_data.variable_stats(variable)
+            return Histogram(
+                self.attribute_data.get_data(variable, Timeline.app().current),
+                min_value=stats.min_value,
+                max_value=stats.max_value,
+                nodata_value=stats.nodata_value
+            )
         else:
             return Histogram()
 
@@ -361,6 +371,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             shader.max_color = self._max_color.value.hsv.hsva_list
             shader.nodata_color = self._nodata_color.value.hsv.hsva_list
             shader.boundary_color = self._boundary_color.value.hsv.hsva_list
+            shader.zonal_color = self._zonal_boundary_color.value.hsv.hsva_list
 
             shader.height_factor = self._elevation_factor.value if self._elevation_factor.value > 0 else 0.01
 
@@ -449,21 +460,21 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             if self.boundary_data is not None:
                 # Burn geometry to texture
                 shapes = self.boundary_data.get_features()
-                image_data[:, :, 0] = numpy.fliplr(features.rasterize(
-                    [shapely.geometry.shape(f['geometry']).exterior for f in shapes
+                image_data[:, :, 0] = numpy.flipud(features.rasterize(
+                    [shapely.geometry.shape(f['geometry']).exterior.buffer(self._boundary_width.value) for f in shapes
                         if f['geometry']['type'] == 'Polygon'],
                     out_shape=(texture_h, texture_w), fill=255, default_value=0,
                     transform=transform.from_bounds(*terrain_extent.as_list(), texture_w, texture_h)
-                )).T
+                ))
 
             if self.selected_point != (-1, -1):
-                p = self.selected_point
+                p = (self.selected_point[0], self.selected_point[1] + 1)
                 cell_size = self.terrain_data.resolution
                 grid_width, grid_height = self.terrain_data.shape
                 xscale = texture_w / terrain_extent.width
                 yscale = texture_h / terrain_extent.height
                 box_w, box_h = cell_size * xscale, cell_size * yscale
-                center = (int(p[0] / grid_width * texture_w), int(512 - p[1] / grid_height * texture_h))
+                center = (int(p[0] / grid_height * texture_h), int(512 - p[1] / grid_width * texture_w))
 
                 # Draw black rectangle directly into data
                 min_x = min(max(center[0] - box_w / 2, 0), 510)
@@ -476,9 +487,34 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
             shader.boundary_texture = Texture(
                 data=image_data.ravel(), width=texture_w, height=texture_h, src_format=GL_RGB8
             )
+
+            # Update zonal stats texture
+            image_data = numpy.ones((texture_h, texture_w, 3), dtype=numpy.uint8) * 255
+            if self.feature_boundary is not None:
+                shader.has_zonal_boundary = True
+                t_res = self.terrain_data.resolution
+                normalized_coords = [(p[0] / t_res, p[1] / t_res) for p in self.feature_boundary.coords]
+                if isinstance(self.feature_boundary, Point):
+                    feat = Point(*[[transform.xy(self.terrain_data.affine, *p) for p in normalized_coords]])
+                else:
+                    feat = LinearRing(*[[transform.xy(self.terrain_data.affine, *p) for p in normalized_coords]])
+                image_data[:, :, 0] = numpy.flipud(features.rasterize(
+                    [feat.buffer(self._boundary_width.value)],
+                    out_shape=(texture_h, texture_w), fill=255, default_value=1, all_touched=True,
+                    transform=transform.from_bounds(*terrain_extent.as_list(), texture_w, texture_h)
+                ))
+            else:
+                shader.has_zonal_boundary = False
+
+            shader.zonal_texture = Texture(
+                data=image_data.ravel(), width=texture_w, height=texture_h, src_format=GL_RGB8
+            )
+
         else:
             shader.has_boundaries = False
+            shader.has_zonal_boundary = False
             shader.boundary_texture = Texture()
+            shader.zonal_texture = Texture()
 
     def _update_flow(self):
         if self.terrain_data is not None and self.flow_dir_data is not None:
@@ -544,11 +580,11 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                                  self._max_color.value)
         return legend.render(width, height)
 
-    def get_identify_detail(self, point):
+    def get_identify_detail(self, point: Vector3) -> Optional[Dict]:
         if self.terrain_data is not None:
             res = self.terrain_data.resolution
-            cell_x = int(round((point.x / res)))
-            cell_y = int(round((point.y / res)))
+            cell_x = int(round((point.y / res)))
+            cell_y = int(round((point.x / res)))
 
             terrain_attr = self._elevation_attribute.selected
             terrain_ref = self.terrain_data.get_data(terrain_attr)
@@ -557,17 +593,17 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                 attribute_ref = self.attribute_data.get_data(
                     self._attribute.selected, Timeline.app().current
                 )
-                attr_width, attr_height = attribute_ref.shape
+                attr_height, attr_width = attribute_ref.shape
                 if 0 <= cell_x < attr_width and 0 <= cell_y < attr_height:
 
                     result = OrderedDict()
                     result['Point'] = "{}, {}".format(cell_x, cell_y)
-                    result['Value'] = attribute_ref[cell_x, cell_y]
-                    result['Height'] = terrain_ref[cell_x, cell_y]
+                    result['Value'] = attribute_ref[cell_y, cell_x]
+                    result['Height'] = terrain_ref[cell_y, cell_x]
 
                     if self.flow_dir_data is not None:
                         flow_dir_ref = self.flow_dir_data.get_data(self.flow_dir_data.variables[0])
-                        direction = flow_dir_ref[cell_x, cell_y]
+                        direction = flow_dir_ref[cell_y, cell_x]
                         result['Flow Direction (input)'] = direction
                         degrees = 45.0 + 45.0 * direction
                         result['Flow Direction (degrees)'] = degrees if degrees < 360.0 else degrees - 360.0
@@ -575,7 +611,7 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
                     if self.flow_acc_data is not None:
                         result['Flow Accumulation'] = self.flow_acc_data.get_data(
                             self.flow_acc_data.variables[0]
-                        )[cell_x, cell_y]
+                        )[cell_y, cell_x]
 
                     self.selected_point = (cell_x, cell_y)
                     self._needs_boundaries = True
@@ -588,3 +624,69 @@ class TerrainAndColorPlugin(VisualizationPlugin3D):
         self.refresh()
 
         return None
+
+    def get_zonal_stats_from_point(self, point: Vector3) -> List[Optional[Dict]]:
+        results = []
+        if self.boundary_data:
+            for plugin in (x for x in (self.terrain_data, self.attribute_data, self.flow_dir_data, self.flow_dir_data)
+                           if x is not None):
+                if plugin is self.terrain_data:
+                    var = self._elevation_attribute.selected
+                elif plugin is self.attribute_data:
+                    var = self._attribute.selected
+                else:
+                    var = ''
+
+                raster = plugin.get_data(var)
+                affine = plugin.affine
+                res = plugin.resolution
+                var_stats = plugin.variable_stats(var)
+                nodata = var_stats.nodata_value
+
+                # Transform point coordinates to crs of raster
+                p = shapely.geometry.Point(*transform.xy(affine, point.x / res, point.y / res))
+                zones = []
+                for feat in self.boundary_data.get_features():
+                    if shapely.geometry.shape(feat['geometry']).contains(p):
+                        zones.append(feat)
+
+                # Retrieve zonal stats for this raster
+                result = zonal_stats(zones, raster, affine=affine, nodata=nodata, add_stats=self.zonal_stats)
+                for j, row in enumerate(result):
+                    row['Name'] = "{} (Zone {})".format(plugin.data_name, zones[j].get('id'))
+                    results.append(row)
+        return results
+
+    def get_zonal_stats_from_feature(self, feature: LinearRing) -> List[Optional[Dict]]:
+        results = []
+        if self.terrain_data:
+
+            # Normalize feature coordinates to terrain resolution
+            t_res = self.terrain_data.resolution
+            normalized_coords = [(p[0] / t_res, p[1] / t_res) for p in feature.coords]
+
+            for plugin in (x for x in (self.terrain_data, self.attribute_data, self.flow_dir_data, self.flow_dir_data)
+                           if x is not None):
+                if plugin is self.terrain_data:
+                    var = self._elevation_attribute.selected
+                elif plugin is self.attribute_data:
+                    var = self._attribute.selected
+                else:
+                    var = ''
+
+                raster = plugin.get_data(var, Timeline.app().current)
+                affine = plugin.affine
+                var_stats = plugin.variable_stats(var)
+                nodata = var_stats.nodata_value
+                feat = Polygon(*[[transform.xy(affine, *p) for p in normalized_coords]])
+
+                # Transform normalized raster coordinates to CRS of raster to query and obtain results
+                result = zonal_stats(feat, raster, affine=affine, nodata=nodata, add_stats=self.zonal_stats)[0]
+                result['Name'] = plugin.data_name
+                results.append(result)
+        return results
+
+    def update_zonal_boundary(self, feature: Union[LinearRing, Point]):
+        self.feature_boundary = feature
+        self._needs_boundaries = True
+        self.refresh()

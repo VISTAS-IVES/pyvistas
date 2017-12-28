@@ -1,4 +1,4 @@
-from numpy import indices, zeros, float32, array
+from numpy import indices, flipud, zeros, float32, array
 
 from vistas.core.graphics.geometry import Geometry
 
@@ -33,9 +33,8 @@ class PlaneGeometry(Geometry):
         index_array = array(index_array)
 
         tex_coords = zeros((height, width, 2))
-        tex_coords[:, :, 0] = idx[0] / height     # u
-        tex_coords[:, :, 1] = 1 - idx[1] / width  # v
-
+        tex_coords[:, :, 0] = idx[1] / width                # u   (0,1) --- (1,1)  UV coords origin is Cartesian
+        tex_coords[:, :, 1] = flipud(idx[0] / height)       # v   (0,0) --- (1,0)
         self.vertices = vertices
         self.indices = index_array
         self.texcoords = tex_coords

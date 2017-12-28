@@ -14,6 +14,7 @@ class ProjectChangedEvent(ProjectChangedEventBase):
     DELETED_ITEM = 'deleted_item'
     RENAMED_ITEM = 'renamed_item'
     PROJECT_RESET = 'project_reset'
+    VISUALIZATION_SET_DATA = 'visualization_set_data'
 
     def __init__(self, node=None, change=None):
         super().__init__(node=node, change=change)
@@ -70,3 +71,21 @@ class CameraSyncEvent(CameraSyncEventBase):
 
     def __init__(self, interactor=None):
         super().__init__(interactor=interactor)
+
+
+# Event for informing a gl_canvas that the camera is starting a drag selection
+CameraSelectModeBase, EVT_CAMERA_SELECT_MODE = wx.lib.newevent.NewEvent()
+
+
+class CameraSelectModeEvent(CameraSelectModeBase):
+    def __init__(self, mode=None):
+        super().__init__(mode=mode)
+
+
+# Event for informing a gl_canvas that the camera has finished a drag selection
+CameraSelectFinishBase, EVT_CAMERA_SELECT_FINISH = wx.lib.newevent.NewEvent()
+
+
+class CameraSelectFinishEvent(CameraSelectFinishBase):
+    def __init__(self, mode=None, plugin=None, points=None):
+        super().__init__(mode=mode, plugin=plugin, points=points)

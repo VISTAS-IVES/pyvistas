@@ -1,22 +1,27 @@
 import wx
-from wx.glcanvas import WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, WX_GL_CORE_PROFILE, WX_GL_MAJOR_VERSION 
+from shapely.geometry import LinearRing
 from wx.glcanvas import WX_GL_MINOR_VERSION
+from wx.glcanvas import WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, WX_GL_CORE_PROFILE, WX_GL_MAJOR_VERSION
 
 from vistas.core.graphics.camera import Camera
 from vistas.core.observers.camera import CameraObservable
 from vistas.core.observers.interface import Observer
 from vistas.core.paths import get_resource_bitmap
+from vistas.core.plugins.data import DataPlugin
 from vistas.core.plugins.visualization import VisualizationPlugin3D
 from vistas.ui.controllers.project import ProjectChangedEvent
 from vistas.ui.controls.gl_canvas import GLCanvas
+from vistas.ui.events import CameraSelectFinishEvent, EVT_CAMERA_SELECT_FINISH
 from vistas.ui.project import Project
+from vistas.ui.utils import post_message
 from vistas.ui.windows.inspect import InspectWindow
 from vistas.ui.windows.legend import LegendWindow
+from vistas.ui.windows.zonalstats import ZonalStatisticsWindow
 
 
 class ViewerPanel(wx.Panel, Observer):
     """
-    Container Panel for rendering a 3D visualization. Controls which 3D visualization is currently being rendered and
+    Container for rendering a 3D visualization. Controls which 3D visualization is currently being rendered and
     how to resize itself relative to it's neighbors in the parent window.
     """
 
@@ -28,6 +33,7 @@ class ViewerPanel(wx.Panel, Observer):
     POPUP_COPY = 1
 
     inspect_window = None   # InspectWindow
+    zonalstats_window = None    # ZonalStatisticsWindow
 
     def __init__(self, parent, id):
         super().__init__(parent, id)
@@ -126,6 +132,7 @@ class ViewerPanel(wx.Panel, Observer):
         self.gl_canvas.SetFocus()
 
         self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy)
+        self.Bind(EVT_CAMERA_SELECT_FINISH, self.OnDragSelectFinish)
 
         self.legend_window = LegendWindow(self, wx.ID_ANY)
 
@@ -309,6 +316,10 @@ class ViewerPanel(wx.Panel, Observer):
         self.GetParent().UpdateViewerSizes()
 
     def OnCanvasDClick(self, event: wx.MouseEvent):
+        if self.gl_canvas.selection_mode:
+            event.Skip()
+            return
+
         size = self.gl_canvas.GetSize()
         mouse_x = event.GetX() / size.x * 2 - 1
         mouse_y = - event.GetY() / size.y * 2 + 1
@@ -323,7 +334,33 @@ class ViewerPanel(wx.Panel, Observer):
                 self.inspect_window.data = result
                 self.inspect_window.Show()
 
+                zonal_result = plugin.get_zonal_stats_from_point(intersection.point)
+                if zonal_result:
+                    if self.zonalstats_window is None:
+                        self.zonalstats_window = ZonalStatisticsWindow(self, wx.ID_ANY)
+                    self.zonalstats_window.data = zonal_result
+                    self.zonalstats_window.plugin = plugin
+                    self.zonalstats_window.Show()
+
+    def OnDragSelectFinish(self, event: CameraSelectFinishEvent):
+        plugin = event.plugin
+        points = event.points
+        if len(points) >= 3:
+            result = plugin.get_zonal_stats_from_feature(LinearRing([p for p in points + [points[0]]]))
+            if result:
+                if self.zonalstats_window is None:
+                    self.zonalstats_window = ZonalStatisticsWindow(self, wx.ID_ANY)
+                self.zonalstats_window.data = result
+                self.zonalstats_window.plugin = plugin
+                self.zonalstats_window.Show()
+        else:
+            post_message("At least 3 points are required to do zonal statistics!", 1)
+
     def OnCanvasRightClick(self, event):
+        if self.gl_canvas.selection_mode:
+            event.Skip()
+            return
+
         menu = wx.Menu()
         menu.Append(self.POPUP_COPY, 'Copy')
         menu.Bind(wx.EVT_MENU, self.OnCanvasPopupMenu)
@@ -386,6 +423,26 @@ class ViewerPanel(wx.Panel, Observer):
             self.RefreshScenes()
             self.gl_canvas.Refresh()
             self.UpdateLegend()
+
+        self.UpdateOverlay()
+
+    def UpdateOverlay(self):
+        self.UpdateScene()
+        plugins = Project.get().find_viz_with_parent_scene(self.selected_scene)
+
+        viz = None
+        for p in plugins:
+            if isinstance(p, VisualizationPlugin3D):
+                viz = p
+
+        if viz is not None:
+            # If the visualization has a raster, show the selection controls
+            for i, role in enumerate(viz.data_roles):
+                if role[0] == DataPlugin.RASTER and viz.get_data(i) is not None:
+                    self.gl_canvas.selection_controls.show()
+                    return
+
+        self.gl_canvas.selection_controls.hide()
 
     def OnSceneChoice(self, event):
         self.UpdateScene()

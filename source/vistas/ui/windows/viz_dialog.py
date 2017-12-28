@@ -221,6 +221,11 @@ class VisualizationDialog(wx.Frame):
                     self.GetParent(),
                     ProjectChangedEvent(node=self.node, change=ProjectChangedEvent.ADDED_VISUALIZATION)
                 )
+            else:
+                wx.PostEvent(
+                    self.GetParent(),
+                    ProjectChangedEvent(node=self.node, change=ProjectChangedEvent.VISUALIZATION_SET_DATA)
+                )
 
         self.RefreshDataOptions()
 

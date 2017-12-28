@@ -159,6 +159,7 @@ class ViewerContainerPanel(wx.Panel):
                 self.RemoveViewer()
             self.GetMainViewerPanel().RefreshScenes()
             self.GetMainViewerPanel().UpdateLegend()
+            self.GetMainViewerPanel().UpdateOverlay()
 
         else:
             for row in self.rows:

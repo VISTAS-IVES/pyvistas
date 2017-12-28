@@ -15,6 +15,7 @@ VISTAS is currently available for Windows, with a macOS version in the works.
 
 * [Nik Molnar](https://github.com/nikmolnar)
 * [Taylor Mutch](https://github.com/TaylorMutch)
+* [Ken Ferschweiler](https://github.com/kennino)
 
 ## Acknowledgements ##
 
