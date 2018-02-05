@@ -1,4 +1,4 @@
-## VISTAS 1.14.0 ##
+## VISTAS 1.15.0 ##
 
 VISTAS is a plugin-based 3D visualization program designed for environmental science research. The original application
 was written in C++ and has now been ported to Python for better access to existing scientific libraries, for quicker
@@ -8,8 +8,8 @@ development, and to make plugin development easier.
 
 VISTAS is currently available for Windows, with a macOS version in the works.
 
-* [Download VISTAS 1.14.0 for Windows](https://github.com/VISTAS-IVES/pyvistas/releases/download/1.14.0/VISTAS_1_14_0.exe)
-* [Download non-installer VISTAS 1.14.0 for Windows](https://github.com/VISTAS-IVES/pyvistas/releases/download/1.14.0/VISTAS_NOINSTALL_1_14_0.zip)
+* [Download VISTAS 1.15.0 for Windows](https://github.com/VISTAS-IVES/pyvistas/releases/download/1.14.0/VISTAS_1_15_0.exe)
+* [Download non-installer VISTAS 1.15.0 for Windows](https://github.com/VISTAS-IVES/pyvistas/releases/download/1.15.0/VISTAS_NOINSTALL_1_15_0.zip)
 
 ## Contributors ##
 

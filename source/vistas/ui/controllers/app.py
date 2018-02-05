@@ -164,8 +164,7 @@ class AppController(wx.EvtHandler):
         info.SetCopyright('(c) 2008-2017 Conservation Biology Institute')
         info.AddDeveloper('Nikolas Stevenson-Molnar (nik.molnar@consbio.org)')
         info.AddDeveloper('Taylor Mutch')
-        info.AddDeveloper('Viriya Ratanasangpunth')
-        info.AddDeveloper('Lee Zeman')
+        info.AddDeveloper('Ken Ferschweiler')
 
         wx.adv.AboutBox(info)
 
