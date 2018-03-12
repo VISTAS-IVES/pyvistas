@@ -11,6 +11,7 @@ import matplotlib.backends.backend_wxagg as wxagg
 
 from vistas.ui.project import Project
 from vistas.core.timeline import Timeline
+from vistas.ui.events import EVT_TIMELINE_CHANGED
 
 class StatsDialog(wx.Dialog):
     def __init__(self, parent=None):
@@ -45,6 +46,7 @@ class StatsDialog(wx.Dialog):
         box.Add(self.dsp_box)
         self.panel.SetSizer(box)
         self.Bind(wx.EVT_CLOSE, self.onClose)
+        self.Bind(EVT_TIMELINE_CHANGED, self.onPlotButton)
         self.CenterOnParent()
         self.panel.Layout()
         self.Show()
@@ -53,14 +55,14 @@ class StatsDialog(wx.Dialog):
         data_name = chooser.GetString(chooser.GetSelection())
         for node in data:
           if node.data.data_name == data_name:
-            print(node, node.data)
-            print(node.data.variables)
             date = None
             if node.data.time_info.timestamps:
               time_index = Timeline.app().current_index
               date = node.data.time_info.timestamps[time_index]
-            return {'name': data_name, 'data': node.data.get_data(node.data.variables[0], date=date)}
-        # what to do if it falls through? It shouldn't...
+              thisdata = node.data.get_data(node.data.variables[0], date=date)
+              thisdata = ma.where(thisdata == node.data._nodata_value, ma.masked, thisdata)
+            return {'name': data_name, 'data': thisdata}
+        return None
 
     def plotLinReg(self, iv_data=None, dv_data=None):
         try:
@@ -69,9 +71,7 @@ class StatsDialog(wx.Dialog):
           pass
         self.ax = self.fig.add_subplot(111)
         self.ax.grid()
-        print('iv_data name:', iv_data['name'])
         self.ax.set_xlabel(iv_data['name'])
-        print('dv_data name:', dv_data['name'])
         self.ax.set_ylabel(dv_data['name'])
     
         iv_datax = iv_data['data']
@@ -95,7 +95,6 @@ class StatsDialog(wx.Dialog):
     
         # predict some values to get slope and intercept
         res = ols.predict(np.array([0,1]).reshape(-1,1))
-        print('res:', res)
         intercept = res[0][0]
         slope = res[1][0] - intercept
     
@@ -124,7 +123,8 @@ class StatsDialog(wx.Dialog):
     def onPlotButton(self, event):
         iv_data = self.getData(self.iv_chooser, self.data)
         dv_data = self.getData(self.dv_chooser, self.data)
-        self.plotLinReg(iv_data=iv_data, dv_data=dv_data)
+        if iv_data and dv_data:
+            self.plotLinReg(iv_data=iv_data, dv_data=dv_data)
 
     def onClose(self, event):
         # self.EndModal(1)

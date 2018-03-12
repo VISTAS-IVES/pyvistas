@@ -56,13 +56,13 @@ class PcaDialog(wx.Dialog):
             data_name = chooser.GetString(sel)
             for node in data:
                 if node.data.data_name == data_name:
-                  print(node, node.data)
-                  print(node.data.variables)
                   date = None
                   if node.data.time_info.timestamps:
                       time_index = Timeline.app().current_index
                       date = node.data.time_info.timestamps[time_index]
-                  ret[data_name] = node.data.get_data(node.data.variables[0], date=date)
+                  thisdata = node.data.get_data(node.data.variables[0], date=date)
+                  thisdata = ma.where(thisdata == node.data._nodata_value, ma.masked, thisdata)
+                  ret[data_name] = thisdata
                   break
         return ret
 
@@ -77,7 +77,6 @@ class PcaDialog(wx.Dialog):
         # normalize and reorganize data
         n_vars = len(data)
         var_names = list(data)
-        print(var_names)
         x_data = data.values() # guaranteed, per python docs, to be same order
         x_data = [(d - np.mean(d)) / np.std(d) for d in x_data]
         # synchronize masks
@@ -90,7 +89,6 @@ class PcaDialog(wx.Dialog):
         
         x_data = np.concatenate([np.expand_dims(d.compressed(), axis=0) for d in x_data])
         x_data = x_data.transpose()
-        print('x_data.shape = ', x_data.shape)
 
         # calculate pca
         pca = skd.PCA()
