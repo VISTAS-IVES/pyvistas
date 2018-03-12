@@ -17,6 +17,9 @@ from vistas.ui.windows.main import MainWindow
 from vistas.ui.windows.plugins import PluginsWindow
 from vistas.ui.windows.timeline_filter import TimeFilterWindow
 
+from vistas.ui.windows.stats_dialog import StatsDialog
+from vistas.ui.windows.pca_dialog import PcaDialog
+
 logger = logging.getLogger(__name__)
 
 PADDING = 5
@@ -153,6 +156,18 @@ class AppController(wx.EvtHandler):
             pass  # Todo
         elif event_id == MainWindow.MENU_HELP_REPORT_ISSUE:
             wx.LaunchDefaultBrowser('https://github.com/VISTAS-IVES/pyvistas/issues')
+
+        elif event_id == MainWindow.MENU_LINREG:
+            dlg = StatsDialog(self.main_window)
+            # dlg.ShowModal()
+            # dlg.EndModal(0)
+            # dlg.Destroy()
+
+        elif event_id == MainWindow.MENU_PCA:
+            dlg = PcaDialog(self.main_window)
+            # dlg.ShowModal()
+            # dlg.EndModal(0)
+            # dlg.Destroy()
 
     def OnAboutMenuItem(self, event):
         info = wx.adv.AboutDialogInfo()
