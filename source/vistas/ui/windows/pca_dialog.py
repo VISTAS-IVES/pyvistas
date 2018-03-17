@@ -11,47 +11,48 @@ import matplotlib.backends.backend_wxagg as wxagg
 
 from vistas.ui.project import Project
 from vistas.core.timeline import Timeline
+from vistas.ui.utils import get_main_window
+from vistas.ui.events import EVT_TIMELINE_CHANGED
 
 
-class PcaDialog(wx.Dialog):
+class PcaDialog(wx.Frame):
     def __init__(self, parent=None):
         super().__init__(parent, size=(800,600))
         self.parent = parent
         self.panel = wx.Panel(self)
-        box = wx.BoxSizer(wx.HORIZONTAL)
-        self.ctl_box = wx.BoxSizer(wx.VERTICAL)
-        self.ctl_box.Add(wx.StaticText(self.panel, -1, 'Variables:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=20)
+        self.sizer = wx.BoxSizer(wx.VERTICAL) # needed for grid addition
+        self.panel.SetSizer(self.sizer)
+        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer.Add(top_sizer, 0)
+        ctl_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(ctl_sizer, 0)
+        ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Variables:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=20)
         self.data = Project.get().all_data
         self.chooser = wx.ListBox(self.panel, choices=[n.data.data_name for n in self.data],
           style=wx.LB_EXTENDED)
-        self.ctl_box.Add(self.chooser, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM, border=20)
+        ctl_sizer.Add(self.chooser, 0, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM, border=20)
 
-        btn_box = wx.BoxSizer(wx.HORIZONTAL)
-        plot_button = wx.Button(self.panel, wx.ID_OK, label='Plot')
-        plot_button.Bind(wx.EVT_BUTTON, self.onPlotButton)
-        btn_box.Add(plot_button, flag=wx.ALL, border=15)
-        dismiss_button = wx.Button(self.panel, wx.ID_OK, label='Dismiss')
-        dismiss_button.Bind(wx.EVT_BUTTON, self.onClose)
-        btn_box.Add(dismiss_button, flag=wx.ALL, border=15)
-        self.ctl_box.Add(btn_box)
-        box.Add(self.ctl_box)
+        # btn_box = wx.BoxSizer(wx.HORIZONTAL)
+        # plot_button = wx.Button(self.panel, wx.ID_OK, label='Plot')
+        # plot_button.Bind(wx.EVT_BUTTON, self.onPlotButton)
+        # btn_box.Add(plot_button, 0, flag=wx.ALL, border=15)
+        # dismiss_button = wx.Button(self.panel, wx.ID_OK, label='Dismiss')
+        # dismiss_button.Bind(wx.EVT_BUTTON, self.onClose)
+        # btn_box.Add(dismiss_button, 0, flag=wx.ALL, border=15)
+        # ctl_sizer.Add(btn_box, 0)
 
-        self.dsp_box = wx.BoxSizer(wx.VERTICAL)
         self.fig = mpl.figure.Figure()
         self.canvas = wxagg.FigureCanvasWxAgg(self.panel, -1, self.fig)
-        self.dsp_box.Add(self.canvas, 1, wx.GROW)
-        box.Add(self.dsp_box)
-        self.panel.SetSizer(box)
+        top_sizer.Add(self.canvas, 1, wx.EXPAND)
+        self.Bind(wx.EVT_LISTBOX, self.onPlotButton)
         self.Bind(wx.EVT_CLOSE, self.onClose)
+        get_main_window().Bind(EVT_TIMELINE_CHANGED, self.onPlotButton)
         self.CenterOnParent()
         self.panel.Layout()
         self.Show()
 
     def getData(self, chooser, data):
         ret = {}
-        if len(chooser.GetSelections()) < 2:
-            wx.MessageDialog(self.panel, 'PCA requires at least two', 'Not enough variables', wx.OK).ShowModal()
-            return
         for sel in chooser.GetSelections():
             data_name = chooser.GetString(sel)
             for node in data:
@@ -118,7 +119,7 @@ class PcaDialog(wx.Dialog):
           self.grid.Destroy()
         except:
           pass
-        self.grid = wx.grid.Grid(self, -1)
+        self.grid = wx.grid.Grid(self.panel, -1)
         self.grid.CreateGrid(n_vars, n_vars+1) # extra column for explained variance
         grid_labels = ['Expl. var.'] + var_names
         grid_data = np.concatenate(
@@ -137,14 +138,22 @@ class PcaDialog(wx.Dialog):
             self.grid.SetCellValue(row, col, str(grid_data[row, col]))
             self.grid.SetReadOnly(row, col)
         self.grid.AutoSize()
-        # might need a sizer here just to make it easy to delete
-        self.dsp_box.Add(self.grid, flag=wx.ALL, border=10)
+
+        self.sizer.Add(self.grid, 2, flag=wx.EXPAND|wx.ALL, border=10)
+
         self.panel.Layout()
 
     def onPlotButton(self, event): # only event we've got is a plot-button push
-        v_data = self.getData(self.chooser, self.data)
-        if v_data:
-            plot = self.plotPCA(data=v_data)
+        if len(self.chooser.GetSelections()) < 2: # nothing to do!
+            return
+        try:
+            v_data = self.getData(self.chooser, self.data)
+            if v_data:
+                plot = self.plotPCA(data=v_data)
+        except:
+            pass
+        event.Skip() # pass to next handler
 
     def onClose(self, event):
+        get_main_window().Unbind(EVT_TIMELINE_CHANGED)
         self.Destroy()
