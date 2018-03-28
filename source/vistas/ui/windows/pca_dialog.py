@@ -18,62 +18,48 @@ from vistas.ui.events import EVT_TIMELINE_CHANGED
 class PcaDialog(wx.Frame):
     def __init__(self, parent=None):
         super().__init__(parent, size=(800,600))
-        self.parent = parent
         self.panel = wx.Panel(self)
-        self.sizer = wx.BoxSizer(wx.VERTICAL) # needed for grid addition
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.panel.SetSizer(self.sizer)
         top_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.sizer.Add(top_sizer, 0)
         ctl_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(ctl_sizer, 0)
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Variables:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=20)
-        self.data = Project.get().all_data
-        self.chooser = wx.ListBox(self.panel, choices=[n.data.data_name for n in self.data],
-          style=wx.LB_EXTENDED)
-        ctl_sizer.Add(self.chooser, 0, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM, border=20)
 
-        # btn_box = wx.BoxSizer(wx.HORIZONTAL)
-        # plot_button = wx.Button(self.panel, wx.ID_OK, label='Plot')
-        # plot_button.Bind(wx.EVT_BUTTON, self.onPlotButton)
-        # btn_box.Add(plot_button, 0, flag=wx.ALL, border=15)
-        # dismiss_button = wx.Button(self.panel, wx.ID_OK, label='Dismiss')
-        # dismiss_button.Bind(wx.EVT_BUTTON, self.onClose)
-        # btn_box.Add(dismiss_button, 0, flag=wx.ALL, border=15)
-        # ctl_sizer.Add(btn_box, 0)
+        self.data = Project.get().all_data
+        data_choices = [n.data.data_name for n in self.data]
+
+        self.chooser = wx.ListBox(self.panel, choices=data_choices, style=wx.LB_EXTENDED)
+        ctl_sizer.Add(self.chooser, 0, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM, border=20)
+        self.plot_type = wx.RadioBox(self.panel, choices=['scatterplot', 'heatmap'])
+        ctl_sizer.Add(self.plot_type)
+        self.Bind(wx.EVT_RADIOBOX, self.doPlot)
 
         self.fig = mpl.figure.Figure()
         self.canvas = wxagg.FigureCanvasWxAgg(self.panel, -1, self.fig)
         top_sizer.Add(self.canvas, 1, wx.EXPAND)
-        self.Bind(wx.EVT_LISTBOX, self.onPlotButton)
+        self.Bind(wx.EVT_LISTBOX, self.doPlot)
         self.Bind(wx.EVT_CLOSE, self.onClose)
-        get_main_window().Bind(EVT_TIMELINE_CHANGED, self.onPlotButton)
+        get_main_window().Bind(EVT_TIMELINE_CHANGED, self.doPlot)
         self.CenterOnParent()
         self.panel.Layout()
         self.Show()
 
-    def getData(self, chooser, data):
-        ret = {}
-        for sel in chooser.GetSelections():
-            data_name = chooser.GetString(sel)
-            for node in data:
-                if node.data.data_name == data_name:
-                  date = None
-                  if node.data.time_info.timestamps:
-                      time_index = Timeline.app().current_index
-                      date = node.data.time_info.timestamps[time_index]
-                  thisdata = node.data.get_data(node.data.variables[0], date=date)
-                  thisdata = ma.where(thisdata == node.data._nodata_value, ma.masked, thisdata)
-                  ret[data_name] = thisdata
-                  break
-        return ret
+    def getData(self, dname, data):
+        try:
+            node = data[[n.data.data_name for n in data].index(dname)]
+        except ValueError:
+            return None
+        date = Timeline.app().current
+        thisdata = node.data.get_data(node.data.variables[0], date=date)
+        return thisdata
 
     def plotPCA(self, data=None):
         try:
           self.fig.delaxes(self.ax)
         except:
           pass
-        self.ax = self.fig.add_subplot(111)
-        self.ax.grid()
 
         # normalize and reorganize data
         n_vars = len(data)
@@ -95,14 +81,26 @@ class PcaDialog(wx.Frame):
         pca = skd.PCA()
         model = pca.fit(x_data)
         tx_data = pca.transform(x_data)
+
         # plot first two components
+        self.ax = self.fig.add_subplot(111)
+        self.ax.grid()
         self.ax.set_xlabel('Component 1')
         self.ax.set_ylabel('Component 2')
-        # adjust marker size and alpha based on how many points we're plotting
-        marker_size = mpl.rcParams['lines.markersize'] ** 2
-        marker_size *= min(1, max(.12, 200 / len(tx_data[:,0])))
-        alpha = min(1, max(.002, 500 / len(tx_data[:,0])))
-        self.ax.scatter(tx_data[:,0], tx_data[:,1], s=marker_size, c='b', alpha=alpha)
+
+        plot_type = self.plot_type.GetString(self.plot_type.GetSelection())
+        if plot_type == 'scatterplot':
+            # adjust marker size and alpha based on # of points
+            marker_size = mpl.rcParams['lines.markersize'] ** 2
+            marker_size *= min(1, max(.12, 200 / len(tx_data[:,0])))
+            alpha = min(1, max(.002, 500 / len(tx_data[:,0])))
+            self.ax.scatter(tx_data[:,0], tx_data[:,1], s=marker_size, c='b', alpha=alpha)
+        else: # heatmap
+            bins = 200
+            heatmap, x_edges, y_edges = np.histogram2d(tx_data[:,0], tx_data[:,1], bins=bins)
+            x_min, x_max = x_edges[0], x_edges[-1]
+            y_min, y_max = y_edges[0], y_edges[-1]
+            self.ax.imshow(np.log(heatmap.transpose() + 1), extent=[x_min, x_max, y_min, y_max], cmap='Blues', origin='lower', aspect='auto')
 
         # plot axes
         color = ['g', 'c', 'm', 'k', 'y']
@@ -125,8 +123,8 @@ class PcaDialog(wx.Frame):
         grid_data = np.concatenate(
           (np.expand_dims(pca.explained_variance_ratio_, axis=1), pca.components_),
           axis=1)
+        # Should we try to set cell width?
         # cell_width = max([wx.ScreenDC().GetTextExtent(v)[0] for v in grid_labels])
-        # cell_width = min(cell_width, 100)
         for v in range(len(grid_labels)):
           self.grid.SetColLabelValue(v, grid_labels[v])
           # grid.SetColSize(v, cell_width+8)
@@ -138,21 +136,26 @@ class PcaDialog(wx.Frame):
             self.grid.SetCellValue(row, col, str(grid_data[row, col]))
             self.grid.SetReadOnly(row, col)
         self.grid.AutoSize()
-
         self.sizer.Add(self.grid, 2, flag=wx.EXPAND|wx.ALL, border=10)
-
         self.panel.Layout()
 
-    def onPlotButton(self, event): # only event we've got is a plot-button push
-        if len(self.chooser.GetSelections()) < 2: # nothing to do!
-            return
-        try:
-            v_data = self.getData(self.chooser, self.data)
-            if v_data:
-                plot = self.plotPCA(data=v_data)
-        except:
-            pass
-        event.Skip() # pass to next handler
+    def doPlot(self, event):
+        try: # because we want to insure that we can pass to next handler
+            selections = self.chooser.GetSelections()
+            if len(selections) >= 2:
+                v_data = {}
+                for sel in selections:
+                    dname = self.chooser.GetString(sel)
+                    try:
+                        thisdata = self.getData(dname, self.data)
+                        if thisdata is not None:
+                            v_data[dname] = thisdata
+                    except Exception as ex:
+                        print(ex)
+                if len(v_data.keys()) >= 2:
+                    plot = self.plotPCA(data=v_data)
+        finally:
+            event.Skip() # pass to next handler
 
     def onClose(self, event):
         get_main_window().Unbind(EVT_TIMELINE_CHANGED)
