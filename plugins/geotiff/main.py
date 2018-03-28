@@ -2,6 +2,8 @@ import os
 
 import rasterio
 from pyproj import Proj
+import numpy as np
+import numpy.ma as ma
 
 from vistas.core.gis.extent import Extent
 from vistas.core.plugins.data import RasterDataPlugin, VariableStats
@@ -62,7 +64,7 @@ class GeoTIFF(RasterDataPlugin):
             return self._current_grid.copy()
         self._current_band = band
         with rasterio.open(self.path, 'r') as src:
-            self._current_grid = src.read(band)
+            self._current_grid = ma.array(src.read(band), mask=np.logical_not(src.read_masks(band)))
         return self._current_grid.copy()
 
     @property
