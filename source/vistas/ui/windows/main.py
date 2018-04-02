@@ -54,6 +54,9 @@ class MainWindow(wx.Frame):
     MENU_HELP = 701
     MENU_HELP_REPORT_ISSUE = 702
 
+    MENU_LINREG = 801
+    MENU_PCA = 802
+
     def __init__(self, parent, id):
         super().__init__(parent, id, 'VISTAS')
 
@@ -100,6 +103,11 @@ class MainWindow(wx.Frame):
         window_menu = wx.Menu()
         window_menu.Append(self.MENU_WINDOW_PLUGINS, '&Plugins')
         menu_bar.Append(window_menu, '&Window')
+
+        stats_menu = wx.Menu()
+        stats_menu.Append(self.MENU_LINREG, '&Linear Regression')
+        stats_menu.Append(self.MENU_PCA, '&PCA')
+        menu_bar.Append(stats_menu, '&Statistics')
 
         debug_menu = wx.Menu()
         debug_menu.Append(self.MENU_DEBUG_TOGGLE_WIREFRAME, 'Toggle &Wireframe')

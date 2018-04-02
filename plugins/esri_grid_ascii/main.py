@@ -6,6 +6,8 @@ from bisect import insort
 import rasterio
 from osgeo.osr import SpatialReference
 from pyproj import Proj
+import numpy as np
+import numpy.ma as ma
 
 from vistas.core.gis.extent import Extent
 from vistas.core.plugins.data import RasterDataPlugin, VariableStats, TemporalInfo
@@ -147,7 +149,7 @@ class ESRIGridAscii(RasterDataPlugin):
             path = os.path.join(os.path.dirname(path), filename)
 
         with rasterio.open(path) as src:
-            self._current_grid = src.read(1)
+            self._current_grid = ma.array(src.read(1), mask=np.logical_not(src.read_masks(1)))
         self._current_variable = variable
         self._current_time = date
         return self._current_grid.copy()
