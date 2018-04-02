@@ -16,7 +16,7 @@ from vistas.ui.events import EVT_TIMELINE_CHANGED
 
 class StatsDialog(wx.Frame):
     def __init__(self, parent=None):
-        super().__init__(parent, size=(800,600))
+        super().__init__(parent, wx.ID_ANY, 'Linear Regression', size=(800,600))
         self.parent = parent
         self.data = Project.get().all_data
         data_choices = ['-'] + [n.data.data_name for n in self.data]
@@ -38,13 +38,13 @@ class StatsDialog(wx.Frame):
         self.plot_type = wx.RadioBox(self.panel, choices=['scatterplot', 'heatmap'])
         self.ctl_box.Add(self.plot_type, flag=wx.LEFT|wx.RIGHT|wx.TOP, border=10)
         self.Bind(wx.EVT_RADIOBOX, self.doPlot)
-        box.Add(self.ctl_box)
+        box.Add(self.ctl_box, 0, wx.TOP, 5)
 
         self.dsp_box = wx.BoxSizer(wx.VERTICAL)
         self.fig = mpl.figure.Figure()
         self.canvas = wxagg.FigureCanvasWxAgg(self.panel, -1, self.fig)
         self.dsp_box.Add(self.canvas, 1, wx.GROW)
-        box.Add(self.dsp_box)
+        box.Add(self.dsp_box, 0, wx.TOP, 5)
         self.panel.SetSizer(box)
         self.Bind(wx.EVT_CLOSE, self.onClose)
         get_main_window().Bind(EVT_TIMELINE_CHANGED, self.doPlot)
