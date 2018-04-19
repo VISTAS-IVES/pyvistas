@@ -35,8 +35,12 @@ class StatsDialog(wx.Frame):
 
         self.Bind(wx.EVT_CHOICE, self.doPlot)
 
+        self.ctl_box.Add(wx.StaticText(self.panel, -1, 'Plot type:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=12)
         self.plot_type = wx.RadioBox(self.panel, choices=['scatterplot', 'heatmap'])
-        self.ctl_box.Add(self.plot_type, flag=wx.LEFT|wx.RIGHT|wx.TOP, border=10)
+        self.ctl_box.Add(self.plot_type, flag=wx.LEFT|wx.RIGHT, border=10)
+        self.ctl_box.Add(wx.StaticText(self.panel, -1, 'Axis type:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=12)
+        self.axis_type = wx.RadioBox(self.panel, choices=['fixed', 'adaptive'])
+        self.ctl_box.Add(self.axis_type, flag=wx.LEFT|wx.RIGHT, border=10)
         self.Bind(wx.EVT_RADIOBOX, self.doPlot)
         box.Add(self.ctl_box)
 
@@ -57,9 +61,11 @@ class StatsDialog(wx.Frame):
             node = data[[n.data.data_name for n in data].index(dname)]
         except ValueError:
             return None
+        variable = node.data.variables[0]
+        stats = node.data.variable_stats(variable)
         date = Timeline.app().current
-        thisdata = node.data.get_data(node.data.variables[0], date=date)
-        return thisdata
+        thisdata = node.data.get_data(variable, date=date)
+        return [stats.min_value, stats.max_value, thisdata]
 
     def plotLinReg(self, iv=None, dv=None):
         try:
@@ -70,9 +76,13 @@ class StatsDialog(wx.Frame):
         self.ax.grid()
         self.ax.set_xlabel(iv[0])
         self.ax.set_ylabel(dv[0])
+        axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
+        if axis_type == 'fixed':
+            self.ax.set_xlim(iv[1], iv[2])
+            self.ax.set_ylim(dv[1], dv[2])
     
-        iv_data = iv[1]
-        dv_data = dv[1]
+        iv_data = iv[3]
+        dv_data = dv[3]
         
         # synchronize masks
         mask = np.logical_or(ma.array(iv_data).mask, ma.array(dv_data).mask)
@@ -106,6 +116,7 @@ class StatsDialog(wx.Frame):
     
         extent = [ma.min(iv_data), ma.max(iv_data)]
         self.ax.plot(extent, [intercept + slope * x for x in extent], 'r--')
+        self.fig.tight_layout()
         self.canvas.draw()
 
         try: # because we don't know whether there's a grid to replace
@@ -135,7 +146,7 @@ class StatsDialog(wx.Frame):
                     iv_data = self.getData(iv, self.data)
                     dv_data = self.getData(dv, self.data)
                     if iv_data is not None and dv_data is not None:
-                        self.plotLinReg(iv=[iv, iv_data], dv=[dv, dv_data])
+                        self.plotLinReg(iv=[iv]+iv_data, dv=[dv]+dv_data)
                 except Exception as ex:
                     print(ex)
         finally:
