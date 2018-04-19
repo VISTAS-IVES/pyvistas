@@ -33,9 +33,15 @@ class PcaDialog(wx.Frame):
 
         self.chooser = wx.ListBox(self.panel, choices=data_choices, style=wx.LB_EXTENDED)
         ctl_sizer.Add(self.chooser, 0, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM, border=20)
+
+        ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Plot type:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=12)
         self.plot_type = wx.RadioBox(self.panel, choices=['scatterplot', 'heatmap'])
-        ctl_sizer.Add(self.plot_type)
+        ctl_sizer.Add(self.plot_type, flag=wx.LEFT|wx.RIGHT, border=10)
+        ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Axis type:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=12)
+        self.axis_type = wx.RadioBox(self.panel, choices=['fixed', 'adaptive'])
+        ctl_sizer.Add(self.axis_type, flag=wx.LEFT|wx.RIGHT, border=10)
         self.Bind(wx.EVT_RADIOBOX, self.doPlot)
+
 
         self.fig = mpl.figure.Figure()
         self.canvas = wxagg.FigureCanvasWxAgg(self.panel, -1, self.fig)
@@ -89,6 +95,11 @@ class PcaDialog(wx.Frame):
         self.ax.set_xlabel('Component 1')
         self.ax.set_ylabel('Component 2')
 
+        axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
+        if axis_type == 'fixed':
+            self.ax.set_xlim(-3, 3)
+            self.ax.set_ylim(-3, 3)
+
         plot_type = self.plot_type.GetString(self.plot_type.GetSelection())
         if plot_type == 'scatterplot':
             # adjust marker size and alpha based on # of points
@@ -112,6 +123,7 @@ class PcaDialog(wx.Frame):
             xf = pca.transform(adata)
             self.ax.plot([xf[0,0], xf[0,1]], [xf[1,0], xf[1,1]], color[n % len(color)] + '-')
             self.ax.text(xf[0,0], xf[1,0], var_names[n], color=color[n % len(color)])
+        self.fig.tight_layout()
 
         # show stats in grid
         try:
