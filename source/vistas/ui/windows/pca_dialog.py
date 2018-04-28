@@ -17,7 +17,7 @@ from vistas.ui.events import EVT_TIMELINE_CHANGED
 
 class PcaDialog(wx.Frame):
     def __init__(self, parent=None):
-        super().__init__(parent, size=(800,600))
+        super().__init__(parent, size=(800,800))
         self.panel = wx.Panel(self)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.panel.SetSizer(self.sizer)
@@ -114,7 +114,7 @@ class PcaDialog(wx.Frame):
             self.ax.imshow(np.log(heatmap.transpose() + 1), extent=[x_min, x_max, y_min, y_max], cmap='Blues', origin='lower', aspect='auto')
 
         # plot axes
-        color = ['g', 'c', 'm', 'k', 'y']
+        color = ['g', 'r', 'm', 'k', 'y']
         for n in range(n_vars):
             adata = np.zeros([2, n_vars])
             adata[0, n] = ma.min(x_data[:, n])
@@ -135,8 +135,7 @@ class PcaDialog(wx.Frame):
         grid_data = np.concatenate(
           (np.expand_dims(pca.explained_variance_ratio_, axis=1), pca.components_),
           axis=1)
-        # Should we try to set cell width?
-        # cell_width = max([wx.ScreenDC().GetTextExtent(v)[0] for v in grid_labels])
+        # self.grid.SetRowLabelSize(0)
         for v in range(len(grid_labels)):
           self.grid.SetColLabelValue(v, grid_labels[v])
           # grid.SetColSize(v, cell_width+8)
@@ -165,7 +164,7 @@ class PcaDialog(wx.Frame):
                     except Exception as ex:
                         print(ex)
                 if len(v_data.keys()) >= 2:
-                    plot = self.plotPCA(data=v_data)
+                    self.plotPCA(data=v_data)
         finally:
             event.Skip() # pass to next handler
 
