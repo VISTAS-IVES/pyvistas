@@ -2,8 +2,10 @@ import wx
 
 import numpy as np
 import numpy.ma as ma
+
 import sklearn as sk
 import sklearn.linear_model as sklm
+import statsmodels.api as sm
 
 import matplotlib as mpl
 mpl.use('WXAgg')
@@ -81,12 +83,13 @@ class LinRegDialog(wx.Frame):
         my_data = np.array([d.compressed() for d in my_data])
 
         dv_data = my_data[0]
-        dv_data = dv_data.reshape(dv_data.shape + (1,))
+        # dv_data = dv_data.reshape(dv_data.shape + (1,))
         iv_data = my_data[1:].transpose()
 
-        ols = sklm.LinearRegression()
-        ols.fit(iv_data, dv_data)
-        r2 = ols.score(iv_data, dv_data)
+        # ols = sklm.LinearRegression()
+        # ols.fit(iv_data, dv_data)
+        ols = sm.OLS(dv_data, sm.add_constant(iv_data))
+        result = ols.fit()
 
         if len(iv) == 1: # plot iff we have a single independent variable
             self.ax = self.fig.add_subplot(111)
@@ -117,30 +120,57 @@ class LinRegDialog(wx.Frame):
                   extent=[x_min, x_max, y_min, y_max], cmap='Blues', origin='lower', aspect='auto')
             # plot regression line
             extent = [ma.min(iv_plot_data), ma.max(iv_plot_data)]
-            self.ax.plot(extent, [ols.intercept_[0] + ols.coef_[0] * x for x in extent], 'r--')
+            # self.ax.plot(extent, [ols.intercept_[0] + ols.coef_[0] * x for x in extent], 'r--')
+            intercept, slope = result.params[0:2]
+            self.ax.plot(extent, [intercept + slope * x for x in extent], 'r--')
             self.fig.tight_layout()
             self.canvas.draw()
 
 
-        # show stats in grid
+        # show stats in grids
         try:
           self.grid.Destroy()
+          self.cgrid.Destroy()
         except:
           pass
 
         self.grid = wx.grid.Grid(self.panel, -1)
-        self.grid.CreateGrid(2 + len(iv), 2)
+        self.grid.CreateGrid(2, 2)
         self.grid.SetRowLabelSize(0)
         self.grid.SetColLabelSize(0)
-        self.grid.SetColFormatFloat(1, 6, 3)
-        grid_data = [['r^2', r2], ['intercept', ols.intercept_[0]]]\
-          + [['coefficient for ' + v['name'], ols.coef_[0][i]] for i,v in enumerate(iv)]
-        for r in range(2 + len(iv)):
+        grid_data = [['No. of observations', int(result.nobs)],
+            ['r-squared', round(result.rsquared, 3)]]
+        for r in range(2):
             for c in range(2):
                 self.grid.SetCellValue(r, c, str(grid_data[r][c]))
                 self.grid.SetReadOnly(r, c)
         self.grid.AutoSize()
-        self.sizer.Add(self.grid, 2, flag=wx.EXPAND|wx.ALL, border=10)
+        self.sizer.Add(self.grid, 2, flag=wx.ALL, border=10)
+       
+        self.cgrid = wx.grid.Grid(self.panel, -1)
+        nvars = len(iv)
+        col_labels = ['variable', 'coeff', 'std err', 't', 'P>|t|', '[.025', '0.975]']
+        row_labels = ['const'] + [v['name'] for v in iv]
+        self.cgrid.CreateGrid(len(row_labels), len(col_labels))
+        self.cgrid.SetRowLabelSize(0) # hide row numbers
+        conf_int = result.conf_int()
+        grid_data = [[row_labels[i],
+          result.params[i], result.bse[i], result.tvalues[i], result.pvalues[i],
+          conf_int[i][0], conf_int[i][1]]
+          for i in range(nvars+1)]
+
+        for i,l in enumerate(col_labels):
+            if i > 0:
+                self.cgrid.SetColFormatFloat(i, 6, 3)
+            self.cgrid.SetColLabelValue(i, l)
+        for r in range(1 + nvars):
+            for c in range(len(col_labels)):
+                self.cgrid.SetCellValue(r, c, str(grid_data[r][c]))
+                self.cgrid.SetReadOnly(r, c)
+        self.cgrid.AutoSize()
+        self.sizer.Add(self.cgrid, 2, flag=wx.BOTTOM|wx.LEFT, border=10)
+
+        self.sizer.AddStretchSpacer()
         self.panel.Layout()
 
     def doPlot(self, event):

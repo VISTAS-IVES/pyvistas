@@ -135,7 +135,6 @@ class PcaDialog(wx.Frame):
         grid_data = np.concatenate(
           (np.expand_dims(pca.explained_variance_ratio_, axis=1), pca.components_),
           axis=1)
-        # self.grid.SetRowLabelSize(0)
         for v in range(len(grid_labels)):
           self.grid.SetColLabelValue(v, grid_labels[v])
           # grid.SetColSize(v, cell_width+8)
@@ -147,7 +146,8 @@ class PcaDialog(wx.Frame):
             self.grid.SetCellValue(row, col, str(grid_data[row, col]))
             self.grid.SetReadOnly(row, col)
         self.grid.AutoSize()
-        self.sizer.Add(self.grid, 2, flag=wx.EXPAND|wx.ALL, border=10)
+        self.sizer.Add(self.grid, 2, flag=wx.TOP|wx.LEFT, border=10)
+        self.sizer.AddStretchSpacer()
         self.panel.Layout()
 
     def doPlot(self, event):
