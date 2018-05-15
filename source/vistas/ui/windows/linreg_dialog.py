@@ -19,7 +19,7 @@ from vistas.ui.events import EVT_TIMELINE_CHANGED
 
 class LinRegDialog(wx.Frame):
     def __init__(self, parent=None):
-        super().__init__(parent, size=(800,800))
+        super().__init__(parent, title='Linear Regression', size=(800,800))
         self.panel = wx.Panel(self)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.panel.SetSizer(self.sizer)

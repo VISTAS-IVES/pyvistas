@@ -17,7 +17,7 @@ from vistas.ui.events import EVT_TIMELINE_CHANGED
 
 class PcaDialog(wx.Frame):
     def __init__(self, parent=None):
-        super().__init__(parent, size=(800,800))
+        super().__init__(parent, title='PCA', size=(800,800))
         self.panel = wx.Panel(self)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.AddSpacer(5)
