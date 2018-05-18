@@ -13,7 +13,7 @@ if 'TK_LIBRARY' not in os.environ:
 build_options = dict(
     packages=[
         'asyncio', 'OpenGL', 'tkinter', 'numpy', 'pyproj', 'vistas', 'netCDF4', 'netcdftime', 'fiona', 'rasterio',
-        'requests', 'idna', 'rasterstats', 'clover', 'sklearn', 'scipy'
+        'requests', 'idna', 'rasterstats', 'clover', 'sklearn', 'scipy', 'scipy.spatial.ckdtree'
     ],
     excludes=[],
     include_files=[('../plugins', 'plugins'), ('../resources', 'resources')],
@@ -30,7 +30,7 @@ executables = [
 
 setup(
     name='VISTAS',
-    version='1.16.0',
+    version='1.17.0',
     description='VISTAS',
     options=dict(build_exe=build_options),
     executables=executables
