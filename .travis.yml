@@ -12,7 +12,6 @@ env:
     - PATH=$PATH:/usr/local/opt/gdal2/bin
 
 before_install:
-  - "brew install python3"
   - "python3 -m venv $HOME/env"
   - "source $HOME/env/bin/activate"
   - "travis_wait 30 brew install osgeo/osgeo4mac/gdal2"
