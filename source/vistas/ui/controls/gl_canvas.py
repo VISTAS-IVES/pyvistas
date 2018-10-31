@@ -74,7 +74,13 @@ class GLCanvas(wx.glcanvas.GLCanvas):
             GLCanvas.initialized = True
             GLCanvas.shared_gl_context = wx.glcanvas.GLContext(self)
             self.SetCurrent(GLCanvas.shared_gl_context)
-            self.SwapBuffers()
+
+        from vistas.ui.app import App
+        if not App.gl_ready:
+            context = wx.PaintDC(self)
+            context.SetBackground(wx.BLACK_BRUSH)
+            context.Clear()
+            return
 
         self.SetCurrent(GLCanvas.shared_gl_context)
         self.camera.render(*self.GetSize().Get(), self.overlay)
