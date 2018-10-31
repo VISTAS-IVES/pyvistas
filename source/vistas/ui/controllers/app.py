@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 
 import wx
 import wx.adv
@@ -23,6 +24,7 @@ from vistas.ui.windows.pca_dialog import PcaDialog
 logger = logging.getLogger(__name__)
 
 PADDING = 5
+GL_VERSION_REGEX = re.compile(r'^(?P<major>\d+)\.(?P<minor>\d+)')
 
 
 class AppController(wx.EvtHandler):
@@ -62,8 +64,25 @@ class AppController(wx.EvtHandler):
         self.timer.Start(1, True)
 
     def ShowSplashScreen(self, event):
+        from vistas.ui.app import App
+
         gl_version = glGetString(GL_VERSION).decode()
-        logger.debug('OpenGL Version: {}'.format(gl_version))
+        match = GL_VERSION_REGEX.search(gl_version)
+        gl_version_major = int(match.group('major'))
+        gl_version_minor = int(match.group('minor'))
+
+        if gl_version_major < 3 or (gl_version_major == 3 and gl_version_minor < 3):
+            wx.MessageDialog(
+                self.main_window, 'VISTAS requires OpenGL version 3.3 or greater, \
+                but this computer has version {}.{}.\n\nVISTAS will now close.'.format(
+                    gl_version_major, gl_version_minor
+                ), 'OpenGL Version Error', wx.OK
+            ).ShowModal()
+            self.main_window.Close()
+            return
+
+        App.gl_ready = True
+        self.main_window.Refresh()
 
         splash_background = wx.Image(
             os.path.join(paths.get_resources_directory(), 'images', 'splash.png'), wx.BITMAP_TYPE_ANY

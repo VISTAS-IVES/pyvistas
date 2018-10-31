@@ -86,11 +86,15 @@ void interpolateColor(out vec4 colorOut) {
 		hsvToRGB(noDataColor, colorOut);
 		return;
 	}
-    if (value < minValue) {
+	if (minValue == maxValue) {
+        hsvToRGB(maxColor, colorOut);
+        return;
+    }
+    if (value <= minValue) {
         hsvToRGB(minColor, colorOut);
         return;
     }
-    if (value > maxValue) {
+    if (value >= maxValue) {
         hsvToRGB(maxColor, colorOut);
         return;
     }

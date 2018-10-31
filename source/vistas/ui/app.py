@@ -28,6 +28,7 @@ class App(wx.App):
 
     _global_app = None
     init = False
+    gl_ready = False
 
     @classmethod
     def get(cls):
