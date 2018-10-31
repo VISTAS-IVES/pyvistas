@@ -1,4 +1,4 @@
-## VISTAS 1.17.0 ##
+## VISTAS 1.18.0 ##
 
 VISTAS is a plugin-based 3D visualization program designed for environmental science research. The original application
 was written in C++ and has now been ported to Python for better access to existing scientific libraries, for quicker

@@ -30,7 +30,7 @@ executables = [
 
 setup(
     name='VISTAS',
-    version='1.17.0',
+    version='1.18.0',
     description='VISTAS',
     options=dict(build_exe=build_options),
     executables=executables
