@@ -16,7 +16,6 @@ from vistas.core.timeline import Timeline
 from vistas.ui.utils import get_main_window
 from vistas.ui.events import EVT_TIMELINE_CHANGED
 
-
 class LinRegDialog(wx.Frame):
     def __init__(self, parent=None):
         super().__init__(parent, title='Linear Regression', size=(800,800))
@@ -34,6 +33,8 @@ class LinRegDialog(wx.Frame):
         right_sizer = wx.BoxSizer(wx.VERTICAL)
 
         zoom_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.zoom_amt = 0;
 
         #Variables title
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Variables:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=20)
@@ -84,6 +85,12 @@ class LinRegDialog(wx.Frame):
 
         ctl_sizer.Add(zoom_sizer, flag=wx.TOP|wx.BOTTOM, border=10)
 
+        self.zoom_in.Bind(wx.EVT_BUTTON, self.doPlot)
+        self.zoom_out.Bind(wx.EVT_BUTTON, self.doPlot)
+
+        self.zoom_in.Bind(wx.EVT_BUTTON, self.zooming_in)
+        self.zoom_out.Bind(wx.EVT_BUTTON, self.zooming_out)
+
         #Adjust Axis
         #Create sliders for y axis
         self.y_min = wx.Slider(self.panel, value = 100, minValue = 0, maxValue = 100, style = wx.SL_VERTICAL)
@@ -129,6 +136,24 @@ class LinRegDialog(wx.Frame):
         self.CenterOnParent()
         self.panel.Layout()
         self.Show()
+
+    def zooming_in(self, event):
+        axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
+        if axis_type=='Zoom':
+            if self.zoom_amt<3:
+                self.zoom_amt+=1
+                event.Skip()
+                self.doPlot
+        print(self.zoom_amt)
+
+    def zooming_out(self, event):
+        axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
+        if axis_type == 'Zoom':
+            if self.zoom_amt > 0:
+                self.zoom_amt -= 1
+                event.Skip()
+                self.doPlot
+        print(self.zoom_amt)
 
     def y_min_change(self, event):
         if self.y_min.GetValue() <= self.y_max.GetValue():
@@ -191,16 +216,23 @@ class LinRegDialog(wx.Frame):
             self.ax.set_xlabel(iv[0]['name'])
             self.ax.set_ylabel(dv[0]['name'])
             axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
+
+            iv_ticks = (iv[0]['max'] - iv[0]['min']) / 100
+            dv_ticks = (dv[0]['max'] - dv[0]['min']) / 100
             #AXIS TYPE FIXED
             if axis_type == 'Fit All':
                 self.ax.set_xlim(iv[0]['min'], iv[0]['max'])
                 self.ax.set_ylim(dv[0]['min'], dv[0]['max'])
-            if axis_type == 'Fixed':
-                iv_ticks = (iv[0]['max'] - iv[0]['min'])/100
-                dv_ticks = (dv[0]['max'] - dv[0]['min'])/100
-
+            elif axis_type == 'Fixed':
                 self.ax.set_xlim(iv[0]['min']+(self.x_min.GetValue()*iv_ticks), iv[0]['min']+(self.x_max.GetValue()*iv_ticks))
                 self.ax.set_ylim(dv[0]['max']-(self.y_min.GetValue()*dv_ticks), dv[0]['max']-(self.y_max.GetValue()*dv_ticks))
+            elif axis_type == 'Zoom':
+                zoom_mult = 10
+                self.ax.set_xlim(iv[0]['min'] + (self.zoom_amt * iv_ticks * zoom_mult),
+                                 iv[0]['max'] - (self.zoom_amt * iv_ticks * zoom_mult))
+                self.ax.set_ylim(dv[0]['min'] + (self.zoom_amt * dv_ticks * zoom_mult),
+                                 dv[0]['max'] - (self.zoom_amt * dv_ticks * zoom_mult))
+                print("Hi")
             self.ax.grid()
 
             dv_plot_data = my_data[0]
@@ -276,6 +308,7 @@ class LinRegDialog(wx.Frame):
         self.panel.Layout()
 
     def doPlot(self, event):
+        print("PLOTTING")
         try:
             iv_selections = [self.iv_chooser.GetString(s) for s in self.iv_chooser.GetSelections()]
             dv_selection = self.dv_chooser.GetString(self.dv_chooser.GetSelection())
