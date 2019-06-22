@@ -33,6 +33,8 @@ class LinRegDialog(wx.Frame):
 
         right_sizer = wx.BoxSizer(wx.VERTICAL)
 
+        zoom_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
         #Variables title
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Variables:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=20)
 
@@ -68,11 +70,19 @@ class LinRegDialog(wx.Frame):
         #Create text title
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Axis type:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=12)
         #Create radio buttons
-        self.axis_type = wx.RadioBox(self.panel, choices=['Fit All', 'Adaptive', 'Fixed'])
+        self.axis_type = wx.RadioBox(self.panel, choices=['Fit All', 'Adaptive', 'Fixed', 'Zoom'])
         #Position radiobox
         ctl_sizer.Add(self.axis_type, flag=wx.LEFT|wx.RIGHT, border=10)
         #Radio button clicked event
         self.Bind(wx.EVT_RADIOBOX, self.doPlot)
+
+        self.zoom_in = wx.Button(self.panel, label="Zoom In")
+        zoom_sizer.Add(self.zoom_in, flag=wx.LEFT, border=10)
+
+        self.zoom_out = wx.Button(self.panel, label="Zoom Out")
+        zoom_sizer.Add(self.zoom_out, flag=wx.LEFT|wx.RIGHT, border=10)
+
+        ctl_sizer.Add(zoom_sizer, flag=wx.TOP|wx.BOTTOM, border=10)
 
         #Adjust Axis
         #Create sliders for y axis
