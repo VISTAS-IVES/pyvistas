@@ -27,37 +27,122 @@ class LinRegDialog(wx.Frame):
         self.sizer.Add(top_sizer, 0)
         ctl_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(ctl_sizer, 0)
+
+        y_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        x_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        right_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        #Variables title
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Variables:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=20)
 
+        #Get choices for independent and dependent variables
         self.data = Project.get().all_data
         data_choices = [n.data.data_name for n in self.data]
 
+        #INDEPENDENT VARIABLE
+        #Create text title
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Independent variable(s):'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=12)
+        #Create listbox
         self.iv_chooser = wx.ListBox(self.panel, choices=data_choices, style=wx.LB_EXTENDED)
+        #Position listbox
         ctl_sizer.Add(self.iv_chooser, flag=wx.LEFT|wx.RIGHT, border=12)
 
-        ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Dependent variable'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=12)
+        #DEPENDENT VARIABLE
+        #Create text title
+        ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Dependent variable:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=12)
+        #Create dropdown selection
         self.dv_chooser = wx.Choice(self.panel, choices=['-'] + data_choices)
+        #Position the dropdown menu
         ctl_sizer.Add(self.dv_chooser, flag=wx.LEFT|wx.RIGHT, border=12)
 
+        #PLOT TYPE
+        #Create text title
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Plot type:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=12)
+        #Create radio buttons
         self.plot_type = wx.RadioBox(self.panel, choices=['scatterplot', 'heatmap'])
+        #Position radiobox
         ctl_sizer.Add(self.plot_type, flag=wx.LEFT|wx.RIGHT, border=10)
+
+        #AXIS TYPE
+        #Create text title
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Axis type:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=12)
-        self.axis_type = wx.RadioBox(self.panel, choices=['fixed', 'adaptive'])
+        #Create radio buttons
+        self.axis_type = wx.RadioBox(self.panel, choices=['Fit All', 'Adaptive', 'Fixed'])
+        #Position radiobox
         ctl_sizer.Add(self.axis_type, flag=wx.LEFT|wx.RIGHT, border=10)
+        #Radio button clicked event
         self.Bind(wx.EVT_RADIOBOX, self.doPlot)
+
+        #Adjust Axis
+        #Create sliders for y axis
+        self.y_min = wx.Slider(self.panel, value = 100, minValue = 0, maxValue = 100, style = wx.SL_VERTICAL)
+        y_sizer.Add(self.y_min, flag=wx.LEFT|wx.EXPAND, border = 10)
+
+        self.y_max = wx.Slider(self.panel, value=0, minValue=0, maxValue=100, style=wx.SL_VERTICAL)
+        y_sizer.Add(self.y_max, flag=wx.EXPAND, border=0)
+
+        self.x_min = wx.Slider(self.panel, value=0, minValue=0, maxValue=100, style=wx.SL_HORIZONTAL)
+        x_sizer.Add(self.x_min, flag=wx.LEFT|wx.EXPAND, border=55)
+
+        self.x_max = wx.Slider(self.panel, value=100, minValue=0, maxValue=100, style=wx.SL_HORIZONTAL)
+        x_sizer.Add(self.x_max, flag=wx.LEFT|wx.EXPAND, border=55)
+
+        #SLIDER EVENTS - One to keep sliders from passing each other and another to draw the plot
+        self.y_min.Bind(wx.EVT_SCROLL, self.y_min_change)
+        self.y_min.Bind(wx.EVT_SCROLL, self.doPlot)
+        self.y_max.Bind(wx.EVT_SCROLL, self.y_max_change)
+        self.y_max.Bind(wx.EVT_SCROLL, self.doPlot)
+        self.x_min.Bind(wx.EVT_SCROLL, self.x_min_change)
+        self.x_min.Bind(wx.EVT_SCROLL, self.doPlot)
+        self.x_max.Bind(wx.EVT_SCROLL, self.x_max_change)
+        self.x_max.Bind(wx.EVT_SCROLL, self.doPlot)
 
         self.fig = mpl.figure.Figure()
         self.canvas = wxagg.FigureCanvasWxAgg(self.panel, -1, self.fig)
-        top_sizer.Add(self.canvas, 1, wx.EXPAND)
+        #top_sizer.Add(self.canvas, 1, wx.EXPAND)
+        y_sizer.Add(self.canvas, 1, wx.EXPAND)
+        right_sizer.Add(y_sizer)
+        right_sizer.Add(x_sizer, flag=wx.EXPAND, border=10)
+        top_sizer.Add(right_sizer)
+
+        #List box event
         self.Bind(wx.EVT_LISTBOX, self.doPlot)
+        #Dropdown menu event
         self.Bind(wx.EVT_CHOICE, self.doPlot)
+        #Close window
         self.Bind(wx.EVT_CLOSE, self.onClose)
+        #Move along with timeline
         get_main_window().Bind(EVT_TIMELINE_CHANGED, self.doPlot)
+
+        #Open in the center of VISTAS main window
         self.CenterOnParent()
         self.panel.Layout()
         self.Show()
+
+    def y_min_change(self, event):
+        if self.y_min.GetValue() <= self.y_max.GetValue():
+            self.y_max.SetValue(self.y_min.GetValue()-1)
+        if self.y_min.GetValue() == 0:
+            self.y_min.SetValue(1)
+
+    def y_max_change(self, event):
+        if self.y_max.GetValue() >= self.y_min.GetValue():
+            self.y_min.SetValue(self.y_max.GetValue()+1)
+        if self.y_max.GetValue() == 100:
+            self.y_max.SetValue(99)
+
+    def x_min_change(self, event):
+        if self.x_min.GetValue() >= self.x_max.GetValue():
+            self.x_max.SetValue(self.x_min.GetValue()+1)
+        if self.x_min.GetValue() == 100:
+            self.x_min.SetValue(99)
+
+    def x_max_change(self, event):
+        if self.x_max.GetValue() <= self.x_min.GetValue():
+            self.x_min.SetValue(self.x_max.GetValue()-1)
+        if self.x_max.GetValue() == 0:
+            self.x_max.SetValue(1)
 
     def getData(self, dname, data):
         try:
@@ -96,9 +181,16 @@ class LinRegDialog(wx.Frame):
             self.ax.set_xlabel(iv[0]['name'])
             self.ax.set_ylabel(dv[0]['name'])
             axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
-            if axis_type == 'fixed':
+            #AXIS TYPE FIXED
+            if axis_type == 'Fit All':
                 self.ax.set_xlim(iv[0]['min'], iv[0]['max'])
                 self.ax.set_ylim(dv[0]['min'], dv[0]['max'])
+            if axis_type == 'Fixed':
+                iv_ticks = (iv[0]['max'] - iv[0]['min'])/100
+                dv_ticks = (dv[0]['max'] - dv[0]['min'])/100
+
+                self.ax.set_xlim(iv[0]['min']+(self.x_min.GetValue()*iv_ticks), iv[0]['min']+(self.x_max.GetValue()*iv_ticks))
+                self.ax.set_ylim(dv[0]['max']-(self.y_min.GetValue()*dv_ticks), dv[0]['max']-(self.y_max.GetValue()*dv_ticks))
             self.ax.grid()
 
             dv_plot_data = my_data[0]
