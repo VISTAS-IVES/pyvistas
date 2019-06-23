@@ -132,10 +132,16 @@ class LinRegDialog(wx.Frame):
         #Move along with timeline
         get_main_window().Bind(EVT_TIMELINE_CHANGED, self.doPlot)
 
+        self.canvas.Bind(wx.EVT_LEFT_DOWN, self.mouse_click)
+
         #Open in the center of VISTAS main window
         self.CenterOnParent()
         self.panel.Layout()
         self.Show()
+
+    def mouse_click(self, event):
+        mouse_pos = event.GetPosition()
+        print(mouse_pos.x, mouse_pos.y)
 
     def zooming_in(self, event):
         axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
@@ -144,7 +150,7 @@ class LinRegDialog(wx.Frame):
                 self.zoom_amt+=1
                 event.Skip()
                 self.doPlot
-        print(self.zoom_amt)
+        #print(self.zoom_amt)
 
     def zooming_out(self, event):
         axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
@@ -153,7 +159,7 @@ class LinRegDialog(wx.Frame):
                 self.zoom_amt -= 1
                 event.Skip()
                 self.doPlot
-        print(self.zoom_amt)
+        #print(self.zoom_amt)
 
     def y_min_change(self, event):
         if self.y_min.GetValue() <= self.y_max.GetValue():
@@ -232,7 +238,6 @@ class LinRegDialog(wx.Frame):
                                  iv[0]['max'] - (self.zoom_amt * iv_ticks * zoom_mult))
                 self.ax.set_ylim(dv[0]['min'] + (self.zoom_amt * dv_ticks * zoom_mult),
                                  dv[0]['max'] - (self.zoom_amt * dv_ticks * zoom_mult))
-                print("Hi")
             self.ax.grid()
 
             dv_plot_data = my_data[0]
@@ -308,7 +313,6 @@ class LinRegDialog(wx.Frame):
         self.panel.Layout()
 
     def doPlot(self, event):
-        print("PLOTTING")
         try:
             iv_selections = [self.iv_chooser.GetString(s) for s in self.iv_chooser.GetSelections()]
             dv_selection = self.dv_chooser.GetString(self.dv_chooser.GetSelection())
