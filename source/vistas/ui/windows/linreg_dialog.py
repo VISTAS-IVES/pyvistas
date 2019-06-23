@@ -36,6 +36,12 @@ class LinRegDialog(wx.Frame):
 
         self.zoom_amt = 0;
 
+        self.mouse_x = 0;
+        self.mouse_y = 0;
+
+        self.mouse_x_diff = 0;
+        self.mouse_y_diff = 0;
+
         #Variables title
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Variables:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=20)
 
@@ -134,7 +140,7 @@ class LinRegDialog(wx.Frame):
 
         self.canvas.Bind(wx.EVT_LEFT_DOWN, self.mouse_click)
         self.canvas.Bind(wx.EVT_LEFT_UP, self.mouse_up)
-        #self.canvas.Bind(wx.EVT_MOTION, self.mouse_move)
+        self.canvas.Bind(wx.EVT_MOTION, self.mouse_move)
 
         #Open in the center of VISTAS main window
         self.CenterOnParent()
@@ -142,15 +148,24 @@ class LinRegDialog(wx.Frame):
         self.Show()
 
     def mouse_move(self, event):
-        print(".")
-
-    def mouse_up(self, event):
-        mouse_pos = event.GetPosition()
-        print("Up:", mouse_pos.x, mouse_pos.y)
+        ms = wx.GetMouseState()
+        if ms.leftIsDown:
+            mouse_pos = event.GetPosition()
+            self.mouse_x_diff = mouse_pos.x - self.mouse_x
+            self.mouse_y_diff = mouse_pos.y - self.mouse_y
+            print(self.mouse_x_diff, self.mouse_y_diff)
 
     def mouse_click(self, event):
         mouse_pos = event.GetPosition()
-        print("Down:", mouse_pos.x, mouse_pos.y)
+        self.mouse_x = mouse_pos.x;
+        self.mouse_y = mouse_pos.y;
+        #print("Up:", mouse_pos.x, mouse_pos.y)
+
+    def mouse_up(self, event):
+        mouse_pos = event.GetPosition()
+        self.mouse_x_diff = mouse_pos.x - self.mouse_x
+        self.mouse_y_diff = mouse_pos.y - self.mouse_y
+        print("Total:", self.mouse_x_diff, self.mouse_y_diff)
 
     def zooming_in(self, event):
         axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
