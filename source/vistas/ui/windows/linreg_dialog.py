@@ -133,15 +133,24 @@ class LinRegDialog(wx.Frame):
         get_main_window().Bind(EVT_TIMELINE_CHANGED, self.doPlot)
 
         self.canvas.Bind(wx.EVT_LEFT_DOWN, self.mouse_click)
+        self.canvas.Bind(wx.EVT_LEFT_UP, self.mouse_up)
+        #self.canvas.Bind(wx.EVT_MOTION, self.mouse_move)
 
         #Open in the center of VISTAS main window
         self.CenterOnParent()
         self.panel.Layout()
         self.Show()
 
+    def mouse_move(self, event):
+        print(".")
+
+    def mouse_up(self, event):
+        mouse_pos = event.GetPosition()
+        print("Up:", mouse_pos.x, mouse_pos.y)
+
     def mouse_click(self, event):
         mouse_pos = event.GetPosition()
-        print(mouse_pos.x, mouse_pos.y)
+        print("Down:", mouse_pos.x, mouse_pos.y)
 
     def zooming_in(self, event):
         axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
