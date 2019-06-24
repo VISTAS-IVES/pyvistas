@@ -142,6 +142,10 @@ class LinRegDialog(wx.Frame):
         self.canvas.Bind(wx.EVT_LEFT_UP, self.mouse_up)
         self.canvas.Bind(wx.EVT_MOTION, self.mouse_move)
 
+        self.canvas.Bind(wx.EVT_LEFT_DOWN, self.doPlot)
+        self.canvas.Bind(wx.EVT_LEFT_UP, self.doPlot)
+        self.canvas.Bind(wx.EVT_MOTION, self.doPlot)
+
         #Open in the center of VISTAS main window
         self.CenterOnParent()
         self.panel.Layout()
@@ -153,19 +157,21 @@ class LinRegDialog(wx.Frame):
             mouse_pos = event.GetPosition()
             self.mouse_x_diff = mouse_pos.x - self.mouse_x
             self.mouse_y_diff = mouse_pos.y - self.mouse_y
-            print(self.mouse_x_diff, self.mouse_y_diff)
+            #print(self.mouse_x_diff, self.mouse_y_diff)
 
     def mouse_click(self, event):
         mouse_pos = event.GetPosition()
         self.mouse_x = mouse_pos.x;
         self.mouse_y = mouse_pos.y;
+        self.mouse_x_diff = 0
+        self.mouse_y_diff = 0
         #print("Up:", mouse_pos.x, mouse_pos.y)
 
     def mouse_up(self, event):
         mouse_pos = event.GetPosition()
         self.mouse_x_diff = mouse_pos.x - self.mouse_x
         self.mouse_y_diff = mouse_pos.y - self.mouse_y
-        print("Total:", self.mouse_x_diff, self.mouse_y_diff)
+        #print("Total:", self.mouse_x_diff, self.mouse_y_diff)
 
     def zooming_in(self, event):
         axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
@@ -257,6 +263,18 @@ class LinRegDialog(wx.Frame):
                 self.ax.set_xlim(iv[0]['min']+(self.x_min.GetValue()*iv_ticks), iv[0]['min']+(self.x_max.GetValue()*iv_ticks))
                 self.ax.set_ylim(dv[0]['max']-(self.y_min.GetValue()*dv_ticks), dv[0]['max']-(self.y_max.GetValue()*dv_ticks))
             elif axis_type == 'Zoom':
+                canvas_x = self.canvas.get_width_height()[0]
+                canvas_y = self.canvas.get_width_height()[1]
+                canvas_x_ticks = canvas_x / 100
+                canvas_y_ticks = canvas_y / 100
+
+                shift_x = (self.mouse_x_diff * 100) / (canvas_x * 100)
+                shift_y = (self.mouse_y_diff * 100) / (canvas_y * 100)
+
+                ms = wx.GetMouseState()
+                if ms.leftIsDown:
+                    print("shift", shift_x, shift_y)
+
                 zoom_mult = 10
                 self.ax.set_xlim(iv[0]['min'] + (self.zoom_amt * iv_ticks * zoom_mult),
                                  iv[0]['max'] - (self.zoom_amt * iv_ticks * zoom_mult))
