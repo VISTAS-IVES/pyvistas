@@ -32,15 +32,18 @@ class LinRegDialog(wx.Frame):
 
         right_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        zoom_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        #zoom_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.zoom_amt = 0;
+        #self.zoom_amt = 0;
 
         self.mouse_x = 0;
         self.mouse_y = 0;
 
         self.mouse_x_diff = 0;
         self.mouse_y_diff = 0;
+
+        self.total_shift_x = 0;
+        self.total_shift_y = 0;
 
         #Variables title
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Variables:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=20)
@@ -83,19 +86,24 @@ class LinRegDialog(wx.Frame):
         #Radio button clicked event
         self.Bind(wx.EVT_RADIOBOX, self.doPlot)
 
-        self.zoom_in = wx.Button(self.panel, label="Zoom In")
-        zoom_sizer.Add(self.zoom_in, flag=wx.LEFT, border=10)
+        # self.zoom_in = wx.Button(self.panel, label="Zoom In")
+        # zoom_sizer.Add(self.zoom_in, flag=wx.LEFT, border=10)
+        #
+        # self.zoom_out = wx.Button(self.panel, label="Zoom Out")
+        # zoom_sizer.Add(self.zoom_out, flag=wx.LEFT|wx.RIGHT, border=10)
+        #
+        # ctl_sizer.Add(zoom_sizer, flag=wx.TOP|wx.BOTTOM, border=10)
+        #
+        # self.zoom_in.Bind(wx.EVT_BUTTON, self.doPlot)
+        # self.zoom_out.Bind(wx.EVT_BUTTON, self.doPlot)
+        #
+        # self.zoom_in.Bind(wx.EVT_BUTTON, self.zooming_in)
+        # self.zoom_out.Bind(wx.EVT_BUTTON, self.zooming_out)
 
-        self.zoom_out = wx.Button(self.panel, label="Zoom Out")
-        zoom_sizer.Add(self.zoom_out, flag=wx.LEFT|wx.RIGHT, border=10)
+        self.zoom = wx.Slider(self.panel, value = 0, minValue = 0, maxValue = 50, style = wx.SL_HORIZONTAL)
+        ctl_sizer.Add(self.zoom, flag=wx.TOP|wx.BOTTOM|wx.LEFT|wx.RIGHT|wx.EXPAND, border = 10)
 
-        ctl_sizer.Add(zoom_sizer, flag=wx.TOP|wx.BOTTOM, border=10)
-
-        self.zoom_in.Bind(wx.EVT_BUTTON, self.doPlot)
-        self.zoom_out.Bind(wx.EVT_BUTTON, self.doPlot)
-
-        self.zoom_in.Bind(wx.EVT_BUTTON, self.zooming_in)
-        self.zoom_out.Bind(wx.EVT_BUTTON, self.zooming_out)
+        self.zoom.Bind(wx.EVT_SCROLL, self.doPlot)
 
         #Adjust Axis
         #Create sliders for y axis
@@ -157,6 +165,9 @@ class LinRegDialog(wx.Frame):
             mouse_pos = event.GetPosition()
             self.mouse_x_diff = mouse_pos.x - self.mouse_x
             self.mouse_y_diff = mouse_pos.y - self.mouse_y
+        else:
+            self.mouse_x_diff = 0;
+            self.mouse_y_diff = 0;
             #print(self.mouse_x_diff, self.mouse_y_diff)
 
     def mouse_click(self, event):
@@ -173,23 +184,23 @@ class LinRegDialog(wx.Frame):
         self.mouse_y_diff = mouse_pos.y - self.mouse_y
         #print("Total:", self.mouse_x_diff, self.mouse_y_diff)
 
-    def zooming_in(self, event):
-        axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
-        if axis_type=='Zoom':
-            if self.zoom_amt<3:
-                self.zoom_amt+=1
-                event.Skip()
-                self.doPlot
-        #print(self.zoom_amt)
-
-    def zooming_out(self, event):
-        axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
-        if axis_type == 'Zoom':
-            if self.zoom_amt > 0:
-                self.zoom_amt -= 1
-                event.Skip()
-                self.doPlot
-        #print(self.zoom_amt)
+    # def zooming_in(self, event):
+    #     axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
+    #     if axis_type=='Zoom':
+    #         if self.zoom_amt<3:
+    #             self.zoom_amt+=1
+    #             event.Skip()
+    #             self.doPlot
+    #     #print(self.zoom_amt)
+    #
+    # def zooming_out(self, event):
+    #     axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
+    #     if axis_type == 'Zoom':
+    #         if self.zoom_amt > 0:
+    #             self.zoom_amt -= 1
+    #             event.Skip()
+    #             self.doPlot
+    #     #print(self.zoom_amt)
 
     def y_min_change(self, event):
         if self.y_min.GetValue() <= self.y_max.GetValue():
@@ -268,18 +279,42 @@ class LinRegDialog(wx.Frame):
                 canvas_x_ticks = canvas_x / 100
                 canvas_y_ticks = canvas_y / 100
 
-                shift_x = (self.mouse_x_diff * 100) / (canvas_x * 100)
-                shift_y = (self.mouse_y_diff * 100) / (canvas_y * 100)
+                shift_x = 100 * ((self.mouse_x_diff * 100) / (canvas_x * 100))
+                shift_y = 100 * ((self.mouse_y_diff * 100) / (canvas_y * 100))
 
-                ms = wx.GetMouseState()
-                if ms.leftIsDown:
-                    print("shift", shift_x, shift_y)
+                self.total_shift_x += shift_x
+                self.total_shift_y -= shift_y
 
-                zoom_mult = 10
-                self.ax.set_xlim(iv[0]['min'] + (self.zoom_amt * iv_ticks * zoom_mult),
-                                 iv[0]['max'] - (self.zoom_amt * iv_ticks * zoom_mult))
-                self.ax.set_ylim(dv[0]['min'] + (self.zoom_amt * dv_ticks * zoom_mult),
-                                 dv[0]['max'] - (self.zoom_amt * dv_ticks * zoom_mult))
+                # ms = wx.GetMouseState()
+                # if ms.leftIsDown:
+                #     print("shift", shift_x, -shift_y)
+
+                shift_amt = 4
+
+                zoom_amt_x = self.zoom.GetValue() * iv_ticks
+                current_x_shift = self.total_shift_x*canvas_x_ticks/shift_amt
+                x_low = iv[0]['min'] + zoom_amt_x - current_x_shift
+                x_high = iv[0]['max'] - zoom_amt_x - current_x_shift
+                if x_low < iv[0]['min']:
+                    x_low = iv[0]['min']
+                    x_high = iv[0]['max'] - (2*zoom_amt_x)
+                if x_high > iv[0]['max']:
+                    x_high = iv[0]['max']
+                    x_low = iv[0]['min'] + (2*zoom_amt_x)
+
+                zoom_amt_y = self.zoom.GetValue() * dv_ticks
+                current_y_shift = self.total_shift_y*canvas_y_ticks/shift_amt
+                y_low = dv[0]['min'] + zoom_amt_y - current_y_shift
+                y_high = dv[0]['max'] - zoom_amt_y - current_y_shift
+                if y_low < dv[0]['min']:
+                    y_low = dv[0]['min']
+                    y_high = dv[0]['max'] - (2*zoom_amt_y)
+                if y_high > dv[0]['max']:
+                    y_high = dv[0]['max']
+                    y_low = dv[0]['min'] + (2*zoom_amt_y)
+
+                self.ax.set_xlim(x_low, x_high)
+                self.ax.set_ylim(y_low, y_high)
             self.ax.grid()
 
             dv_plot_data = my_data[0]
