@@ -32,18 +32,14 @@ class LinRegDialog(wx.Frame):
 
         right_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        #zoom_sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        #self.zoom_amt = 0;
-
         self.mouse_x = 0;
         self.mouse_y = 0;
 
         self.mouse_x_diff = 0;
         self.mouse_y_diff = 0;
 
-        self.total_shift_x = 0;
-        self.total_shift_y = 0;
+        self.shift_x = 0;
+        self.shift_y = 0;
 
         #Variables title
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Variables:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=20)
@@ -86,20 +82,7 @@ class LinRegDialog(wx.Frame):
         #Radio button clicked event
         self.Bind(wx.EVT_RADIOBOX, self.doPlot)
 
-        # self.zoom_in = wx.Button(self.panel, label="Zoom In")
-        # zoom_sizer.Add(self.zoom_in, flag=wx.LEFT, border=10)
-        #
-        # self.zoom_out = wx.Button(self.panel, label="Zoom Out")
-        # zoom_sizer.Add(self.zoom_out, flag=wx.LEFT|wx.RIGHT, border=10)
-        #
-        # ctl_sizer.Add(zoom_sizer, flag=wx.TOP|wx.BOTTOM, border=10)
-        #
-        # self.zoom_in.Bind(wx.EVT_BUTTON, self.doPlot)
-        # self.zoom_out.Bind(wx.EVT_BUTTON, self.doPlot)
-        #
-        # self.zoom_in.Bind(wx.EVT_BUTTON, self.zooming_in)
-        # self.zoom_out.Bind(wx.EVT_BUTTON, self.zooming_out)
-
+        #ZOOM SLIDER
         self.zoom = wx.Slider(self.panel, value = 0, minValue = 0, maxValue = 50, style = wx.SL_HORIZONTAL)
         ctl_sizer.Add(self.zoom, flag=wx.TOP|wx.BOTTOM|wx.LEFT|wx.RIGHT|wx.EXPAND, border = 10)
 
@@ -131,7 +114,7 @@ class LinRegDialog(wx.Frame):
 
         self.fig = mpl.figure.Figure()
         self.canvas = wxagg.FigureCanvasWxAgg(self.panel, -1, self.fig)
-        #top_sizer.Add(self.canvas, 1, wx.EXPAND)
+
         y_sizer.Add(self.canvas, 1, wx.EXPAND)
         right_sizer.Add(y_sizer)
         right_sizer.Add(x_sizer, flag=wx.EXPAND, border=10)
@@ -159,6 +142,8 @@ class LinRegDialog(wx.Frame):
         self.panel.Layout()
         self.Show()
 
+    #MOUSE METHODS
+
     def mouse_move(self, event):
         ms = wx.GetMouseState()
         if ms.leftIsDown:
@@ -168,7 +153,6 @@ class LinRegDialog(wx.Frame):
         else:
             self.mouse_x_diff = 0;
             self.mouse_y_diff = 0;
-            #print(self.mouse_x_diff, self.mouse_y_diff)
 
     def mouse_click(self, event):
         mouse_pos = event.GetPosition()
@@ -176,31 +160,13 @@ class LinRegDialog(wx.Frame):
         self.mouse_y = mouse_pos.y;
         self.mouse_x_diff = 0
         self.mouse_y_diff = 0
-        #print("Up:", mouse_pos.x, mouse_pos.y)
 
     def mouse_up(self, event):
         mouse_pos = event.GetPosition()
         self.mouse_x_diff = mouse_pos.x - self.mouse_x
         self.mouse_y_diff = mouse_pos.y - self.mouse_y
-        #print("Total:", self.mouse_x_diff, self.mouse_y_diff)
 
-    # def zooming_in(self, event):
-    #     axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
-    #     if axis_type=='Zoom':
-    #         if self.zoom_amt<3:
-    #             self.zoom_amt+=1
-    #             event.Skip()
-    #             self.doPlot
-    #     #print(self.zoom_amt)
-    #
-    # def zooming_out(self, event):
-    #     axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
-    #     if axis_type == 'Zoom':
-    #         if self.zoom_amt > 0:
-    #             self.zoom_amt -= 1
-    #             event.Skip()
-    #             self.doPlot
-    #     #print(self.zoom_amt)
+    #SLIDER METHODS
 
     def y_min_change(self, event):
         if self.y_min.GetValue() <= self.y_max.GetValue():
@@ -225,6 +191,8 @@ class LinRegDialog(wx.Frame):
             self.x_min.SetValue(self.x_max.GetValue()-1)
         if self.x_max.GetValue() == 0:
             self.x_max.SetValue(1)
+
+    #PLOTTTING GRAPH
 
     def getData(self, dname, data):
         try:
@@ -264,57 +232,69 @@ class LinRegDialog(wx.Frame):
             self.ax.set_ylabel(dv[0]['name'])
             axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
 
-            iv_ticks = (iv[0]['max'] - iv[0]['min']) / 100
-            dv_ticks = (dv[0]['max'] - dv[0]['min']) / 100
+            #Graph variables
+            x_min = iv[0]['min']
+            x_max = iv[0]['max']
+            y_min = dv[0]['min']
+            y_max = dv[0]['max']
+
+            x_ticks = (x_max - x_min) / 100
+            y_ticks = (y_max - y_min) / 100
+
             #AXIS TYPE FIXED
             if axis_type == 'Fit All':
-                self.ax.set_xlim(iv[0]['min'], iv[0]['max'])
-                self.ax.set_ylim(dv[0]['min'], dv[0]['max'])
+                self.ax.set_xlim(x_min, x_max)
+                self.ax.set_ylim(y_min, y_max)
             elif axis_type == 'Fixed':
-                self.ax.set_xlim(iv[0]['min']+(self.x_min.GetValue()*iv_ticks), iv[0]['min']+(self.x_max.GetValue()*iv_ticks))
-                self.ax.set_ylim(dv[0]['max']-(self.y_min.GetValue()*dv_ticks), dv[0]['max']-(self.y_max.GetValue()*dv_ticks))
+                self.ax.set_xlim(x_min+(self.x_min.GetValue()*x_ticks), x_min+(self.x_max.GetValue()*x_ticks))
+                self.ax.set_ylim(y_max-(self.y_min.GetValue()*y_ticks), y_max-(self.y_max.GetValue()*y_ticks))
             elif axis_type == 'Zoom':
-                canvas_x = self.canvas.get_width_height()[0]
-                canvas_y = self.canvas.get_width_height()[1]
-                canvas_x_ticks = canvas_x / 100
-                canvas_y_ticks = canvas_y / 100
+                canvas_x_width = self.canvas.get_width_height()[0]
+                canvas_y_height = self.canvas.get_width_height()[1]
+                canvas_x_ticks = canvas_x_width / 100
+                canvas_y_ticks = canvas_y_height / 100
 
-                shift_x = 100 * ((self.mouse_x_diff * 100) / (canvas_x * 100))
-                shift_y = 100 * ((self.mouse_y_diff * 100) / (canvas_y * 100))
+                shift_current_x = 100 * ((self.mouse_x_diff * 100) / (canvas_x_width * 100))
+                shift_current_y = -100 * ((self.mouse_y_diff * 100) / (canvas_y_height * 100)) #SIGN IS FLIPPED
 
-                self.total_shift_x += shift_x
-                self.total_shift_y -= shift_y
+                self.shift_x += shift_current_x
+                self.shift_y += shift_current_y
 
                 # ms = wx.GetMouseState()
                 # if ms.leftIsDown:
-                #     print("shift", shift_x, -shift_y)
+                #    print("shift", shift_current_x, shift_current_y)
 
-                shift_amt = 4
+                shift_amt = 8
 
-                zoom_amt_x = self.zoom.GetValue() * iv_ticks
-                current_x_shift = self.total_shift_x*canvas_x_ticks/shift_amt
-                x_low = iv[0]['min'] + zoom_amt_x - current_x_shift
-                x_high = iv[0]['max'] - zoom_amt_x - current_x_shift
-                if x_low < iv[0]['min']:
-                    x_low = iv[0]['min']
-                    x_high = iv[0]['max'] - (2*zoom_amt_x)
-                if x_high > iv[0]['max']:
-                    x_high = iv[0]['max']
-                    x_low = iv[0]['min'] + (2*zoom_amt_x)
+                zoom_amt_x = self.zoom.GetValue() * x_ticks
+                shift_total_x = self.shift_x*x_ticks/shift_amt
 
-                zoom_amt_y = self.zoom.GetValue() * dv_ticks
-                current_y_shift = self.total_shift_y*canvas_y_ticks/shift_amt
-                y_low = dv[0]['min'] + zoom_amt_y - current_y_shift
-                y_high = dv[0]['max'] - zoom_amt_y - current_y_shift
-                if y_low < dv[0]['min']:
-                    y_low = dv[0]['min']
-                    y_high = dv[0]['max'] - (2*zoom_amt_y)
-                if y_high > dv[0]['max']:
-                    y_high = dv[0]['max']
-                    y_low = dv[0]['min'] + (2*zoom_amt_y)
+                x_lo = x_min + zoom_amt_x - shift_total_x
+                x_hi = x_max - zoom_amt_x - shift_total_x
 
-                self.ax.set_xlim(x_low, x_high)
-                self.ax.set_ylim(y_low, y_high)
+                if x_lo < x_min:
+                    x_lo = x_min
+                    x_hi = x_max - (2*zoom_amt_x)
+                if x_hi > x_max:
+                    x_hi = x_max
+                    x_lo = x_min + (2*zoom_amt_x)
+
+                zoom_amt_y = self.zoom.GetValue() * y_ticks
+                shift_total_y = self.shift_y*y_ticks/shift_amt
+
+                y_lo = y_min + zoom_amt_y - shift_total_y
+                y_hi = y_max - zoom_amt_y - shift_total_y
+
+                if y_lo < y_min:
+                    y_lo = y_min
+                    y_hi = y_max - (2*zoom_amt_y)
+                if y_hi > y_max:
+                    y_hi = y_max
+                    y_lo = y_min + (2*zoom_amt_y)
+
+                self.ax.set_xlim(x_lo, x_hi)
+                self.ax.set_ylim(y_lo, y_hi)
+
             self.ax.grid()
 
             dv_plot_data = my_data[0]
