@@ -133,9 +133,9 @@ class LinRegDialog(wx.Frame):
         self.canvas.Bind(wx.EVT_LEFT_UP, self.mouse_up)
         self.canvas.Bind(wx.EVT_MOTION, self.mouse_move)
 
-        self.canvas.Bind(wx.EVT_LEFT_DOWN, self.doPlot)
-        self.canvas.Bind(wx.EVT_LEFT_UP, self.doPlot)
-        self.canvas.Bind(wx.EVT_MOTION, self.doPlot)
+        #self.canvas.Bind(wx.EVT_LEFT_DOWN, self.doPlot)
+        #self.canvas.Bind(wx.EVT_LEFT_UP, self.doPlot)
+        #self.canvas.Bind(wx.EVT_MOTION, self.doPlot)
 
         #Open in the center of VISTAS main window
         self.CenterOnParent()
@@ -150,9 +150,10 @@ class LinRegDialog(wx.Frame):
             mouse_pos = event.GetPosition()
             self.mouse_x_diff = mouse_pos.x - self.mouse_x
             self.mouse_y_diff = mouse_pos.y - self.mouse_y
+            self.doPlot(event)
         else:
-            self.mouse_x_diff = 0;
-            self.mouse_y_diff = 0;
+            self.mouse_x_diff = 0
+            self.mouse_y_diff = 0
 
     def mouse_click(self, event):
         mouse_pos = event.GetPosition()
@@ -165,6 +166,7 @@ class LinRegDialog(wx.Frame):
         mouse_pos = event.GetPosition()
         self.mouse_x_diff = mouse_pos.x - self.mouse_x
         self.mouse_y_diff = mouse_pos.y - self.mouse_y
+        self.doPlot(event)
 
     #SLIDER METHODS
 
@@ -258,7 +260,7 @@ class LinRegDialog(wx.Frame):
                 # if ms.leftIsDown:
                 #    print("shift", shift_current_x, shift_current_y)
 
-                shift_amt = 2
+                shift_amt = 4
 
                 #x axis
 
