@@ -241,7 +241,6 @@ class LinRegDialog(wx.Frame):
             x_ticks = (x_max - x_min) / 100
             y_ticks = (y_max - y_min) / 100
 
-            #AXIS TYPE FIXED
             if axis_type == 'Fit All':
                 self.ax.set_xlim(x_min, x_max)
                 self.ax.set_ylim(y_min, y_max)
@@ -249,13 +248,8 @@ class LinRegDialog(wx.Frame):
                 self.ax.set_xlim(x_min+(self.x_min.GetValue()*x_ticks), x_min+(self.x_max.GetValue()*x_ticks))
                 self.ax.set_ylim(y_max-(self.y_min.GetValue()*y_ticks), y_max-(self.y_max.GetValue()*y_ticks))
             elif axis_type == 'Zoom':
-                canvas_x_width = self.canvas.get_width_height()[0]
-                canvas_y_height = self.canvas.get_width_height()[1]
-                canvas_x_ticks = canvas_x_width / 100
-                canvas_y_ticks = canvas_y_height / 100
-
-                shift_current_x = 100 * ((self.mouse_x_diff * 100) / (canvas_x_width * 100))
-                shift_current_y = -100 * ((self.mouse_y_diff * 100) / (canvas_y_height * 100)) #SIGN IS FLIPPED
+                shift_current_x = 100 * ((self.mouse_x_diff * 100) / (self.canvas.get_width_height()[0] * 100))
+                shift_current_y = -100 * ((self.mouse_y_diff * 100) / (self.canvas.get_width_height()[1] * 100)) #SIGN IS FLIPPED
 
                 self.shift_x += shift_current_x
                 self.shift_y += shift_current_y
@@ -264,23 +258,39 @@ class LinRegDialog(wx.Frame):
                 # if ms.leftIsDown:
                 #    print("shift", shift_current_x, shift_current_y)
 
-                shift_amt = 8
+                shift_amt = 2
+
+                #x axis
 
                 zoom_amt_x = self.zoom.GetValue() * x_ticks
                 shift_total_x = self.shift_x*x_ticks/shift_amt
 
+                print("shift x", shift_total_x)
+
                 x_lo = x_min + zoom_amt_x - shift_total_x
                 x_hi = x_max - zoom_amt_x - shift_total_x
+
+                #if outside bounds, need to reset to this
+                #shift_total_x = zoom_amt_x
+                #self.shift_x*x_ticks*(1/shift_amt) = self.zoom.GetValue() * x_ticks
+                #self.shift_x/shift_amt = self.zoom.GetValue()
+                #self.shift_x = self.zoom.GetValue() * shift_amt
 
                 if x_lo < x_min:
                     x_lo = x_min
                     x_hi = x_max - (2*zoom_amt_x)
+                    self.shift_x = self.zoom.GetValue() * shift_amt
                 if x_hi > x_max:
                     x_hi = x_max
                     x_lo = x_min + (2*zoom_amt_x)
+                    self.shift_x = self.zoom.GetValue() * shift_amt * -1
+
+                #y axis
 
                 zoom_amt_y = self.zoom.GetValue() * y_ticks
                 shift_total_y = self.shift_y*y_ticks/shift_amt
+
+                print("shift y", shift_total_y)
 
                 y_lo = y_min + zoom_amt_y - shift_total_y
                 y_hi = y_max - zoom_amt_y - shift_total_y
@@ -288,9 +298,11 @@ class LinRegDialog(wx.Frame):
                 if y_lo < y_min:
                     y_lo = y_min
                     y_hi = y_max - (2*zoom_amt_y)
+                    self.shift_y = self.zoom.GetValue() * shift_amt
                 if y_hi > y_max:
                     y_hi = y_max
                     y_lo = y_min + (2*zoom_amt_y)
+                    self.shift_y = self.zoom.GetValue() * shift_amt * -1
 
                 self.ax.set_xlim(x_lo, x_hi)
                 self.ax.set_ylim(y_lo, y_hi)
