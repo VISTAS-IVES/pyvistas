@@ -32,14 +32,18 @@ class LinRegDialog(wx.Frame):
 
         right_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.mouse_x = 0;
-        self.mouse_y = 0;
+        #GLOBAL VARIABLES
 
-        self.mouse_x_diff = 0;
-        self.mouse_y_diff = 0;
+        self.mouse_x = 0
+        self.mouse_y = 0
 
-        self.shift_x = 0;
-        self.shift_y = 0;
+        self.mouse_x_diff = 0
+        self.mouse_y_diff = 0
+
+        self.shift_x = 0
+        self.shift_y = 0
+
+        self.zoom_mode = 0
 
         #Variables title
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Variables:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=20)
@@ -87,6 +91,11 @@ class LinRegDialog(wx.Frame):
         ctl_sizer.Add(self.zoom, flag=wx.TOP|wx.BOTTOM|wx.LEFT|wx.RIGHT|wx.EXPAND, border = 10)
 
         self.zoom.Bind(wx.EVT_SCROLL, self.doPlot)
+
+        self.zoom_box = wx.Button(self.panel, label="Select Zoom")
+        ctl_sizer.Add(self.zoom_box, flag=wx.TOP|wx.BOTTOM|wx.LEFT|wx.RIGHT|wx.EXPAND, border = 10)
+
+        self.zoom_box.Bind(wx.EVT_BUTTON, self.zoom_mode_change)
 
         #Adjust Axis
         #Create sliders for y axis
@@ -193,6 +202,11 @@ class LinRegDialog(wx.Frame):
             self.x_min.SetValue(self.x_max.GetValue()-1)
         if self.x_max.GetValue() == 0:
             self.x_max.SetValue(1)
+
+    #ZOOM METHODS
+
+    def zoom_mode_change(self, event):
+        self.zoom_mode = 1
 
     #PLOTTTING GRAPH
 
