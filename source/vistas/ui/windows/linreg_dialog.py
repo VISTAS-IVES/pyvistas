@@ -27,28 +27,40 @@ class LinRegDialog(wx.Frame):
         ctl_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(ctl_sizer, 0)
 
+        #sizers for the sliders
         y_sizer = wx.BoxSizer(wx.HORIZONTAL)
         x_sizer = wx.BoxSizer(wx.VERTICAL)
 
+        #sizer for something
         right_sizer = wx.BoxSizer(wx.VERTICAL)
 
         #GLOBAL VARIABLES
 
+        #mouse initial positon
         self.mouse_x = 0
         self.mouse_y = 0
 
+        #mouse drag distance
         self.mouse_x_diff = 0
         self.mouse_y_diff = 0
 
+        #total amount dragged
         self.shift_x = 0
         self.shift_y = 0
 
+        #0 is off, 1 allows user to drag a box
         self.zoom_mode = 0
 
+        #saves current bounds for use in calculating zoom
         self.x_upper = 0
         self.x_lower = 0
         self.y_upper = 0
         self.y_lower = 0
+
+        #If outside border
+        self.x_border = 66
+        self.y_border = 58
+        self.ignore_mouse = False
 
         #Variables title
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Variables:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=20)
@@ -97,13 +109,13 @@ class LinRegDialog(wx.Frame):
 
         self.zoom.Bind(wx.EVT_SCROLL, self.doPlot)
 
+        #Zoom button for dragging a box
         self.zoom_box = wx.Button(self.panel, label="Select Zoom")
         ctl_sizer.Add(self.zoom_box, flag=wx.TOP|wx.BOTTOM|wx.LEFT|wx.RIGHT|wx.EXPAND, border = 10)
 
         self.zoom_box.Bind(wx.EVT_BUTTON, self.zoom_mode_change)
 
-        #Adjust Axis
-        #Create sliders for y axis
+        #Adjust Axis sliders
         self.y_min = wx.Slider(self.panel, value = 100, minValue = 0, maxValue = 100, style = wx.SL_VERTICAL)
         y_sizer.Add(self.y_min, flag=wx.LEFT|wx.EXPAND, border = 10)
 
@@ -143,6 +155,7 @@ class LinRegDialog(wx.Frame):
         #Move along with timeline
         get_main_window().Bind(EVT_TIMELINE_CHANGED, self.doPlot)
 
+        #Mouse events on graph
         self.canvas.Bind(wx.EVT_LEFT_DOWN, self.mouse_click)
         self.canvas.Bind(wx.EVT_LEFT_UP, self.mouse_up)
         self.canvas.Bind(wx.EVT_MOTION, self.mouse_move)
@@ -159,33 +172,41 @@ class LinRegDialog(wx.Frame):
     #MOUSE METHODS
 
     def mouse_move(self, event):
-        ms = wx.GetMouseState()
-        if ms.leftIsDown:
-            mouse_pos = event.GetPosition()
-            self.mouse_x_diff = mouse_pos.x - self.mouse_x
-            self.mouse_y_diff = mouse_pos.y - self.mouse_y
-            if self.zoom_mode == 0:
-                self.doPlot(event)
-        else:
-            self.mouse_x_diff = 0
-            self.mouse_y_diff = 0
+        if self.ignore_mouse == False:
+            ms = wx.GetMouseState()
+            if ms.leftIsDown:
+                mouse_pos = event.GetPosition()
+                self.mouse_x_diff = mouse_pos.x - self.mouse_x
+                self.mouse_y_diff = mouse_pos.y - self.mouse_y
+                if self.zoom_mode == 0:
+                    self.doPlot(event)
+            else:
+                self.mouse_x_diff = 0
+                self.mouse_y_diff = 0
 
     def mouse_click(self, event):
         mouse_pos = event.GetPosition()
-        self.mouse_x = mouse_pos.x
-        self.mouse_y = mouse_pos.y
+        if mouse_pos.x < self.x_border:
+            self.ignore_mouse = True
+        elif mouse_pos.y > (self.canvas.get_width_height()[1] - self.y_border):
+            self.ignore_mouse = True
+        else:
+            self.ignore_mouse = False
+            self.mouse_x = mouse_pos.x
+            self.mouse_y = mouse_pos.y
         self.mouse_x_diff = 0
         self.mouse_y_diff = 0
 
     def mouse_up(self, event):
-        mouse_pos = event.GetPosition()
-        self.mouse_x_diff = mouse_pos.x - self.mouse_x
-        self.mouse_y_diff = mouse_pos.y - self.mouse_y
-        self.doPlot(event)
-        if self.zoom_mode == 1:
-            self.zoom_mode = 0
+        if self.ignore_mouse == False:
+            mouse_pos = event.GetPosition()
+            self.mouse_x_diff = mouse_pos.x - self.mouse_x
+            self.mouse_y_diff = mouse_pos.y - self.mouse_y
+            self.doPlot(event)
+            if self.zoom_mode == 1:
+                self.zoom_mode = 0
 
-    #SLIDER METHODS
+    #SLIDER METHODS - keeps sliders from passing eachother
 
     def y_min_change(self, event):
         if self.y_min.GetValue() <= self.y_max.GetValue():
@@ -211,7 +232,7 @@ class LinRegDialog(wx.Frame):
         if self.x_max.GetValue() == 0:
             self.x_max.SetValue(1)
 
-    #ZOOM METHODS
+    #ZOOM METHOD - Allows the user to drag a box
 
     def zoom_mode_change(self, event):
         self.zoom_mode = 1
@@ -262,6 +283,7 @@ class LinRegDialog(wx.Frame):
             y_min = dv[0]['min']
             y_max = dv[0]['max']
 
+            #For use with percentages
             x_ticks = (x_max - x_min) / 100
             y_ticks = (y_max - y_min) / 100
 
@@ -272,66 +294,66 @@ class LinRegDialog(wx.Frame):
                 self.ax.set_xlim(x_min+(self.x_min.GetValue()*x_ticks), x_min+(self.x_max.GetValue()*x_ticks))
                 self.ax.set_ylim(y_max-(self.y_min.GetValue()*y_ticks), y_max-(self.y_max.GetValue()*y_ticks))
             elif axis_type == 'Zoom':
+                #Slows down shifting for the user
                 shift_amt = 4
 
-                shift_current_x = 100 * ((self.mouse_x_diff * 100) / (self.canvas.get_width_height()[0] * 100))
-                shift_current_y = -100 * ((self.mouse_y_diff * 100) / (self.canvas.get_width_height()[1] * 100)) #SIGN IS FLIPPED
+                #Size of graph area (approximately)
+                canvas_width = self.canvas.get_width_height()[0]-self.x_border
+                canvas_height = self.canvas.get_width_height()[1]-self.y_border
+
+                #Percentage of the screen traveled across
+                shift_current_x = 100 * ((self.mouse_x_diff * 100) / (canvas_width * 100))
+                shift_current_y = -100 * ((self.mouse_y_diff * 100) / (canvas_height * 100)) #SIGN IS FLIPPED
 
                 if self.zoom_mode == 0:
+                    #Add current drag to previous user drags
                     self.shift_x += shift_current_x
                     self.shift_y += shift_current_y
 
-                    #print("shift", self.shift_x, self.shift_y)
-
+                    #Total drag distance divided by the shift amount to slow down movement
                     shift_total_x = self.shift_x * x_ticks / shift_amt
-                    shift_total_y = self.shift_y*y_ticks/shift_amt
+                    shift_total_y = self.shift_y * y_ticks / shift_amt
 
                 else:
+                    #calculate center of drawn box
+                    center_x_nonpercent = (self.mouse_x + (self.mouse_x_diff/2)) - self.x_border
+                    center_y_nonpercent = self.mouse_y + (self.mouse_y_diff/2)
 
-                    center_x = 100 * (((self.mouse_x + (self.mouse_x_diff/2)) * 100) / (self.canvas.get_width_height()[0] * 100))
-                    center_y = 100 * (((self.mouse_y + (self.mouse_y_diff/2)) * 100) / (self.canvas.get_width_height()[1] * 100))
+                    #center in the form of a percentage from the top left corner
+                    center_x = 100 * ((center_x_nonpercent * 100) / (canvas_width * 100))
+                    center_y = 100 - (100 * ((center_y_nonpercent * 100) / (canvas_height * 100)))
 
-                    #print("center", center_x, center_y)
-
+                    #Divide the current bounds
                     x_ticks_current = (self.x_upper - self.x_lower)/100
                     y_ticks_current = (self.y_upper - self.y_lower)/100
 
+                    #Set the zoom value based on the largest size of the box
                     if abs(shift_current_x) >= abs(shift_current_y):
-                        #print("shift x", shift_current_x, shift_current_y)
                         length = abs(shift_current_x) * x_ticks_current
                         zoom_value = ((((x_max-x_min)-length)/2)/x_ticks)
                         self.zoom.SetValue(round(zoom_value))
                     else:
-                        #print("shift y", shift_current_x, shift_current_y)
                         length = abs(shift_current_y) * y_ticks_current
                         zoom_value = ((((y_max - y_min) - length) / 2) / y_ticks)
                         self.zoom.SetValue(round(zoom_value))
 
-                    shift_total_x = ((self.shift_x*x_ticks) / shift_amt) + (center_x * x_ticks_current)
-                    shift_total_y = ((self.shift_y*y_ticks) / shift_amt) + (center_y * y_ticks_current)
+                    #The current amount the screen is shifted
+                    shift_total_x_old = self.shift_x * x_ticks / shift_amt
+                    shift_total_y_old = self.shift_y * y_ticks / shift_amt
 
+                    #The shift needed to center the graph on the center of the box
+                    shift_x_new = center_x * x_ticks_current
+                    shift_y_new = center_y * y_ticks_current
 
+                    #The final shift amount
+                    shift_total_x = shift_total_x_old + shift_x_new
+                    shift_total_y = shift_total_y_old + shift_y_new
 
-                #print("Difference ", self.mog_x_diff, self.mog_y_diff)
-
-                # ms = wx.GetMouseState()
-                # if ms.leftIsDown:
-                #    print("shift", shift_current_x, shift_current_y)
-
-                #x axis
-
+                #X AXIS CALCULATIONS
                 zoom_amt_x = self.zoom.GetValue() * x_ticks
-
-                #print("shift x", shift_total_x)
 
                 x_lo = x_min + zoom_amt_x - shift_total_x
                 x_hi = x_max - zoom_amt_x - shift_total_x
-
-                #if outside bounds, need to reset to this
-                #shift_total_x = zoom_amt_x
-                #self.shift_x*x_ticks*(1/shift_amt) = self.zoom.GetValue() * x_ticks
-                #self.shift_x/shift_amt = self.zoom.GetValue()
-                #self.shift_x = self.zoom.GetValue() * shift_amt
 
                 if x_lo < x_min:
                     x_lo = x_min
@@ -342,11 +364,14 @@ class LinRegDialog(wx.Frame):
                     x_lo = x_min + (2*zoom_amt_x)
                     self.shift_x = self.zoom.GetValue() * shift_amt * -1
 
-                #y axis
+                # if outside bounds, need to reset to this
+                # shift_total_x = zoom_amt_x
+                # self.shift_x*x_ticks*(1/shift_amt) = self.zoom.GetValue() * x_ticks
+                # self.shift_x/shift_amt = self.zoom.GetValue()
+                # self.shift_x = self.zoom.GetValue() * shift_amt
 
+                #Y AXIS CALCULATIONS
                 zoom_amt_y = self.zoom.GetValue() * y_ticks
-
-                #print("shift y", shift_total_y)
 
                 y_lo = y_min + zoom_amt_y - shift_total_y
                 y_hi = y_max - zoom_amt_y - shift_total_y
@@ -360,6 +385,7 @@ class LinRegDialog(wx.Frame):
                     y_lo = y_min + (2*zoom_amt_y)
                     self.shift_y = self.zoom.GetValue() * shift_amt * -1
 
+                #SET BOUNDS
                 self.ax.set_xlim(x_lo, x_hi)
                 self.ax.set_ylim(y_lo, y_hi)
 
