@@ -45,6 +45,11 @@ class LinRegDialog(wx.Frame):
 
         self.zoom_mode = 0
 
+        self.x_upper = 0
+        self.x_lower = 0
+        self.y_upper = 0
+        self.y_lower = 0
+
         #Variables title
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Variables:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=20)
 
@@ -87,7 +92,7 @@ class LinRegDialog(wx.Frame):
         self.Bind(wx.EVT_RADIOBOX, self.doPlot)
 
         #ZOOM SLIDER
-        self.zoom = wx.Slider(self.panel, value = 0, minValue = 0, maxValue = 50, style = wx.SL_HORIZONTAL)
+        self.zoom = wx.Slider(self.panel, value = 0, minValue = 0, maxValue = 49, style = wx.SL_HORIZONTAL)
         ctl_sizer.Add(self.zoom, flag=wx.TOP|wx.BOTTOM|wx.LEFT|wx.RIGHT|wx.EXPAND, border = 10)
 
         self.zoom.Bind(wx.EVT_SCROLL, self.doPlot)
@@ -159,15 +164,16 @@ class LinRegDialog(wx.Frame):
             mouse_pos = event.GetPosition()
             self.mouse_x_diff = mouse_pos.x - self.mouse_x
             self.mouse_y_diff = mouse_pos.y - self.mouse_y
-            self.doPlot(event)
+            if self.zoom_mode == 0:
+                self.doPlot(event)
         else:
             self.mouse_x_diff = 0
             self.mouse_y_diff = 0
 
     def mouse_click(self, event):
         mouse_pos = event.GetPosition()
-        self.mouse_x = mouse_pos.x;
-        self.mouse_y = mouse_pos.y;
+        self.mouse_x = mouse_pos.x
+        self.mouse_y = mouse_pos.y
         self.mouse_x_diff = 0
         self.mouse_y_diff = 0
 
@@ -176,6 +182,8 @@ class LinRegDialog(wx.Frame):
         self.mouse_x_diff = mouse_pos.x - self.mouse_x
         self.mouse_y_diff = mouse_pos.y - self.mouse_y
         self.doPlot(event)
+        if self.zoom_mode == 1:
+            self.zoom_mode = 0
 
     #SLIDER METHODS
 
@@ -264,24 +272,57 @@ class LinRegDialog(wx.Frame):
                 self.ax.set_xlim(x_min+(self.x_min.GetValue()*x_ticks), x_min+(self.x_max.GetValue()*x_ticks))
                 self.ax.set_ylim(y_max-(self.y_min.GetValue()*y_ticks), y_max-(self.y_max.GetValue()*y_ticks))
             elif axis_type == 'Zoom':
+                shift_amt = 4
+
                 shift_current_x = 100 * ((self.mouse_x_diff * 100) / (self.canvas.get_width_height()[0] * 100))
                 shift_current_y = -100 * ((self.mouse_y_diff * 100) / (self.canvas.get_width_height()[1] * 100)) #SIGN IS FLIPPED
 
-                self.shift_x += shift_current_x
-                self.shift_y += shift_current_y
+                if self.zoom_mode == 0:
+                    self.shift_x += shift_current_x
+                    self.shift_y += shift_current_y
+
+                    #print("shift", self.shift_x, self.shift_y)
+
+                    shift_total_x = self.shift_x * x_ticks / shift_amt
+                    shift_total_y = self.shift_y*y_ticks/shift_amt
+
+                else:
+
+                    center_x = 100 * (((self.mouse_x + (self.mouse_x_diff/2)) * 100) / (self.canvas.get_width_height()[0] * 100))
+                    center_y = 100 * (((self.mouse_y + (self.mouse_y_diff/2)) * 100) / (self.canvas.get_width_height()[1] * 100))
+
+                    #print("center", center_x, center_y)
+
+                    x_ticks_current = (self.x_upper - self.x_lower)/100
+                    y_ticks_current = (self.y_upper - self.y_lower)/100
+
+                    if abs(shift_current_x) >= abs(shift_current_y):
+                        #print("shift x", shift_current_x, shift_current_y)
+                        length = abs(shift_current_x) * x_ticks_current
+                        zoom_value = ((((x_max-x_min)-length)/2)/x_ticks)
+                        self.zoom.SetValue(round(zoom_value))
+                    else:
+                        #print("shift y", shift_current_x, shift_current_y)
+                        length = abs(shift_current_y) * y_ticks_current
+                        zoom_value = ((((y_max - y_min) - length) / 2) / y_ticks)
+                        self.zoom.SetValue(round(zoom_value))
+
+                    shift_total_x = ((self.shift_x*x_ticks) / shift_amt) + (center_x * x_ticks_current)
+                    shift_total_y = ((self.shift_y*y_ticks) / shift_amt) + (center_y * y_ticks_current)
+
+
+
+                #print("Difference ", self.mog_x_diff, self.mog_y_diff)
 
                 # ms = wx.GetMouseState()
                 # if ms.leftIsDown:
                 #    print("shift", shift_current_x, shift_current_y)
 
-                shift_amt = 4
-
                 #x axis
 
                 zoom_amt_x = self.zoom.GetValue() * x_ticks
-                shift_total_x = self.shift_x*x_ticks/shift_amt
 
-                print("shift x", shift_total_x)
+                #print("shift x", shift_total_x)
 
                 x_lo = x_min + zoom_amt_x - shift_total_x
                 x_hi = x_max - zoom_amt_x - shift_total_x
@@ -304,9 +345,8 @@ class LinRegDialog(wx.Frame):
                 #y axis
 
                 zoom_amt_y = self.zoom.GetValue() * y_ticks
-                shift_total_y = self.shift_y*y_ticks/shift_amt
 
-                print("shift y", shift_total_y)
+                #print("shift y", shift_total_y)
 
                 y_lo = y_min + zoom_amt_y - shift_total_y
                 y_hi = y_max - zoom_amt_y - shift_total_y
@@ -322,6 +362,11 @@ class LinRegDialog(wx.Frame):
 
                 self.ax.set_xlim(x_lo, x_hi)
                 self.ax.set_ylim(y_lo, y_hi)
+
+                self.x_upper = x_hi
+                self.x_lower = x_lo
+                self.y_upper = y_hi
+                self.y_lower = y_lo
 
             self.ax.grid()
 
@@ -396,6 +441,8 @@ class LinRegDialog(wx.Frame):
 
         self.sizer.AddStretchSpacer()
         self.panel.Layout()
+
+
 
     def doPlot(self, event):
         try:
