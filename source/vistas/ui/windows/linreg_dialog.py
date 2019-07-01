@@ -302,8 +302,10 @@ class LinRegDialog(wx.Frame):
                 canvas_height = self.canvas.get_width_height()[1]-self.y_border
 
                 #Percentage of the screen traveled across
-                shift_current_x = 100 * ((self.mouse_x_diff * 100) / (canvas_width * 100))
-                shift_current_y = -100 * ((self.mouse_y_diff * 100) / (canvas_height * 100)) #SIGN IS FLIPPED
+                shift_current_x = -100 * ((self.mouse_x_diff * 100) / (canvas_width * 100))
+                shift_current_y = 100 * ((self.mouse_y_diff * 100) / (canvas_height * 100)) #SIGN IS FLIPPED
+
+                #print("shift current", shift_current_x,shift_current_y)
 
                 if self.zoom_mode == 0:
                     #Add current drag to previous user drags
@@ -316,16 +318,20 @@ class LinRegDialog(wx.Frame):
 
                 else:
                     #calculate center of drawn box
-                    center_x_nonpercent = (self.mouse_x + (self.mouse_x_diff/2)) - self.x_border
-                    center_y_nonpercent = self.mouse_y + (self.mouse_y_diff/2)
+                    center_x_nonpercent = ((self.mouse_x + (self.mouse_x_diff/2)) - self.x_border) - (canvas_width/2)
+                    center_y_nonpercent = (canvas_height/2) - (self.mouse_y + (self.mouse_y_diff/2))
 
-                    #center in the form of a percentage from the top left corner
-                    center_x = 100 * ((center_x_nonpercent * 100) / (canvas_width * 100))
-                    center_y = 100 - (100 * ((center_y_nonpercent * 100) / (canvas_height * 100)))
+                    #center in the form of a percentage of canvas size
+                    center_x = 100 * ((center_x_nonpercent * 100) / (canvas_width/2 * 100))
+                    center_y = 100 * ((center_y_nonpercent * 100) / (canvas_height/2 * 100))
+
+                    #print("center",center_x,center_y)
 
                     #Divide the current bounds
                     x_ticks_current = (self.x_upper - self.x_lower)/100
                     y_ticks_current = (self.y_upper - self.y_lower)/100
+
+                    #print("ticks",x_ticks_current*100,y_ticks_current*100)
 
                     #Set the zoom value based on the largest size of the box
                     if abs(shift_current_x) >= abs(shift_current_y):
@@ -342,8 +348,8 @@ class LinRegDialog(wx.Frame):
                     shift_total_y_old = self.shift_y * y_ticks / shift_amt
 
                     #The shift needed to center the graph on the center of the box
-                    shift_x_new = 0#center_x * x_ticks_current + x_min
-                    shift_y_new = 0#center_y * y_ticks_current + y_min
+                    shift_x_new = center_x * x_ticks_current# + x_min
+                    shift_y_new = center_y * y_ticks_current# + y_min
 
                     #print("shift new", shift_x_new, shift_y_new)
 
@@ -354,17 +360,17 @@ class LinRegDialog(wx.Frame):
                 #X AXIS CALCULATIONS
                 zoom_amt_x = self.zoom.GetValue() * x_ticks
 
-                x_lo = x_min + zoom_amt_x - shift_total_x
-                x_hi = x_max - zoom_amt_x - shift_total_x
+                x_lo = (x_min + zoom_amt_x) + shift_total_x
+                x_hi = (x_max - zoom_amt_x) + shift_total_x
 
                 if x_lo < x_min:
                     x_lo = x_min
                     x_hi = x_max - (2*zoom_amt_x)
-                    self.shift_x = self.zoom.GetValue() * shift_amt
+                    self.shift_x = self.zoom.GetValue() * shift_amt * -1
                 if x_hi > x_max:
                     x_hi = x_max
                     x_lo = x_min + (2*zoom_amt_x)
-                    self.shift_x = self.zoom.GetValue() * shift_amt * -1
+                    self.shift_x = self.zoom.GetValue() * shift_amt# * -1
 
                 # if outside bounds, need to reset to this
                 # shift_total_x = zoom_amt_x
@@ -375,17 +381,19 @@ class LinRegDialog(wx.Frame):
                 #Y AXIS CALCULATIONS
                 zoom_amt_y = self.zoom.GetValue() * y_ticks
 
-                y_lo = y_min + zoom_amt_y - shift_total_y
-                y_hi = y_max - zoom_amt_y - shift_total_y
+                # y_lo = y_min + zoom_amt_y - shift_total_y
+                # y_hi = y_max - zoom_amt_y - shift_total_y
+                y_lo = (y_min + zoom_amt_y) + shift_total_y
+                y_hi = (y_max - zoom_amt_y) + shift_total_y
 
                 if y_lo < y_min:
                     y_lo = y_min
                     y_hi = y_max - (2*zoom_amt_y)
-                    self.shift_y = self.zoom.GetValue() * shift_amt
+                    self.shift_y = self.zoom.GetValue() * shift_amt * -1
                 if y_hi > y_max:
                     y_hi = y_max
                     y_lo = y_min + (2*zoom_amt_y)
-                    self.shift_y = self.zoom.GetValue() * shift_amt * -1
+                    self.shift_y = self.zoom.GetValue() * shift_amt# * -1
 
                 #SET BOUNDS
                 self.ax.set_xlim(x_lo, x_hi)
@@ -396,7 +404,7 @@ class LinRegDialog(wx.Frame):
                 self.y_upper = y_hi
                 self.y_lower = y_lo
 
-                print("SHIFT",self.shift_x,self.shift_y)
+                #print("SHIFT",self.shift_x,self.shift_y)
 
             self.ax.grid()
 
