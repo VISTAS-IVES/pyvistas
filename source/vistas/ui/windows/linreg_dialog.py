@@ -342,8 +342,10 @@ class LinRegDialog(wx.Frame):
                     shift_total_y_old = self.shift_y * y_ticks / shift_amt
 
                     #The shift needed to center the graph on the center of the box
-                    shift_x_new = center_x * x_ticks_current
-                    shift_y_new = center_y * y_ticks_current
+                    shift_x_new = 0#center_x * x_ticks_current + x_min
+                    shift_y_new = 0#center_y * y_ticks_current + y_min
+
+                    #print("shift new", shift_x_new, shift_y_new)
 
                     #The final shift amount
                     shift_total_x = shift_total_x_old + shift_x_new
@@ -393,6 +395,8 @@ class LinRegDialog(wx.Frame):
                 self.x_lower = x_lo
                 self.y_upper = y_hi
                 self.y_lower = y_lo
+
+                print("SHIFT",self.shift_x,self.shift_y)
 
             self.ax.grid()
 
