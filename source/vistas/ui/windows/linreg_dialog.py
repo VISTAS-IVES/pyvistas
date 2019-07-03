@@ -27,11 +27,10 @@ class LinRegDialog(wx.Frame):
         ctl_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(ctl_sizer, 0)
 
-        #sizers for the sliders
-        y_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        x_sizer = wx.BoxSizer(wx.VERTICAL)
+        #sizer for zoom controls
+        zoom_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        #sizer for something
+        #sizer for the right side of the window
         right_sizer = wx.BoxSizer(wx.VERTICAL)
 
         #GLOBAL VARIABLES
@@ -97,53 +96,30 @@ class LinRegDialog(wx.Frame):
         #Create text title
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Axis type:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=12)
         #Create radio buttons
-        self.axis_type = wx.RadioBox(self.panel, choices=['Fit All', 'Adaptive', 'Fixed', 'Zoom'])
+        self.axis_type = wx.RadioBox(self.panel, choices=['Fit All', 'Adaptive', 'Zoom'])
         #Position radiobox
         ctl_sizer.Add(self.axis_type, flag=wx.LEFT|wx.RIGHT, border=10)
         #Radio button clicked event
         self.Bind(wx.EVT_RADIOBOX, self.doPlot)
 
-        #ZOOM SLIDER
-        self.zoom = wx.Slider(self.panel, value = 0, minValue = 0, maxValue = 49, style = wx.SL_HORIZONTAL)
-        ctl_sizer.Add(self.zoom, flag=wx.TOP|wx.BOTTOM|wx.LEFT|wx.RIGHT|wx.EXPAND, border = 10)
-
-        self.zoom.Bind(wx.EVT_SCROLL, self.doPlot)
-
         #Zoom button for dragging a box
-        self.zoom_box = wx.Button(self.panel, label="Select Zoom")
-        ctl_sizer.Add(self.zoom_box, flag=wx.TOP|wx.BOTTOM|wx.LEFT|wx.RIGHT|wx.EXPAND, border = 10)
+        self.zoom_box = wx.Button(self.panel, label="Box")
+        zoom_sizer.Add(self.zoom_box, flag=wx.TOP | wx.BOTTOM | wx.LEFT, border=10)
 
         self.zoom_box.Bind(wx.EVT_BUTTON, self.zoom_mode_change)
 
-        #Adjust Axis sliders
-        self.y_min = wx.Slider(self.panel, value = 100, minValue = 0, maxValue = 100, style = wx.SL_VERTICAL)
-        y_sizer.Add(self.y_min, flag=wx.LEFT|wx.EXPAND, border = 10)
+        #ZOOM SLIDER
+        self.zoom = wx.Slider(self.panel, value = 0, minValue = 0, maxValue = 49, size = (500,-1), style = wx.SL_HORIZONTAL)
+        zoom_sizer.Add(self.zoom, flag=wx.TOP|wx.BOTTOM|wx.LEFT|wx.RIGHT|wx.EXPAND, border = 10)
 
-        self.y_max = wx.Slider(self.panel, value=0, minValue=0, maxValue=100, style=wx.SL_VERTICAL)
-        y_sizer.Add(self.y_max, flag=wx.EXPAND, border=0)
+        self.zoom.Bind(wx.EVT_SCROLL, self.doPlot)
 
-        self.x_min = wx.Slider(self.panel, value=0, minValue=0, maxValue=100, style=wx.SL_HORIZONTAL)
-        x_sizer.Add(self.x_min, flag=wx.LEFT|wx.EXPAND, border=55)
-
-        self.x_max = wx.Slider(self.panel, value=100, minValue=0, maxValue=100, style=wx.SL_HORIZONTAL)
-        x_sizer.Add(self.x_max, flag=wx.LEFT|wx.EXPAND, border=55)
-
-        #SLIDER EVENTS - One to keep sliders from passing each other and another to draw the plot
-        self.y_min.Bind(wx.EVT_SCROLL, self.y_min_change)
-        self.y_min.Bind(wx.EVT_SCROLL, self.doPlot)
-        self.y_max.Bind(wx.EVT_SCROLL, self.y_max_change)
-        self.y_max.Bind(wx.EVT_SCROLL, self.doPlot)
-        self.x_min.Bind(wx.EVT_SCROLL, self.x_min_change)
-        self.x_min.Bind(wx.EVT_SCROLL, self.doPlot)
-        self.x_max.Bind(wx.EVT_SCROLL, self.x_max_change)
-        self.x_max.Bind(wx.EVT_SCROLL, self.doPlot)
-
+        #Graph canvas
         self.fig = mpl.figure.Figure()
         self.canvas = wxagg.FigureCanvasWxAgg(self.panel, -1, self.fig)
 
-        y_sizer.Add(self.canvas, 1, wx.EXPAND)
-        right_sizer.Add(y_sizer)
-        right_sizer.Add(x_sizer, flag=wx.EXPAND, border=10)
+        right_sizer.Add(self.canvas, 1, wx.EXPAND)
+        right_sizer.Add(zoom_sizer, wx.EXPAND, border = 10)
         top_sizer.Add(right_sizer)
 
         #List box event
@@ -206,32 +182,6 @@ class LinRegDialog(wx.Frame):
             if self.zoom_mode == 1:
                 self.zoom_mode = 0
 
-    #SLIDER METHODS - keeps sliders from passing eachother
-
-    def y_min_change(self, event):
-        if self.y_min.GetValue() <= self.y_max.GetValue():
-            self.y_max.SetValue(self.y_min.GetValue()-1)
-        if self.y_min.GetValue() == 0:
-            self.y_min.SetValue(1)
-
-    def y_max_change(self, event):
-        if self.y_max.GetValue() >= self.y_min.GetValue():
-            self.y_min.SetValue(self.y_max.GetValue()+1)
-        if self.y_max.GetValue() == 100:
-            self.y_max.SetValue(99)
-
-    def x_min_change(self, event):
-        if self.x_min.GetValue() >= self.x_max.GetValue():
-            self.x_max.SetValue(self.x_min.GetValue()+1)
-        if self.x_min.GetValue() == 100:
-            self.x_min.SetValue(99)
-
-    def x_max_change(self, event):
-        if self.x_max.GetValue() <= self.x_min.GetValue():
-            self.x_min.SetValue(self.x_max.GetValue()-1)
-        if self.x_max.GetValue() == 0:
-            self.x_max.SetValue(1)
-
     #ZOOM METHOD - Allows the user to drag a box
 
     def zoom_mode_change(self, event):
@@ -290,9 +240,6 @@ class LinRegDialog(wx.Frame):
             if axis_type == 'Fit All':
                 self.ax.set_xlim(x_min, x_max)
                 self.ax.set_ylim(y_min, y_max)
-            elif axis_type == 'Fixed':
-                self.ax.set_xlim(x_min+(self.x_min.GetValue()*x_ticks), x_min+(self.x_max.GetValue()*x_ticks))
-                self.ax.set_ylim(y_max-(self.y_min.GetValue()*y_ticks), y_max-(self.y_max.GetValue()*y_ticks))
             elif axis_type == 'Zoom':
                 #Slows down shifting for the user
                 shift_amt = 4
