@@ -338,11 +338,11 @@ class LinRegDialog(wx.Frame):
                         y_percentage = self.mouse_y_diff / y_length
 
                         if abs(x_percentage) >= abs(y_percentage):
-                            zoom_value = (abs(x_length-self.mouse_x_diff)/2)/x_ticks #FIX
+                            zoom_value = (abs(x_length-abs(self.mouse_x_diff))/2)/x_ticks #FIX
                             x_box = (x_length_current * abs(x_percentage))/2
                             y_box = (y_length_current * abs(x_percentage))/2
                         else:
-                            zoom_value = (abs(y_length-self.mouse_y_diff)/2)/y_ticks
+                            zoom_value = (abs(y_length-abs(self.mouse_y_diff))/2)/y_ticks
                             x_box = (x_length_current * abs(y_percentage))/2
                             y_box = (y_length_current * abs(y_percentage))/2
                         self.zoom.SetValue(round(zoom_value))
