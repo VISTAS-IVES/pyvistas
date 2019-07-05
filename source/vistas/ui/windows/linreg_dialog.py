@@ -46,22 +46,23 @@ class LinRegDialog(wx.Frame):
         self.mouse_x_diff = 0
         self.mouse_y_diff = 0
 
-        #total amount dragged
-        self.shift_x = 0
-        self.shift_y = 0
-
         #0 is off, 1 allows user to drag a box
         self.zoom_mode = 0
 
+        #False if mouse began out of bounds
         self.mouse_continue = True
 
+        #Saves the current bounds of graph
         self.x_hi = 0
         self.x_lo = 0
         self.y_hi = 0
         self.y_lo = 0
 
-        #DRAW RECTANGLE
+        #True if the zoom box should be drawn
         self.draw = False
+
+        #User will be unable to draw a box if zoomed in past this value
+        self.zoom_disable_value = 20
 
         #Variables title
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Variables:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=20)
@@ -71,37 +72,29 @@ class LinRegDialog(wx.Frame):
         data_choices = [n.data.data_name for n in self.data]
 
         #INDEPENDENT VARIABLE
-        #Create text title
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Independent variable(s):'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=12)
-        #Create listbox
+
         self.iv_chooser = wx.ListBox(self.panel, choices=data_choices, style=wx.LB_EXTENDED)
-        #Position listbox
         ctl_sizer.Add(self.iv_chooser, flag=wx.LEFT|wx.RIGHT, border=12)
 
         #DEPENDENT VARIABLE
-        #Create text title
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Dependent variable:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=12)
-        #Create dropdown selection
+
         self.dv_chooser = wx.Choice(self.panel, choices=['-'] + data_choices)
-        #Position the dropdown menu
         ctl_sizer.Add(self.dv_chooser, flag=wx.LEFT|wx.RIGHT, border=12)
 
         #PLOT TYPE
-        #Create text title
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Plot type:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=12)
-        #Create radio buttons
+
         self.plot_type = wx.RadioBox(self.panel, choices=['scatterplot', 'heatmap'])
-        #Position radiobox
         ctl_sizer.Add(self.plot_type, flag=wx.LEFT|wx.RIGHT, border=10)
 
         #AXIS TYPE
-        #Create text title
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Axis type:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=12)
-        #Create radio buttons
+
         self.axis_type = wx.RadioBox(self.panel, choices=['Fit All', 'Adaptive', 'Zoom'])
-        #Position radiobox
         ctl_sizer.Add(self.axis_type, flag=wx.LEFT|wx.RIGHT, border=10)
-        #Radio button clicked event
+
         self.Bind(wx.EVT_RADIOBOX, self.doPlot)
 
         #Zoom button for dragging a box
@@ -121,25 +114,20 @@ class LinRegDialog(wx.Frame):
         self.fig = mpl.figure.Figure()
         self.canvas = wxagg.FigureCanvasWxAgg(self.panel, -1, self.fig)
 
+        #Position canvas and zoom controls
         right_sizer.Add(self.canvas, 1, wx.EXPAND)
         right_sizer.Add(zoom_sizer, wx.EXPAND, border = 10)
         top_sizer.Add(right_sizer)
 
-        #List box event
+        #EVENTS
         self.Bind(wx.EVT_LISTBOX, self.doPlot)
-        #Dropdown menu event
         self.Bind(wx.EVT_CHOICE, self.doPlot)
-        #Close window
         self.Bind(wx.EVT_CLOSE, self.onClose)
+
         #Move along with timeline
         get_main_window().Bind(EVT_TIMELINE_CHANGED, self.doPlot)
 
-        #Mouse events on graph
-
-        #self.canvas.Bind(wx.EVT_LEFT_DOWN, self.mouse_click_wx)
-        #self.canvas.Bind(wx.EVT_LEFT_UP, self.mouse_up_wx)
-        #self.canvas.Bind(wx.EVT_MOTION, self.mouse_move_wx)
-
+        #Mouse events on graph (Matplotlib events)
         self.fig.canvas.mpl_connect('button_press_event', self.mouse_click)
         self.fig.canvas.mpl_connect('button_release_event', self.mouse_up)
         self.fig.canvas.mpl_connect('motion_notify_event', self.mouse_move)
@@ -149,13 +137,15 @@ class LinRegDialog(wx.Frame):
         self.panel.Layout()
         self.Show()
 
+    #Disable the button that allows user to draw a zoom box
     def disableZoom(self, event):
-        if self.zoom.GetValue() > 20:
+        if self.zoom.GetValue() > self.zoom_disable_value:
             self.zoom_box.Disable()
         else:
             self.zoom_box.Enable()
         event.Skip()
 
+    #Check to see if coordinates are outside the graph
     def checkNone(self, event):
         if event.xdata == None:
             return False
@@ -195,27 +185,7 @@ class LinRegDialog(wx.Frame):
         self.draw = False
         self.doPlot(event)
 
-    #MOUSE METHODS WX
-
-    def mouse_click_wx(self, event):
-        event.Skip()
-        self.fig.canvas.mpl_connect('button_press_event', self.mouse_click)
-        self.doPlot(event)
-
-
-    def mouse_move_wx(self, event):
-        event.Skip()
-        self.fig.canvas.mpl_connect('motion_notify_event', self.mouse_move)
-        if self.zoom_mode == 0:
-            self.doPlot(event)
-
-    def mouse_up_wx(self, event):
-        event.Skip()
-        self.fig.canvas.mpl_connect('button_release_event', self.mouse_up)
-        self.doPlot(event)
-
-    #ZOOM METHOD - Allows the user to drag a box
-
+    #Allows the user to draw a box to zoom
     def zoom_mode_change(self, event):
         self.zoom_mode = 1
         self.draw = True
@@ -273,6 +243,7 @@ class LinRegDialog(wx.Frame):
                 self.ax.set_xlim(x_min, x_max)
                 self.ax.set_ylim(y_min, y_max)
             elif axis_type == 'Zoom':
+                #Drawing a zoom box
                 if self.draw:
                     # calculate center of drawn box
                     center_x = self.mouse_x + (self.mouse_x_diff / 2)
@@ -288,6 +259,7 @@ class LinRegDialog(wx.Frame):
                     x_percentage = self.mouse_x_diff / x_length
                     y_percentage = self.mouse_y_diff / y_length
 
+                    #Figure out if the width or height is largest of the user's rectangle
                     if abs(x_percentage) >= abs(y_percentage):
                         x_box = (x_length_current * abs(x_percentage)) / 2
                         y_box = (y_length_current * abs(x_percentage)) / 2
@@ -299,16 +271,18 @@ class LinRegDialog(wx.Frame):
 
                     y_lo = center_y - y_box
 
+                    #Draw a square
                     square.set_width(x_box * 2)
                     square.set_height(y_box * 2)
                     square.set_xy((x_lo, y_lo))
                     self.ax.figure.canvas.draw()
 
+                    #Keep current bounds
                     self.ax.set_xlim(self.x_lo, self.x_hi)
                     self.ax.set_ylim(self.y_lo, self.y_hi)
                 else:
                     #Slows down shifting for the user
-                    shift_amt = -2
+                    shift_amt = -2 #Sign is flipped or dragging will move opposite of what is expected
 
                     #size of graph
                     x_length = (x_max - x_min)
@@ -316,6 +290,7 @@ class LinRegDialog(wx.Frame):
                     x_ticks = (x_length) / 100
                     y_ticks = (y_length) / 100
 
+                    #If not zooming into a drawn box
                     if self.zoom_mode == 0:
 
                         shift_x = self.mouse_x_diff / shift_amt
@@ -336,8 +311,6 @@ class LinRegDialog(wx.Frame):
                         center_x = self.mouse_x + (self.mouse_x_diff/2)
                         center_y = self.mouse_y + (self.mouse_y_diff/2)
 
-                        #print("Center",center_x,center_y)
-
                         #The current bounds
                         x_length_current = self.x_hi - self.x_lo
                         y_length_current = self.y_hi - self.y_lo
@@ -345,6 +318,7 @@ class LinRegDialog(wx.Frame):
                         x_percentage = self.mouse_x_diff / x_length
                         y_percentage = self.mouse_y_diff / y_length
 
+                        #Graph will zoom into a square of whatever side was longer of user's drawn rectangle
                         if abs(x_percentage) >= abs(y_percentage):
                             zoom_value = (abs(x_length-abs(self.mouse_x_diff))/2)/x_ticks #FIX
                             x_box = (x_length_current * abs(x_percentage))/2
@@ -366,7 +340,7 @@ class LinRegDialog(wx.Frame):
 
                         self.zoom_mode = 0
 
-                        if self.zoom.GetValue() > 20:
+                        if self.zoom.GetValue() > self.zoom_disable_value:
                             self.zoom_box.Disable()
                         else:
                             self.zoom_box.Enable()
@@ -382,7 +356,6 @@ class LinRegDialog(wx.Frame):
                         x_lo = x_min + (2*zoom_amt_x)
 
                     #Y axis
-
                     if y_lo < y_min:
                         y_lo = y_min
                         y_hi = y_max - (2*zoom_amt_y)
@@ -394,6 +367,7 @@ class LinRegDialog(wx.Frame):
                     self.ax.set_xlim(x_lo, x_hi)
                     self.ax.set_ylim(y_lo, y_hi)
 
+                    #Record bounds for later use
                     self.x_lo = x_lo
                     self.x_hi = x_hi
                     self.y_lo = y_lo
