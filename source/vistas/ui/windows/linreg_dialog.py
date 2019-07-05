@@ -114,6 +114,7 @@ class LinRegDialog(wx.Frame):
         self.zoom = wx.Slider(self.panel, value = 0, minValue = 0, maxValue = 49, size = (500,-1), style = wx.SL_HORIZONTAL)
         zoom_sizer.Add(self.zoom, flag=wx.TOP|wx.BOTTOM|wx.LEFT|wx.RIGHT|wx.EXPAND, border = 10)
 
+        self.zoom.Bind(wx.EVT_SCROLL, self.disableZoom)
         self.zoom.Bind(wx.EVT_SCROLL, self.doPlot)
 
         #Graph canvas
@@ -147,6 +148,13 @@ class LinRegDialog(wx.Frame):
         self.CenterOnParent()
         self.panel.Layout()
         self.Show()
+
+    def disableZoom(self, event):
+        if self.zoom.GetValue() > 20:
+            self.zoom_box.Disable()
+        else:
+            self.zoom_box.Enable()
+        event.Skip()
 
     def checkNone(self, event):
         if event.xdata == None:
@@ -357,6 +365,11 @@ class LinRegDialog(wx.Frame):
                         y_hi = y_lo + (y_length - 2*zoom_amt_y)
 
                         self.zoom_mode = 0
+
+                        if self.zoom.GetValue() > 20:
+                            self.zoom_box.Disable()
+                        else:
+                            self.zoom_box.Enable()
 
                     #CHECK OUT OF BOUNDS
 
