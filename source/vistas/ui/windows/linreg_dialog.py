@@ -34,7 +34,7 @@ class LinRegDialog(wx.Frame):
         zoom_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         #sizer for the right side of the window
-        right_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.right_sizer = wx.BoxSizer(wx.VERTICAL)
 
         #GLOBAL VARIABLES
 
@@ -99,15 +99,18 @@ class LinRegDialog(wx.Frame):
 
         self.Bind(wx.EVT_RADIOBOX, self.doPlot)
 
+        #BLANK SPACER
+        ctl_sizer.Add(wx.StaticText(self.panel, -1, ''), flag=wx.TOP|wx.EXPAND, border=200)
+
         #Zoom button for dragging a box
         self.zoom_box = wx.Button(self.panel, label="Box")
-        zoom_sizer.Add(self.zoom_box, flag=wx.TOP | wx.BOTTOM | wx.LEFT, border=10)
+        zoom_sizer.Add(self.zoom_box)
 
         self.zoom_box.Bind(wx.EVT_BUTTON, self.zoom_mode_change)
 
         #ZOOM SLIDER
-        self.zoom = wx.Slider(self.panel, value = 0, minValue = 0, maxValue = 49, size = (500,-1), style = wx.SL_HORIZONTAL)
-        zoom_sizer.Add(self.zoom, flag=wx.TOP|wx.BOTTOM|wx.LEFT|wx.RIGHT|wx.EXPAND, border = 10)
+        self.zoom = wx.Slider(self.panel, value = 0, minValue = 0, maxValue = 49, size = (600,-1), style = wx.SL_HORIZONTAL)
+        zoom_sizer.Add(self.zoom, flag=wx.LEFT, border = 10)
 
         self.zoom.Bind(wx.EVT_SCROLL, self.disableZoom)
         self.zoom.Bind(wx.EVT_SCROLL, self.doPlot)
@@ -117,9 +120,12 @@ class LinRegDialog(wx.Frame):
         self.canvas = wxagg.FigureCanvasWxAgg(self.panel, -1, self.fig)
 
         #Position canvas and zoom controls
-        right_sizer.Add(self.canvas, 1, wx.EXPAND)
-        right_sizer.Add(zoom_sizer, wx.EXPAND, border = 10)
-        top_sizer.Add(right_sizer)
+        #top_sizer.Add(self.canvas, 1, wx.EXPAND)
+        self.right_sizer.Add(self.canvas, 1, wx.EXPAND)
+        self.right_sizer.Add(zoom_sizer, flag=wx.EXPAND|wx.TOP|wx.LEFT|wx.RIGHT, border = 10)
+        top_sizer.Add(self.right_sizer)
+
+        #self.sizer.Add(zoom_sizer, flag=wx.ALL, border = 10)
 
         self.Bind(wx.EVT_LISTBOX, self.reset_mode)
         self.Bind(wx.EVT_CHOICE, self.reset_mode)
@@ -487,8 +493,8 @@ class LinRegDialog(wx.Frame):
                 self.grid.SetCellValue(r, c, str(grid_data[r][c]))
                 self.grid.SetReadOnly(r, c)
         self.grid.AutoSize()
-        self.sizer.Add(self.grid, 2, flag=wx.ALL, border=10)
-       
+        self.right_sizer.Add(self.grid, 2, flag=wx.ALL, border=10)
+
         self.cgrid = wx.grid.Grid(self.panel, -1)
         nvars = len(iv)
         col_labels = ['variable', 'coeff', 'std err', 't', 'P>|t|', '[.025', '0.975]']
@@ -510,9 +516,9 @@ class LinRegDialog(wx.Frame):
                 self.cgrid.SetCellValue(r, c, str(grid_data[r][c]))
                 self.cgrid.SetReadOnly(r, c)
         self.cgrid.AutoSize()
-        self.sizer.Add(self.cgrid, 2, flag=wx.BOTTOM|wx.LEFT, border=10)
+        self.right_sizer.Add(self.cgrid, 2, flag=wx.BOTTOM|wx.LEFT, border=10)
 
-        self.sizer.AddStretchSpacer()
+        self.right_sizer.AddStretchSpacer()
         self.panel.Layout()
 
 
