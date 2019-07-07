@@ -62,7 +62,9 @@ class LinRegDialog(wx.Frame):
         self.draw = False
 
         #User will be unable to draw a box if zoomed in past this value
-        self.zoom_disable_value = 20
+        self.zoom_disable_value = 24
+
+        self.reset = False
 
         #Variables title
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Variables:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=20)
@@ -119,9 +121,12 @@ class LinRegDialog(wx.Frame):
         right_sizer.Add(zoom_sizer, wx.EXPAND, border = 10)
         top_sizer.Add(right_sizer)
 
+        self.Bind(wx.EVT_LISTBOX, self.reset_mode)
+        self.Bind(wx.EVT_CHOICE, self.reset_mode)
+
         #EVENTS
-        self.Bind(wx.EVT_LISTBOX, self.doPlot)
-        self.Bind(wx.EVT_CHOICE, self.doPlot)
+        # self.Bind(wx.EVT_LISTBOX, self.doPlot)
+        # self.Bind(wx.EVT_CHOICE, self.doPlot)
         self.Bind(wx.EVT_CLOSE, self.onClose)
 
         #Move along with timeline
@@ -136,6 +141,13 @@ class LinRegDialog(wx.Frame):
         self.CenterOnParent()
         self.panel.Layout()
         self.Show()
+
+    def reset_mode(self, event):
+        self.zoom.SetValue(0)
+        self.zoom_mode = 0
+        self.reset = True
+        self.doPlot(event)
+        #event.Skip()
 
     #Disable the button that allows user to draw a zoom box
     def disableZoom(self, event):
@@ -169,19 +181,23 @@ class LinRegDialog(wx.Frame):
             self.mouse_y_diff = 0
 
     def mouse_click(self, event):
-        if self.checkNone(event):
-            self.mouse_x = event.xdata
-            self.mouse_y = event.ydata
-            self.mouse_x_diff = 0
-            self.mouse_y_diff = 0
-            self.mouse_continue = True
-        else:
-            self.mouse_continue = False
+        ms = wx.GetMouseState()
+        if ms.leftIsDown:
+            if self.checkNone(event):
+                self.mouse_x = event.xdata
+                self.mouse_y = event.ydata
+                self.mouse_x_diff = 0
+                self.mouse_y_diff = 0
+                self.mouse_continue = True
+            else:
+                self.mouse_continue = False
 
     def mouse_up(self, event):
         if self.checkNone(event) & self.mouse_continue:
             self.mouse_x_diff = event.xdata - self.mouse_x
             self.mouse_y_diff = event.ydata - self.mouse_y
+        elif self.checkNone(event):
+            self.mouse_continue = False
         self.draw = False
         self.doPlot(event)
 
@@ -230,8 +246,15 @@ class LinRegDialog(wx.Frame):
             self.ax.set_ylabel(dv[0]['name'])
             axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
 
-            square = Rectangle((0, 0), 1, 1, alpha = 0.3)
-            self.ax.add_patch(square)
+            if axis_type == 'Zoom':
+                self.zoom.Enable()
+                if self.zoom.GetValue() > self.zoom_disable_value:
+                    self.zoom_box.Disable()
+                else:
+                    self.zoom_box.Enable()
+            else:
+                self.zoom.Disable()
+                self.zoom_box.Disable()
 
             #Graph variables
             x_min = iv[0]['min']
@@ -243,23 +266,36 @@ class LinRegDialog(wx.Frame):
                 self.ax.set_xlim(x_min, x_max)
                 self.ax.set_ylim(y_min, y_max)
             elif axis_type == 'Zoom':
+
+                if self.reset:
+                    self.ax.set_xlim(x_min, x_max)
+                    self.ax.set_ylim(y_min, y_max)
+                    self.x_lo = x_min
+                    self.x_hi = x_max
+                    self.y_lo = y_min
+                    self.y_hi = y_max
+
+                    self.reset = False
+
                 #Drawing a zoom box
                 if self.draw:
-                    # calculate center of drawn box
-                    center_x = self.mouse_x + (self.mouse_x_diff / 2)
-                    center_y = self.mouse_y + (self.mouse_y_diff / 2)
 
-                    # The current bounds
-                    x_length_current = self.x_hi - self.x_lo
-                    y_length_current = self.y_hi - self.y_lo
+                    square = Rectangle((0, 0), 1, 1, alpha=0.3, color='red')
+                    self.ax.add_patch(square)
 
-                    x_length = (x_max - x_min)
-                    y_length = (y_max - y_min)
+                    #The length of the zoomed in bounds
+                    x_length_current = abs(self.x_hi - self.x_lo)
+                    y_length_current = abs(self.y_hi - self.y_lo)
 
+                    #The length of the bounds
+                    x_length = abs(x_max - x_min)
+                    y_length = abs(y_max - y_min)
+
+                    #Percentage of the total bounds covered
                     x_percentage = self.mouse_x_diff / x_length
                     y_percentage = self.mouse_y_diff / y_length
 
-                    #Figure out if the width or height is largest of the user's rectangle
+                    # Figure out if the width or height is largest of the user's rectangle
                     if abs(x_percentage) >= abs(y_percentage):
                         x_box = (x_length_current * abs(x_percentage)) / 2
                         y_box = (y_length_current * abs(x_percentage)) / 2
@@ -267,14 +303,19 @@ class LinRegDialog(wx.Frame):
                         x_box = (x_length_current * abs(y_percentage)) / 2
                         y_box = (y_length_current * abs(y_percentage)) / 2
 
-                    x_lo = center_x - x_box
-
-                    y_lo = center_y - y_box
-
                     #Draw a square
                     square.set_width(x_box * 2)
                     square.set_height(y_box * 2)
-                    square.set_xy((x_lo, y_lo))
+
+                    if (x_percentage >= 0) & (y_percentage >= 0):
+                        square.set_xy((self.mouse_x, self.mouse_y))
+                    elif (x_percentage <= 0) & (y_percentage >= 0):
+                        square.set_xy((self.mouse_x - (x_box * 2), self.mouse_y))
+                    elif (x_percentage <= 0) & (y_percentage <= 0):
+                        square.set_xy((self.mouse_x - (x_box * 2), self.mouse_y - (y_box * 2)))
+                    else:
+                        square.set_xy((self.mouse_x, self.mouse_y - (y_box * 2)))
+
                     self.ax.figure.canvas.draw()
 
                     #Keep current bounds
@@ -307,43 +348,71 @@ class LinRegDialog(wx.Frame):
 
                     else:
 
-                        #calculate center of drawn box
-                        center_x = self.mouse_x + (self.mouse_x_diff/2)
-                        center_y = self.mouse_y + (self.mouse_y_diff/2)
+                        if self.mouse_continue:
+                            # The length of the zoomed in bounds
+                            x_length_current = abs(self.x_hi - self.x_lo)
+                            y_length_current = abs(self.y_hi - self.y_lo)
 
-                        #The current bounds
-                        x_length_current = self.x_hi - self.x_lo
-                        y_length_current = self.y_hi - self.y_lo
+                            # The length of the bounds
+                            x_length = abs(x_max - x_min)
+                            y_length = abs(y_max - y_min)
 
-                        x_percentage = self.mouse_x_diff / x_length
-                        y_percentage = self.mouse_y_diff / y_length
+                            # Percentage of the total bounds covered
+                            x_percentage = self.mouse_x_diff / x_length
+                            y_percentage = self.mouse_y_diff / y_length
 
-                        #Graph will zoom into a square of whatever side was longer of user's drawn rectangle
-                        if abs(x_percentage) >= abs(y_percentage):
-                            zoom_value = (abs(x_length-abs(self.mouse_x_diff))/2)/x_ticks #FIX
-                            x_box = (x_length_current * abs(x_percentage))/2
-                            y_box = (y_length_current * abs(x_percentage))/2
+                            # Figure out if the width or height is largest of the user's rectangle
+                            if abs(x_percentage) >= abs(y_percentage):
+                                zoom_value = ((x_length - abs(self.mouse_x_diff)) / 2) / x_ticks
+                                x_box = (x_length_current * abs(x_percentage)) / 2
+                                y_box = (y_length_current * abs(x_percentage)) / 2
+                            else:
+                                zoom_value = ((y_length - abs(self.mouse_y_diff)) / 2) / y_ticks
+                                x_box = (x_length_current * abs(y_percentage)) / 2
+                                y_box = (y_length_current * abs(y_percentage)) / 2
+
+                            if zoom_value < 50:
+
+                                self.zoom.SetValue(round(zoom_value))
+
+                                if (x_percentage >= 0) & (y_percentage >= 0):
+                                    x_lo = self.mouse_x
+                                    y_lo = self.mouse_y
+                                elif (x_percentage <= 0) & (y_percentage >= 0):
+                                    x_lo = self.mouse_x - (x_box * 2)
+                                    y_lo = self.mouse_y
+                                elif (x_percentage <= 0) & (y_percentage <= 0):
+                                    x_lo = self.mouse_x - (x_box * 2)
+                                    y_lo = self.mouse_y - (y_box * 2)
+                                else:
+                                    x_lo = self.mouse_x
+                                    y_lo = self.mouse_y - (y_box * 2)
+
+                                zoom_amt_x = self.zoom.GetValue() * x_ticks
+                                zoom_amt_y = self.zoom.GetValue() * y_ticks
+
+                                x_hi = x_lo + (x_length - 2*zoom_amt_x)
+
+                                y_hi = y_lo + (y_length - 2*zoom_amt_y)
+
+                                self.zoom_mode = 0
+
+                                if self.zoom.GetValue() > self.zoom_disable_value:
+                                    self.zoom_box.Disable()
+                                else:
+                                    self.zoom_box.Enable()
+                            else:
+                                self.zoom_mode = 0
+
+                                # Keep current bounds
+                                self.ax.set_xlim(self.x_lo, self.x_hi)
+                                self.ax.set_ylim(self.y_lo, self.y_hi)
                         else:
-                            zoom_value = (abs(y_length-abs(self.mouse_y_diff))/2)/y_ticks
-                            x_box = (x_length_current * abs(y_percentage))/2
-                            y_box = (y_length_current * abs(y_percentage))/2
-                        self.zoom.SetValue(round(zoom_value))
+                            self.zoom_mode = 0
 
-                        zoom_amt_x = self.zoom.GetValue() * x_ticks
-                        zoom_amt_y = self.zoom.GetValue() * y_ticks
-
-                        x_lo = center_x - x_box
-                        x_hi = x_lo + (x_length - 2*zoom_amt_x)
-
-                        y_lo = center_y - y_box
-                        y_hi = y_lo + (y_length - 2*zoom_amt_y)
-
-                        self.zoom_mode = 0
-
-                        if self.zoom.GetValue() > self.zoom_disable_value:
-                            self.zoom_box.Disable()
-                        else:
-                            self.zoom_box.Enable()
+                            # Keep current bounds
+                            self.ax.set_xlim(self.x_lo, self.x_hi)
+                            self.ax.set_ylim(self.y_lo, self.y_hi)
 
                     #CHECK OUT OF BOUNDS
 
