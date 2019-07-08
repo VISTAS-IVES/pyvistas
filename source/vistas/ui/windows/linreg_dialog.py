@@ -58,6 +58,9 @@ class LinRegDialog(wx.Frame):
         self.y_hi = 0
         self.y_lo = 0
 
+        self.center_x = 0
+        self.center_y = 0
+
         #True if the zoom box should be drawn
         self.draw = False
 
@@ -234,6 +237,9 @@ class LinRegDialog(wx.Frame):
             self.y_lo = y_min
             self.y_hi = y_max
 
+            self.center_x = x_min + (x_max - x_min) / 2
+            self.center_y = y_min + (y_max - y_min) / 2
+
             self.reset = False
 
         # Drawing a zoom box
@@ -282,7 +288,7 @@ class LinRegDialog(wx.Frame):
             self.ax.set_ylim(self.y_lo, self.y_hi)
         else:
             # Slows down shifting for the user
-            shift_amt = -2  # Sign is flipped or dragging will move opposite of what is expected
+            shift_amt = -1.5  # Sign is flipped or dragging will move opposite of what is expected
 
             # size of graph
             x_length = (x_max - x_min)
@@ -299,11 +305,14 @@ class LinRegDialog(wx.Frame):
                 zoom_amt_x = self.zoom.GetValue() * x_ticks
                 zoom_amt_y = self.zoom.GetValue() * y_ticks
 
-                x_lo = self.x_lo + shift_x
-                x_hi = x_lo + (x_length - 2 * zoom_amt_x)
+                self.center_x = self.center_x + shift_x
+                self.center_y = self.center_y + shift_y
 
-                y_lo = self.y_lo + shift_y
-                y_hi = y_lo + (y_length - 2 * zoom_amt_y)
+                x_lo = self.center_x - (x_length/2 - zoom_amt_x)
+                x_hi = self.center_x + (x_length/2 - zoom_amt_x)
+
+                y_lo = self.center_y - (y_length/2 - zoom_amt_y)
+                y_hi = self.center_y + (y_length/2 - zoom_amt_y)
 
             else:
 
@@ -354,6 +363,9 @@ class LinRegDialog(wx.Frame):
 
                         y_hi = y_lo + (y_length - 2 * zoom_amt_y)
 
+                        self.center_x = x_lo + (x_length/2 - zoom_amt_x)
+                        self.center_y = y_lo + (y_length / 2 - zoom_amt_y)
+
                         self.zoom_mode = 0
 
                         if self.zoom.GetValue() > self.zoom_disable_value:
@@ -379,17 +391,21 @@ class LinRegDialog(wx.Frame):
             if x_lo < x_min:
                 x_lo = x_min
                 x_hi = x_max - (2 * zoom_amt_x)
+                self.center_x = x_min + (x_length/2 - zoom_amt_x)
             if x_hi > x_max:
                 x_hi = x_max
                 x_lo = x_min + (2 * zoom_amt_x)
+                self.center_x = x_max - (x_length / 2 - zoom_amt_x)
 
             # Y axis
             if y_lo < y_min:
                 y_lo = y_min
                 y_hi = y_max - (2 * zoom_amt_y)
+                self.center_y = y_min + (y_length / 2 - zoom_amt_y)
             if y_hi > y_max:
                 y_hi = y_max
                 y_lo = y_min + (2 * zoom_amt_y)
+                self.center_y = y_max - (y_length / 2 - zoom_amt_y)
 
             # SET BOUNDS
             self.ax.set_xlim(x_lo, x_hi)
@@ -432,6 +448,7 @@ class LinRegDialog(wx.Frame):
             self.ax.set_ylabel(dv[0]['name'])
             axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
 
+            #Disable zoom controls if not on 'Zoom'
             if axis_type == 'Zoom':
                 self.zoom.Enable()
                 if self.zoom.GetValue() > self.zoom_disable_value:
@@ -442,6 +459,7 @@ class LinRegDialog(wx.Frame):
                 self.zoom.Disable()
                 self.zoom_box.Disable()
 
+            #Type of axis
             if axis_type == 'Fit All':
                 self.ax.set_xlim(iv[0]['min'], iv[0]['max'])
                 self.ax.set_ylim(dv[0]['min'], dv[0]['max'])
