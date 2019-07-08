@@ -494,7 +494,9 @@ class LinRegDialog(wx.Frame):
                 self.grid.SetCellValue(r, c, str(grid_data[r][c]))
                 self.grid.SetReadOnly(r, c)
         self.grid.AutoSize()
-        self.right_sizer.Add(self.grid, 2, flag=wx.ALL, border=10)
+
+        self.sizer.AddStretchSpacer(1)
+        self.sizer.Add(self.grid, 2, flag=wx.ALL, border=10)
 
         #Grid 2
         self.cgrid = wx.grid.Grid(self.panel, -1)
@@ -518,9 +520,9 @@ class LinRegDialog(wx.Frame):
                 self.cgrid.SetCellValue(r, c, str(grid_data[r][c]))
                 self.cgrid.SetReadOnly(r, c)
         self.cgrid.AutoSize()
-        self.right_sizer.Add(self.cgrid, 2, flag=wx.BOTTOM|wx.LEFT, border=10)
 
-        self.right_sizer.AddStretchSpacer()
+        self.sizer.Add(self.cgrid, 2, flag=wx.BOTTOM|wx.LEFT, border=10)
+
         self.panel.Layout()
 
     def doPlot(self, event):
@@ -544,7 +546,7 @@ class LinRegDialog(wx.Frame):
                 if len(data['iv']) >= 1 and len(data['dv']) >= 1:
                     self.plotLinReg(**data)
         finally:
-            if isinstance(event, wx.Event):
+            if isinstance(event, wx.Event): #Check if wxPython event
                 event.Skip() # pass to next handler
 
     def onClose(self, event):
