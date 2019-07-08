@@ -22,52 +22,42 @@ from vistas.ui.events import EVT_TIMELINE_CHANGED
 class LinRegDialog(wx.Frame):
     def __init__(self, parent=None):
         super().__init__(parent, title='Linear Regression', size=(800,800))
-        self.panel = wx.Panel(self)
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.panel.SetSizer(self.sizer)
-        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.sizer.Add(top_sizer, 0)
-        ctl_sizer = wx.BoxSizer(wx.VERTICAL)
-        top_sizer.Add(ctl_sizer, 0)
 
-        #sizer for zoom controls
-        zoom_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        # GLOBAL VARIABLES
+        self.zoom_mode = 0 #0 is off, 1 allows user to draw box on graph
+        self.mouse_continue = True #False if mouse was out of bounds
+        self.draw = False # True if the zoom box should be drawn
+        self.reset = True # True if bounds have been reset by changing variables
+        self.zoom_disable_value = 24 #User will be unable to draw a box if zoomed in past this value
 
-        #sizer for the right side of the window
-        self.right_sizer = wx.BoxSizer(wx.VERTICAL)
-
-        #GLOBAL VARIABLES
-
-        #mouse initial positon
+        # mouse initial positon
         self.mouse_x = 0
         self.mouse_y = 0
 
-        #mouse drag distance
+        # mouse drag distance
         self.mouse_x_diff = 0
         self.mouse_y_diff = 0
 
-        #0 is off, 1 allows user to drag a box
-        self.zoom_mode = 0
-
-        #False if mouse began out of bounds
-        self.mouse_continue = True
-
-        #Saves the current bounds of graph
+        # Current bounds of the graph
         self.x_hi = 0
         self.x_lo = 0
         self.y_hi = 0
         self.y_lo = 0
 
+        # Center of the viewport
         self.center_x = 0
         self.center_y = 0
 
-        #True if the zoom box should be drawn
-        self.draw = False
-
-        #User will be unable to draw a box if zoomed in past this value
-        self.zoom_disable_value = 24
-
-        self.reset = True
+        #SIZERS
+        self.panel = wx.Panel(self)
+        self.sizer = wx.BoxSizer(wx.VERTICAL) #Main sizer
+        self.panel.SetSizer(self.sizer)
+        top_sizer = wx.BoxSizer(wx.HORIZONTAL) #Sizer to divide screen into left and right halves
+        self.sizer.Add(top_sizer, 0)
+        ctl_sizer = wx.BoxSizer(wx.VERTICAL) #Sizer for the controls on left size of the screen
+        top_sizer.Add(ctl_sizer, 0)
+        zoom_sizer = wx.BoxSizer(wx.HORIZONTAL) #Sizer for the zoom controls
+        self.right_sizer = wx.BoxSizer(wx.VERTICAL) #Sizer for the right half of the window
 
         #Variables title
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Variables:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=20)
@@ -105,6 +95,9 @@ class LinRegDialog(wx.Frame):
         #BLANK SPACER
         ctl_sizer.Add(wx.StaticText(self.panel, -1, ''), flag=wx.TOP|wx.EXPAND, border=200)
 
+
+        #ZOOM CONTROLS
+
         #Zoom button for dragging a box
         self.zoom_box = wx.Button(self.panel, label="Box")
         zoom_sizer.Add(self.zoom_box)
@@ -122,20 +115,15 @@ class LinRegDialog(wx.Frame):
         self.fig = mpl.figure.Figure()
         self.canvas = wxagg.FigureCanvasWxAgg(self.panel, -1, self.fig)
 
-        #Position canvas and zoom controls
-        #top_sizer.Add(self.canvas, 1, wx.EXPAND)
         self.right_sizer.Add(self.canvas, 1, wx.EXPAND)
         self.right_sizer.Add(zoom_sizer, flag=wx.EXPAND|wx.TOP|wx.LEFT|wx.RIGHT, border = 10)
         top_sizer.Add(self.right_sizer)
 
-        #self.sizer.Add(zoom_sizer, flag=wx.ALL, border = 10)
+        #EVENTS
 
         self.Bind(wx.EVT_LISTBOX, self.resetGraph)
         self.Bind(wx.EVT_CHOICE, self.resetGraph)
 
-        #EVENTS
-        # self.Bind(wx.EVT_LISTBOX, self.doPlot)
-        # self.Bind(wx.EVT_CHOICE, self.doPlot)
         self.Bind(wx.EVT_CLOSE, self.onClose)
 
         #Move along with timeline
@@ -151,12 +139,12 @@ class LinRegDialog(wx.Frame):
         self.panel.Layout()
         self.Show()
 
+    #Resets zoom controls so that graph can be made with new bounds
     def resetGraph(self, event):
         self.zoom.SetValue(0)
         self.zoom_mode = 0
         self.reset = True
         self.doPlot(event)
-        #event.Skip()
 
     #Disable the button that allows user to draw a zoom box
     def disableZoom(self, event):
@@ -173,6 +161,11 @@ class LinRegDialog(wx.Frame):
         if event.ydata == None:
             return False
         return True
+
+    #Allows the user to draw a box to zoom
+    def zoom_mode_change(self, event):
+        self.zoom_mode = 1
+        self.draw = True
 
     #MOUSE METHODS MATPLOTLIB
 
@@ -210,24 +203,9 @@ class LinRegDialog(wx.Frame):
         self.draw = False
         self.doPlot(event)
 
-    #Allows the user to draw a box to zoom
-    def zoom_mode_change(self, event):
-        self.zoom_mode = 1
-        self.draw = True
-
     #PLOTTTING GRAPH
 
-    def getData(self, dname, data):
-        try:
-            node = data[[n.data.data_name for n in data].index(dname)]
-        except ValueError:
-            return None
-        variable = node.data.variables[0]
-        stats = node.data.variable_stats(variable)
-        date = Timeline.app().current
-        thisdata = node.data.get_data(variable, date=date)
-        return {'name': dname, 'data': thisdata, 'min': stats.min_value, 'max': stats.max_value}
-
+    # When 'Zoom' axis type is selected - calculates bounds
     def plotZoomGraph(self, x_min, x_max, y_min, y_max):
         if self.reset:
             self.ax.set_xlim(x_min, x_max)
@@ -308,11 +286,11 @@ class LinRegDialog(wx.Frame):
                 self.center_x = self.center_x + shift_x
                 self.center_y = self.center_y + shift_y
 
-                x_lo = self.center_x - (x_length/2 - zoom_amt_x)
-                x_hi = self.center_x + (x_length/2 - zoom_amt_x)
+                x_lo = self.center_x - (x_length / 2 - zoom_amt_x)
+                x_hi = self.center_x + (x_length / 2 - zoom_amt_x)
 
-                y_lo = self.center_y - (y_length/2 - zoom_amt_y)
-                y_hi = self.center_y + (y_length/2 - zoom_amt_y)
+                y_lo = self.center_y - (y_length / 2 - zoom_amt_y)
+                y_hi = self.center_y + (y_length / 2 - zoom_amt_y)
 
             else:
 
@@ -363,7 +341,7 @@ class LinRegDialog(wx.Frame):
 
                         y_hi = y_lo + (y_length - 2 * zoom_amt_y)
 
-                        self.center_x = x_lo + (x_length/2 - zoom_amt_x)
+                        self.center_x = x_lo + (x_length / 2 - zoom_amt_x)
                         self.center_y = y_lo + (y_length / 2 - zoom_amt_y)
 
                         self.zoom_mode = 0
@@ -391,7 +369,7 @@ class LinRegDialog(wx.Frame):
             if x_lo < x_min:
                 x_lo = x_min
                 x_hi = x_max - (2 * zoom_amt_x)
-                self.center_x = x_min + (x_length/2 - zoom_amt_x)
+                self.center_x = x_min + (x_length / 2 - zoom_amt_x)
             if x_hi > x_max:
                 x_hi = x_max
                 x_lo = x_min + (2 * zoom_amt_x)
@@ -416,6 +394,17 @@ class LinRegDialog(wx.Frame):
             self.x_hi = x_hi
             self.y_lo = y_lo
             self.y_hi = y_hi
+
+    def getData(self, dname, data):
+        try:
+            node = data[[n.data.data_name for n in data].index(dname)]
+        except ValueError:
+            return None
+        variable = node.data.variables[0]
+        stats = node.data.variable_stats(variable)
+        date = Timeline.app().current
+        thisdata = node.data.get_data(variable, date=date)
+        return {'name': dname, 'data': thisdata, 'min': stats.min_value, 'max': stats.max_value}
 
     def plotLinReg(self, iv=None, dv=None):
         # stack data and synchronize masks
