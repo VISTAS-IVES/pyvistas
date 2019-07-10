@@ -207,32 +207,42 @@ class LinRegDialog(wx.Frame):
 
     # When 'Zoom' axis type is selected - calculates bounds
     def plotZoomGraph(self, x_min, x_max, y_min, y_max):
+
+        #If variables have been changed, graph should be reset
         if self.reset:
+            #Set bounds to fully zoomed out
             self.ax.set_xlim(x_min, x_max)
             self.ax.set_ylim(y_min, y_max)
+
+            #Save bound variables
             self.x_lo = x_min
             self.x_hi = x_max
             self.y_lo = y_min
             self.y_hi = y_max
 
+            #Calculate centerpoint
             self.center_x = x_min + (x_max - x_min) / 2
             self.center_y = y_min + (y_max - y_min) / 2
 
             self.reset = False
 
-        # Drawing a zoom box
-        if self.draw:
+        # Current boundaries will be kept
+        keep_bounds = True
 
-            square = Rectangle((0, 0), 1, 1, alpha=0.3, color='red')
-            self.ax.add_patch(square)
+        # Size of boundaries
+        x_length = (x_max - x_min)
+        y_length = (y_max - y_min)
+
+        # Divide sides for percentages
+        x_ticks = (x_length) / 100
+        y_ticks = (y_length) / 100
+
+        #USER DRAWN BOX TO ZOOM IN TO
+        if self.zoom_mode == 1:
 
             # The length of the zoomed in bounds
             x_length_current = abs(self.x_hi - self.x_lo)
             y_length_current = abs(self.y_hi - self.y_lo)
-
-            # The length of the bounds
-            x_length = abs(x_max - x_min)
-            y_length = abs(y_max - y_min)
 
             # Percentage of the total bounds covered
             x_percentage = self.mouse_x_diff / x_length
@@ -240,130 +250,104 @@ class LinRegDialog(wx.Frame):
 
             # Figure out if the width or height is largest of the user's rectangle
             if abs(x_percentage) >= abs(y_percentage):
+                zoom_value = ((x_length - abs(self.mouse_x_diff)) / 2) / x_ticks
                 x_box = (x_length_current * abs(x_percentage)) / 2
                 y_box = (y_length_current * abs(x_percentage)) / 2
             else:
+                zoom_value = ((y_length - abs(self.mouse_y_diff)) / 2) / y_ticks
                 x_box = (x_length_current * abs(y_percentage)) / 2
                 y_box = (y_length_current * abs(y_percentage)) / 2
 
-            # Draw a square
-            square.set_width(x_box * 2)
-            square.set_height(y_box * 2)
+            #DRAWING A BOX ON THE GRAPH
+            if self.draw:
+                square = Rectangle((0, 0), 1, 1, alpha=0.3, color='red')
+                self.ax.add_patch(square)
 
-            if (x_percentage >= 0) & (y_percentage >= 0):
-                square.set_xy((self.mouse_x, self.mouse_y))
-            elif (x_percentage <= 0) & (y_percentage >= 0):
-                square.set_xy((self.mouse_x - (x_box * 2), self.mouse_y))
-            elif (x_percentage <= 0) & (y_percentage <= 0):
-                square.set_xy((self.mouse_x - (x_box * 2), self.mouse_y - (y_box * 2)))
-            else:
-                square.set_xy((self.mouse_x, self.mouse_y - (y_box * 2)))
+                # Set length of box sides
+                square.set_width(x_box * 2)
+                square.set_height(y_box * 2)
 
-            self.ax.figure.canvas.draw()
+                # Draw corner of box depending on which direction the user is dragging
+                if (x_percentage >= 0) & (y_percentage >= 0):
+                    square.set_xy((self.mouse_x, self.mouse_y))
+                elif (x_percentage <= 0) & (y_percentage >= 0):
+                    square.set_xy((self.mouse_x - (x_box * 2), self.mouse_y))
+                elif (x_percentage <= 0) & (y_percentage <= 0):
+                    square.set_xy((self.mouse_x - (x_box * 2), self.mouse_y - (y_box * 2)))
+                else:
+                    square.set_xy((self.mouse_x, self.mouse_y - (y_box * 2)))
 
-            # Keep current bounds
-            self.ax.set_xlim(self.x_lo, self.x_hi)
-            self.ax.set_ylim(self.y_lo, self.y_hi)
-        else:
-            # Slows down shifting for the user
-            shift_amt = -1.5  # Sign is flipped or dragging will move opposite of what is expected
+                self.ax.figure.canvas.draw()
 
-            # size of graph
-            x_length = (x_max - x_min)
-            y_length = (y_max - y_min)
-            x_ticks = (x_length) / 100
-            y_ticks = (y_length) / 100
+            #ZOOMING INTO A DRAWN BOX
+            elif ((zoom_value < 50) & self.mouse_continue):
 
-            # If not zooming into a drawn box
-            if self.zoom_mode == 0:
+                self.zoom.SetValue(round(zoom_value))
 
-                shift_x = self.mouse_x_diff / shift_amt
-                shift_y = self.mouse_y_diff / shift_amt
+                if (x_percentage >= 0) & (y_percentage >= 0):
+                    x_lo = self.mouse_x
+                    y_lo = self.mouse_y
+                elif (x_percentage <= 0) & (y_percentage >= 0):
+                    x_lo = self.mouse_x - (x_box * 2)
+                    y_lo = self.mouse_y
+                elif (x_percentage <= 0) & (y_percentage <= 0):
+                    x_lo = self.mouse_x - (x_box * 2)
+                    y_lo = self.mouse_y - (y_box * 2)
+                else:
+                    x_lo = self.mouse_x
+                    y_lo = self.mouse_y - (y_box * 2)
 
                 zoom_amt_x = self.zoom.GetValue() * x_ticks
                 zoom_amt_y = self.zoom.GetValue() * y_ticks
 
-                self.center_x = self.center_x + shift_x
-                self.center_y = self.center_y + shift_y
+                x_hi = x_lo + (x_length - 2 * zoom_amt_x)
 
-                x_lo = self.center_x - (x_length / 2 - zoom_amt_x)
-                x_hi = self.center_x + (x_length / 2 - zoom_amt_x)
+                y_hi = y_lo + (y_length - 2 * zoom_amt_y)
 
-                y_lo = self.center_y - (y_length / 2 - zoom_amt_y)
-                y_hi = self.center_y + (y_length / 2 - zoom_amt_y)
+                self.center_x = x_lo + (x_length / 2 - zoom_amt_x)
+                self.center_y = y_lo + (y_length / 2 - zoom_amt_y)
 
-            else:
-
-                if self.mouse_continue:
-                    # The length of the zoomed in bounds
-                    x_length_current = abs(self.x_hi - self.x_lo)
-                    y_length_current = abs(self.y_hi - self.y_lo)
-
-                    # The length of the bounds
-                    x_length = abs(x_max - x_min)
-                    y_length = abs(y_max - y_min)
-
-                    # Percentage of the total bounds covered
-                    x_percentage = self.mouse_x_diff / x_length
-                    y_percentage = self.mouse_y_diff / y_length
-
-                    # Figure out if the width or height is largest of the user's rectangle
-                    if abs(x_percentage) >= abs(y_percentage):
-                        zoom_value = ((x_length - abs(self.mouse_x_diff)) / 2) / x_ticks
-                        x_box = (x_length_current * abs(x_percentage)) / 2
-                        y_box = (y_length_current * abs(x_percentage)) / 2
-                    else:
-                        zoom_value = ((y_length - abs(self.mouse_y_diff)) / 2) / y_ticks
-                        x_box = (x_length_current * abs(y_percentage)) / 2
-                        y_box = (y_length_current * abs(y_percentage)) / 2
-
-                    if zoom_value < 50:
-
-                        self.zoom.SetValue(round(zoom_value))
-
-                        if (x_percentage >= 0) & (y_percentage >= 0):
-                            x_lo = self.mouse_x
-                            y_lo = self.mouse_y
-                        elif (x_percentage <= 0) & (y_percentage >= 0):
-                            x_lo = self.mouse_x - (x_box * 2)
-                            y_lo = self.mouse_y
-                        elif (x_percentage <= 0) & (y_percentage <= 0):
-                            x_lo = self.mouse_x - (x_box * 2)
-                            y_lo = self.mouse_y - (y_box * 2)
-                        else:
-                            x_lo = self.mouse_x
-                            y_lo = self.mouse_y - (y_box * 2)
-
-                        zoom_amt_x = self.zoom.GetValue() * x_ticks
-                        zoom_amt_y = self.zoom.GetValue() * y_ticks
-
-                        x_hi = x_lo + (x_length - 2 * zoom_amt_x)
-
-                        y_hi = y_lo + (y_length - 2 * zoom_amt_y)
-
-                        self.center_x = x_lo + (x_length / 2 - zoom_amt_x)
-                        self.center_y = y_lo + (y_length / 2 - zoom_amt_y)
-
-                        self.zoom_mode = 0
-
-                        if self.zoom.GetValue() > self.zoom_disable_value:
-                            self.zoom_box.Disable()
-                        else:
-                            self.zoom_box.Enable()
-                    else:
-                        self.zoom_mode = 0
-
-                        # Keep current bounds
-                        self.ax.set_xlim(self.x_lo, self.x_hi)
-                        self.ax.set_ylim(self.y_lo, self.y_hi)
+                if self.zoom.GetValue() > self.zoom_disable_value:
+                    self.zoom_box.Disable()
                 else:
-                    self.zoom_mode = 0
+                    self.zoom_box.Enable()
 
-                    # Keep current bounds
-                    self.ax.set_xlim(self.x_lo, self.x_hi)
-                    self.ax.set_ylim(self.y_lo, self.y_hi)
+                keep_bounds = False
 
-            # CHECK OUT OF BOUNDS
+            self.zoom_mode = self.draw
+
+        else:
+            # Slows down shifting for the user
+            shift_amt = -1.5  # Sign is flipped or dragging will move opposite of what is expected
+
+            #Distance user dragged across screen to shift viewport
+            shift_x = self.mouse_x_diff / shift_amt
+            shift_y = self.mouse_y_diff / shift_amt
+
+            #Amount to zoom in by based on the value of the slider
+            zoom_amt_x = self.zoom.GetValue() * x_ticks
+            zoom_amt_y = self.zoom.GetValue() * y_ticks
+
+            #Shift the center by the amount user dragged
+            self.center_x += shift_x
+            self.center_y += shift_y
+
+            #Calculate bounds based on center and zoom amount
+
+            x_lo = self.center_x - (x_length / 2 - zoom_amt_x)
+            x_hi = self.center_x + (x_length / 2 - zoom_amt_x)
+
+            y_lo = self.center_y - (y_length / 2 - zoom_amt_y)
+            y_hi = self.center_y + (y_length / 2 - zoom_amt_y)
+
+            keep_bounds = False
+
+        if keep_bounds:
+            # Keep current bounds
+            self.ax.set_xlim(self.x_lo, self.x_hi)
+            self.ax.set_ylim(self.y_lo, self.y_hi)
+        else:
+            # Check if new bounds are within absolute bounds
 
             # X axis
             if x_lo < x_min:
@@ -385,7 +369,7 @@ class LinRegDialog(wx.Frame):
                 y_lo = y_min + (2 * zoom_amt_y)
                 self.center_y = y_max - (y_length / 2 - zoom_amt_y)
 
-            # SET BOUNDS
+            # Set new bounds
             self.ax.set_xlim(x_lo, x_hi)
             self.ax.set_ylim(y_lo, y_hi)
 
@@ -422,6 +406,8 @@ class LinRegDialog(wx.Frame):
         result = ols.fit()
 
         self.createGraph(iv, dv, my_data, result)
+
+        #Only draw tables if variables have been changed
         if self.reset:
             self.createTable(iv, result)
 
