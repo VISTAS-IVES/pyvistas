@@ -24,11 +24,12 @@ class LinRegDialog(wx.Frame):
         super().__init__(parent, title='Linear Regression', size=(800,800))
 
         # GLOBAL VARIABLES
-        self.zoom_mode = 0 #0 is off, 1 allows user to draw box on graph
-        self.mouse_continue = True #False if mouse was out of bounds
+        self.zoom_mode = False # User can draw a box if True
+        self.mouse_continue = True # False if mouse was out of bounds
         self.draw = False # True if the zoom box should be drawn
         self.reset = True # True if bounds have been reset by changing variables
-        self.zoom_disable_value = 24 #User will be unable to draw a box if zoomed in past this value
+        self.update = True # True if graph needs to be updated
+        self.zoom_disable_value = 24 # User will be unable to draw a box if zoomed in past this value
 
         # mouse initial positon
         self.mouse_x = 0
@@ -47,6 +48,15 @@ class LinRegDialog(wx.Frame):
         # Center of the viewport
         self.center_x = 0
         self.center_y = 0
+
+        # Absolute bounds of the graph
+        self.x_lo_absolute = 0
+        self.x_hi_absolute = 0
+        self.y_lo_absolute = 0
+        self.y_hi_absolute = 0
+
+        #Square for user drawn box
+        self.square = Rectangle((0, 0), 1, 1, alpha=0.3, color='red')
 
         #SIZERS
         self.panel = wx.Panel(self)
@@ -90,7 +100,7 @@ class LinRegDialog(wx.Frame):
         self.axis_type = wx.RadioBox(self.panel, choices=['Fit All', 'Adaptive', 'Zoom'])
         ctl_sizer.Add(self.axis_type, flag=wx.LEFT|wx.RIGHT, border=10)
 
-        self.Bind(wx.EVT_RADIOBOX, self.doPlot)
+        self.Bind(wx.EVT_RADIOBOX, self.updateGraph)
 
         #BLANK SPACER
         ctl_sizer.Add(wx.StaticText(self.panel, -1, ''), flag=wx.TOP|wx.EXPAND, border=200)
@@ -102,7 +112,7 @@ class LinRegDialog(wx.Frame):
         self.zoom_box = wx.Button(self.panel, label="Box")
         zoom_sizer.Add(self.zoom_box)
 
-        self.zoom_box.Bind(wx.EVT_BUTTON, self.zoom_mode_change)
+        self.zoom_box.Bind(wx.EVT_BUTTON, self.zoomModeChange)
 
         #ZOOM SLIDER
         self.zoom = wx.Slider(self.panel, value = 0, minValue = 0, maxValue = 49, size = (600,-1), style = wx.SL_HORIZONTAL)
@@ -127,32 +137,47 @@ class LinRegDialog(wx.Frame):
         self.Bind(wx.EVT_CLOSE, self.onClose)
 
         #Move along with timeline
-        get_main_window().Bind(EVT_TIMELINE_CHANGED, self.doPlot)
+        get_main_window().Bind(EVT_TIMELINE_CHANGED, self.resetGraph)
 
         #Mouse events on graph (Matplotlib events)
-        self.fig.canvas.mpl_connect('button_press_event', self.mouse_click)
-        self.fig.canvas.mpl_connect('button_release_event', self.mouse_up)
-        self.fig.canvas.mpl_connect('motion_notify_event', self.mouse_move)
+        self.fig.canvas.mpl_connect('button_press_event', self.mouseClick)
+        self.fig.canvas.mpl_connect('button_release_event', self.mouseUp)
+        self.fig.canvas.mpl_connect('motion_notify_event', self.mouseMove)
 
         #Open in the center of VISTAS main window
         self.CenterOnParent()
         self.panel.Layout()
         self.Show()
 
+    #Redraw graph
+    def updateGraph(self, event):
+        self.update = True
+        self.doPlot(event)
+
     #Resets zoom controls so that graph can be made with new bounds
     def resetGraph(self, event):
         self.zoom.SetValue(0)
-        self.zoom_mode = 0
+        self.zoom_mode = False
         self.reset = True
+        self.update = True
         self.doPlot(event)
 
     #Disable the button that allows user to draw a zoom box
-    def disableZoom(self, event):
+    def disableZoom(self):
         if self.zoom.GetValue() > self.zoom_disable_value:
             self.zoom_box.Disable()
         else:
             self.zoom_box.Enable()
-        event.Skip()
+
+    #Check
+    def disableZoomCheck(self):
+        axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
+        if axis_type == 'Zoom':
+            self.zoom.Enable()
+            self.disableZoom()
+        else:
+            self.zoom.Disable()
+            self.zoom_box.Disable()
 
     #Check to see if coordinates are outside the graph
     def checkNone(self, event):
@@ -163,13 +188,13 @@ class LinRegDialog(wx.Frame):
         return True
 
     #Allows the user to draw a box to zoom
-    def zoom_mode_change(self, event):
-        self.zoom_mode = 1
+    def zoomModeChange(self, event):
+        self.zoom_mode = True
         self.draw = True
 
     #MOUSE METHODS MATPLOTLIB
 
-    def mouse_move(self, event):
+    def mouseMove(self, event):
         ms = wx.GetMouseState()
         if ms.leftIsDown:
             if self.checkNone(event) & self.mouse_continue:
@@ -182,7 +207,7 @@ class LinRegDialog(wx.Frame):
             self.mouse_x_diff = 0
             self.mouse_y_diff = 0
 
-    def mouse_click(self, event):
+    def mouseClick(self, event):
         ms = wx.GetMouseState()
         if ms.leftIsDown:
             if self.checkNone(event):
@@ -194,7 +219,7 @@ class LinRegDialog(wx.Frame):
             else:
                 self.mouse_continue = False
 
-    def mouse_up(self, event):
+    def mouseUp(self, event):
         if self.checkNone(event) & self.mouse_continue:
             self.mouse_x_diff = event.xdata - self.mouse_x
             self.mouse_y_diff = event.ydata - self.mouse_y
@@ -224,8 +249,6 @@ class LinRegDialog(wx.Frame):
             self.center_x = x_min + (x_max - x_min) / 2
             self.center_y = y_min + (y_max - y_min) / 2
 
-            self.reset = False
-
         # Current boundaries will be kept
         keep_bounds = True
 
@@ -238,7 +261,7 @@ class LinRegDialog(wx.Frame):
         y_ticks = (y_length) / 100
 
         #USER DRAWN BOX TO ZOOM IN TO
-        if self.zoom_mode == 1:
+        if self.zoom_mode:
 
             # The length of the zoomed in bounds
             x_length_current = abs(self.x_hi - self.x_lo)
@@ -260,22 +283,21 @@ class LinRegDialog(wx.Frame):
 
             #DRAWING A BOX ON THE GRAPH
             if self.draw:
-                square = Rectangle((0, 0), 1, 1, alpha=0.3, color='red')
-                self.ax.add_patch(square)
+                self.ax.add_patch(self.square)
 
                 # Set length of box sides
-                square.set_width(x_box * 2)
-                square.set_height(y_box * 2)
+                self.square.set_width(x_box * 2)
+                self.square.set_height(y_box * 2)
 
                 # Draw corner of box depending on which direction the user is dragging
                 if (x_percentage >= 0) & (y_percentage >= 0):
-                    square.set_xy((self.mouse_x, self.mouse_y))
+                    self.square.set_xy((self.mouse_x, self.mouse_y))
                 elif (x_percentage <= 0) & (y_percentage >= 0):
-                    square.set_xy((self.mouse_x - (x_box * 2), self.mouse_y))
+                    self.square.set_xy((self.mouse_x - (x_box * 2), self.mouse_y))
                 elif (x_percentage <= 0) & (y_percentage <= 0):
-                    square.set_xy((self.mouse_x - (x_box * 2), self.mouse_y - (y_box * 2)))
+                    self.square.set_xy((self.mouse_x - (x_box * 2), self.mouse_y - (y_box * 2)))
                 else:
-                    square.set_xy((self.mouse_x, self.mouse_y - (y_box * 2)))
+                    self.square.set_xy((self.mouse_x, self.mouse_y - (y_box * 2)))
 
                 self.ax.figure.canvas.draw()
 
@@ -390,6 +412,21 @@ class LinRegDialog(wx.Frame):
         thisdata = node.data.get_data(variable, date=date)
         return {'name': dname, 'data': thisdata, 'min': stats.min_value, 'max': stats.max_value}
 
+    # Adjust the bounds of the current graph without redrawing it
+    def plotAdjust(self, x1, x2, y1, y2):
+
+        axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
+
+        if self.square in self.ax.get_children():
+            self.square.remove()
+
+        # Type of axis
+        if axis_type == 'Zoom':
+            self.plotZoomGraph(x1, x2, y1, y2)
+
+        self.ax.figure.canvas.draw()
+
+
     def plotLinReg(self, iv=None, dv=None):
         # stack data and synchronize masks
         my_data = ma.array([d['data'] for d in dv + iv])
@@ -423,23 +460,18 @@ class LinRegDialog(wx.Frame):
             self.ax.set_ylabel(dv[0]['name'])
             axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
 
-            #Disable zoom controls if not on 'Zoom'
-            if axis_type == 'Zoom':
-                self.zoom.Enable()
-                if self.zoom.GetValue() > self.zoom_disable_value:
-                    self.zoom_box.Disable()
-                else:
-                    self.zoom_box.Enable()
-            else:
-                self.zoom.Disable()
-                self.zoom_box.Disable()
-
             #Type of axis
             if axis_type == 'Fit All':
                 self.ax.set_xlim(iv[0]['min'], iv[0]['max'])
                 self.ax.set_ylim(dv[0]['min'], dv[0]['max'])
             elif axis_type == 'Zoom':
                 self.plotZoomGraph(iv[0]['min'], iv[0]['max'], dv[0]['min'], dv[0]['max'])
+
+            self.x_lo_absolute = iv[0]['min']
+            self.x_hi_absolute = iv[0]['max']
+            self.y_lo_absolute = dv[0]['min']
+            self.y_hi_absolute = dv[0]['max']
+
             self.ax.grid()
 
             dv_plot_data = my_data[0]
@@ -452,13 +484,14 @@ class LinRegDialog(wx.Frame):
                 marker_size *= min(1, max(.12, 200 / len(iv_plot_data)))
                 alpha = min(1, max(.002, 500 / len(iv_plot_data)))
                 self.ax.scatter(iv_plot_data, dv_plot_data, s=marker_size, alpha=alpha)
-            else: # heatmap
+            else:  # heatmap
                 bins = 200
                 heatmap, iv_edges, dv_edges = np.histogram2d(iv_plot_data, dv_plot_data, bins=bins)
                 x_min, x_max = iv_edges[0], iv_edges[-1]
                 y_min, y_max = dv_edges[0], dv_edges[-1]
                 self.ax.imshow(np.log(heatmap.transpose() + 1),
-                  extent=[x_min, x_max, y_min, y_max], cmap='Blues', origin='lower', aspect='auto')
+                               extent=[x_min, x_max, y_min, y_max], cmap='Blues', origin='lower', aspect='auto')
+
             # plot regression line
             extent = [ma.min(iv_plot_data), ma.max(iv_plot_data)]
             # self.ax.plot(extent, [ols.intercept_[0] + ols.coef_[0] * x for x in extent], 'r--')
@@ -468,6 +501,8 @@ class LinRegDialog(wx.Frame):
             self.canvas.draw()
 
     def createTable(self, iv=None, result=None):
+        self.panel.Freeze()
+
         # show stats in grids
         try:
           self.grid.Destroy()
@@ -517,30 +552,40 @@ class LinRegDialog(wx.Frame):
         self.sizer.Add(self.cgrid, 2, flag=wx.BOTTOM|wx.LEFT, border=10)
 
         self.panel.Layout()
+        self.panel.Thaw()
+
+        self.reset = False
 
     def doPlot(self, event):
-        try:
-            iv_selections = [self.iv_chooser.GetString(s) for s in self.iv_chooser.GetSelections()]
-            dv_selection = self.dv_chooser.GetString(self.dv_chooser.GetSelection())
-            if dv_selection in iv_selections:
-                iv_selections.remove(dv_selection)
-            if len(iv_selections) > 0 and dv_selection != '-': # good to go
-                data = {}
-                for v, sel in zip(['iv', 'dv'], [iv_selections, [dv_selection]]):
-                    dd = []
-                    for dname in sel:
-                        try:
-                            thisdata = self.getData(dname, self.data)
-                            if thisdata is not None:
-                                dd.append(thisdata)
-                        except Exception as ex:
-                            print(ex)
-                    data[v] = dd
-                if len(data['iv']) >= 1 and len(data['dv']) >= 1:
-                    self.plotLinReg(**data)
-        finally:
-            if isinstance(event, wx.Event): #Check if wxPython event
-                event.Skip() # pass to next handler
+        #Check if zoom controls should be disabled
+        self.disableZoomCheck()
+
+        if self.update:
+            try:
+                iv_selections = [self.iv_chooser.GetString(s) for s in self.iv_chooser.GetSelections()]
+                dv_selection = self.dv_chooser.GetString(self.dv_chooser.GetSelection())
+                if dv_selection in iv_selections:
+                    iv_selections.remove(dv_selection)
+                if len(iv_selections) > 0 and dv_selection != '-': # good to go
+                    data = {}
+                    for v, sel in zip(['iv', 'dv'], [iv_selections, [dv_selection]]):
+                        dd = []
+                        for dname in sel:
+                            try:
+                                thisdata = self.getData(dname, self.data)
+                                if thisdata is not None:
+                                    dd.append(thisdata)
+                            except Exception as ex:
+                                print(ex)
+                        data[v] = dd
+                    if len(data['iv']) >= 1 and len(data['dv']) >= 1:
+                        self.plotLinReg(**data)
+            finally:
+                if isinstance(event, wx.Event): #Check if wxPython event
+                    event.Skip() # pass to next handler
+                self.update = False
+        else:
+            self.plotAdjust(self.x_lo_absolute, self.x_hi_absolute, self.y_lo_absolute, self.y_hi_absolute)
 
     def onClose(self, event):
         get_main_window().Unbind(EVT_TIMELINE_CHANGED)
