@@ -30,7 +30,7 @@ class LinRegDialog(wx.Frame):
         self.reset_bounds = True # True if bounds have been reset by changing variables
         self.update_graph = True # True if graph needs to be updated
         self.update_table = True  # True if data tables need to be updated
-        self.zoom_disable_value = 24 # User will be unable to draw a box if zoomed in past this value
+        self.zoom_disable_value = 48 # User will be unable to draw a box if zoomed in past this value
 
         # mouse initial positon
         self.mouse_x = 0
@@ -183,6 +183,9 @@ class LinRegDialog(wx.Frame):
         self.center_x = x_min + (x_max - x_min) / 2
         self.center_y = y_min + (y_max - y_min) / 2
 
+        if self.square in self.ax.get_children():
+            self.square.remove()
+
         self.reset_bounds = False
 
     #Disable the button that allows user to draw a zoom box
@@ -279,8 +282,8 @@ class LinRegDialog(wx.Frame):
             y_length_current = abs(self.y_hi - self.y_lo)
 
             # Percentage of the total bounds covered
-            x_percentage = self.mouse_x_diff / x_length
-            y_percentage = self.mouse_y_diff / y_length
+            x_percentage = self.mouse_x_diff / x_length_current
+            y_percentage = self.mouse_y_diff / y_length_current
 
             # Figure out if the width or height is largest of the user's rectangle
             if abs(x_percentage) >= abs(y_percentage):
@@ -570,6 +573,12 @@ class LinRegDialog(wx.Frame):
     def doPlot(self, event):
         #Check if zoom controls should be disabled
         self.disableZoomCheck()
+
+        try:
+            if self.square in self.ax.get_children():
+                self.square.remove()
+        except:
+            pass
 
         if self.update_graph:
             try:
