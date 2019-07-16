@@ -27,8 +27,9 @@ class LinRegDialog(wx.Frame):
         self.zoom_mode = False # User can draw a box if True
         self.mouse_continue = True # False if mouse was out of bounds
         self.draw = False # True if the zoom box should be drawn
-        self.reset = True # True if bounds have been reset by changing variables
-        self.update = True # True if graph needs to be updated
+        self.reset_bounds = True # True if bounds have been reset by changing variables
+        self.update_graph = True # True if graph needs to be updated
+        self.update_table = True  # True if data tables need to be updated
         self.zoom_disable_value = 24 # User will be unable to draw a box if zoomed in past this value
 
         # mouse initial positon
@@ -100,7 +101,7 @@ class LinRegDialog(wx.Frame):
         self.axis_type = wx.RadioBox(self.panel, choices=['Fit All', 'Adaptive', 'Zoom'])
         ctl_sizer.Add(self.axis_type, flag=wx.LEFT|wx.RIGHT, border=10)
 
-        self.Bind(wx.EVT_RADIOBOX, self.updateGraph)
+        self.Bind(wx.EVT_RADIOBOX, self.on_axis_change)
 
         #BLANK SPACER
         ctl_sizer.Add(wx.StaticText(self.panel, -1, ''), flag=wx.TOP|wx.EXPAND, border=200)
@@ -131,13 +132,13 @@ class LinRegDialog(wx.Frame):
 
         #EVENTS
 
-        self.Bind(wx.EVT_LISTBOX, self.resetGraph)
-        self.Bind(wx.EVT_CHOICE, self.resetGraph)
+        self.Bind(wx.EVT_LISTBOX, self.on_var_change)
+        self.Bind(wx.EVT_CHOICE, self.on_var_change)
 
         self.Bind(wx.EVT_CLOSE, self.onClose)
 
         #Move along with timeline
-        get_main_window().Bind(EVT_TIMELINE_CHANGED, self.resetGraph)
+        get_main_window().Bind(EVT_TIMELINE_CHANGED, self.on_timeline_change)
 
         #Mouse events on graph (Matplotlib events)
         self.fig.canvas.mpl_connect('button_press_event', self.mouseClick)
@@ -149,18 +150,40 @@ class LinRegDialog(wx.Frame):
         self.panel.Layout()
         self.Show()
 
-    #Redraw graph
-    def updateGraph(self, event):
-        self.update = True
+    def on_axis_change(self, event):
+        self.update_graph = True
         self.doPlot(event)
 
-    #Resets zoom controls so that graph can be made with new bounds
-    def resetGraph(self, event):
+    def on_timeline_change(self, event):
+        self.update_graph = True
+        self.update_table = True
+        self.doPlot(event)
+
+    def on_var_change(self, event):
+        self.reset_bounds = True
+        self.update_graph = True
+        self.update_table = True
+        self.doPlot(event)
+
+    def resetGraph(self, x_min, x_max, y_min, y_max):
         self.zoom.SetValue(0)
         self.zoom_mode = False
-        self.reset = True
-        self.update = True
-        self.doPlot(event)
+
+        # Set bounds to fully zoomed out
+        self.ax.set_xlim(x_min, x_max)
+        self.ax.set_ylim(y_min, y_max)
+
+        # Save bound variables
+        self.x_lo = x_min
+        self.x_hi = x_max
+        self.y_lo = y_min
+        self.y_hi = y_max
+
+        # Calculate centerpoint
+        self.center_x = x_min + (x_max - x_min) / 2
+        self.center_y = y_min + (y_max - y_min) / 2
+
+        self.reset_bounds = False
 
     #Disable the button that allows user to draw a zoom box
     def disableZoom(self):
@@ -234,20 +257,8 @@ class LinRegDialog(wx.Frame):
     def plotZoomGraph(self, x_min, x_max, y_min, y_max):
 
         #If variables have been changed, graph should be reset
-        if self.reset:
-            #Set bounds to fully zoomed out
-            self.ax.set_xlim(x_min, x_max)
-            self.ax.set_ylim(y_min, y_max)
-
-            #Save bound variables
-            self.x_lo = x_min
-            self.x_hi = x_max
-            self.y_lo = y_min
-            self.y_hi = y_max
-
-            #Calculate centerpoint
-            self.center_x = x_min + (x_max - x_min) / 2
-            self.center_y = y_min + (y_max - y_min) / 2
+        if self.reset_bounds:
+            self.resetGraph(x_min, x_max, y_min, y_max)
 
         # Current boundaries will be kept
         keep_bounds = True
@@ -445,7 +456,7 @@ class LinRegDialog(wx.Frame):
         self.createGraph(iv, dv, my_data, result)
 
         #Only draw tables if variables have been changed
-        if self.reset:
+        if self.update_table:
             self.createTable(iv, result)
 
     def createGraph(self, iv=None, dv=None, my_data=None, result=None):
@@ -554,13 +565,13 @@ class LinRegDialog(wx.Frame):
         self.panel.Layout()
         self.panel.Thaw()
 
-        self.reset = False
+        self.update_table = False
 
     def doPlot(self, event):
         #Check if zoom controls should be disabled
         self.disableZoomCheck()
 
-        if self.update:
+        if self.update_graph:
             try:
                 iv_selections = [self.iv_chooser.GetString(s) for s in self.iv_chooser.GetSelections()]
                 dv_selection = self.dv_chooser.GetString(self.dv_chooser.GetSelection())
@@ -583,7 +594,7 @@ class LinRegDialog(wx.Frame):
             finally:
                 if isinstance(event, wx.Event): #Check if wxPython event
                     event.Skip() # pass to next handler
-                self.update = False
+                self.update_graph = False
         else:
             self.plotAdjust(self.x_lo_absolute, self.x_hi_absolute, self.y_lo_absolute, self.y_hi_absolute)
 
