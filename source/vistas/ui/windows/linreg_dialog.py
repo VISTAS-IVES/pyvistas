@@ -104,8 +104,7 @@ class LinRegDialog(wx.Frame):
         self.Bind(wx.EVT_RADIOBOX, self.on_axis_change)
 
         #BLANK SPACER
-        ctl_sizer.Add(wx.StaticText(self.panel, -1, ''), flag=wx.TOP|wx.EXPAND, border=200)
-
+        ctl_sizer.AddSpacer(220)
 
         #ZOOM CONTROLS
 
@@ -465,7 +464,7 @@ class LinRegDialog(wx.Frame):
     def createGraph(self, iv=None, dv=None, my_data=None, result=None):
         try:
           self.fig.delaxes(self.ax)
-        except:
+        except AttributeError:
           pass
 
         if len(iv) == 1: # plot iff we have a single independent variable
