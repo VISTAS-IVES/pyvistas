@@ -176,8 +176,7 @@ class LinRegDialog(wx.Frame):
 
     def on_zoom_box_button(self, event):
         """Allow the user to draw a box on the graph"""
-        self.zoom.zoom_box_enabled = True
-        self.zoom.draw_zoom_box = True
+        self.zoom.zoom_box_drawing_enabled()
 
     # MOUSE METHODS MATPLOTLIB
 
@@ -402,8 +401,7 @@ class LinRegDialog(wx.Frame):
                     event.Skip()  # pass to next handler
                 self.update_graph = False
         else:
-            self.plot_adjust(self.zoom.x_lo_absolute, self.zoom.x_hi_absolute, self.zoom.y_lo_absolute,
-                             self.zoom.y_hi_absolute)
+            self.plot_adjust(*self.zoom.get_bounds_absolute())
 
     def on_close(self, event):
         get_main_window().Unbind(EVT_TIMELINE_CHANGED)

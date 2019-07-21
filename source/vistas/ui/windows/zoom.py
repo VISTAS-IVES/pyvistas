@@ -36,6 +36,10 @@ class zoom:
         # Square for user drawn box
         self.square = Rectangle((0, 0), 1, 1, alpha=0.3, color='red')
 
+    def zoom_box_drawing_enabled(self):
+        self.zoom_box_enabled = True
+        self.draw_zoom_box = True
+
     def check_none(self, event_x, event_y):
         """Check if mouse coordinates are outside of the graph bounds"""
         if event_x is None:
@@ -49,6 +53,9 @@ class zoom:
         self.x_hi_absolute = x_hi
         self.y_lo_absolute = y_lo
         self.y_hi_absolute = y_hi
+
+    def get_bounds_absolute(self):
+        return self.x_lo_absolute, self.x_hi_absolute, self.y_lo_absolute, self.y_hi_absolute
 
     def set_mouse_diff(self, event_x, event_y):
         if self.check_none(event_x, event_y) and self.mouse_in_bounds:
