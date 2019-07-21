@@ -1,4 +1,5 @@
 import wx
+import vistas.ui.windows.zoom as zoom_file
 
 import numpy as np
 import numpy.ma as ma
@@ -11,8 +12,6 @@ import matplotlib as mpl
 mpl.use('WXAgg')
 import matplotlib.backends.backend_wxagg as wxagg
 
-from matplotlib.patches import Rectangle
-
 from vistas.ui.project import Project
 from vistas.core.timeline import Timeline
 from vistas.ui.utils import get_main_window
@@ -23,41 +22,12 @@ class LinRegDialog(wx.Frame):
     def __init__(self, parent=None):
         super().__init__(parent, title='Linear Regression', size=(800, 800))
 
+        self.zoom = zoom_file.zoom()
+
         # Global variables
-        self.zoom_box_enabled = False  # User can draw a box if True
-        self.mouse_in_bounds = True  # False if mouse was out of bounds
-        self.draw_zoom_box = False  # True if the zoom box should be drawn
         self.reset_bounds = True  # True if bounds have been reset by changing variables
         self.update_graph = True  # True if graph needs to be updated
         self.update_table = True  # True if data tables need to be updated
-        self.zoom_disable_value = 48  # User will be unable to draw a box if zoomed in past this value
-
-        # Mouse initial position
-        self.mouse_x = 0
-        self.mouse_y = 0
-
-        # Mouse drag distance
-        self.mouse_x_diff = 0
-        self.mouse_y_diff = 0
-
-        # Current bounds of the graph
-        self.x_hi = 0
-        self.x_lo = 0
-        self.y_hi = 0
-        self.y_lo = 0
-
-        # Center of the viewport
-        self.center_x = 0
-        self.center_y = 0
-
-        # Absolute bounds of the graph
-        self.x_lo_absolute = 0
-        self.x_hi_absolute = 0
-        self.y_lo_absolute = 0
-        self.y_hi_absolute = 0
-
-        # Square for user drawn box
-        self.square = Rectangle((0, 0), 1, 1, alpha=0.3, color='red')
 
         # Sizers
         self.panel = wx.Panel(self)
@@ -116,11 +86,11 @@ class LinRegDialog(wx.Frame):
         self.zoom_box.Bind(wx.EVT_BUTTON, self.on_zoom_box_button)
 
         # Zoom slider
-        self.zoom = wx.Slider(self.panel, value=0, minValue=0, maxValue=49, size=(600, -1),
-                              style=wx.SL_HORIZONTAL)
-        zoom_sizer.Add(self.zoom, flag=wx.LEFT, border=10)
+        self.zoom_slider = wx.Slider(self.panel, value=0, minValue=0, maxValue=49, size=(600, -1),
+                                     style=wx.SL_HORIZONTAL)
+        zoom_sizer.Add(self.zoom_slider, flag=wx.LEFT, border=10)
 
-        self.zoom.Bind(wx.EVT_SCROLL, self.on_zoom_scroll)
+        self.zoom_slider.Bind(wx.EVT_SCROLL, self.on_zoom_scroll)
 
         # Graph canvas
         self.fig = mpl.figure.Figure()
@@ -170,35 +140,26 @@ class LinRegDialog(wx.Frame):
 
     def reset_graph(self, x_min, x_max, y_min, y_max):
         """Reset the zoom controls and graph bounds"""
-        self.zoom.SetValue(0)
-        self.zoom_box_enabled = False
+        self.zoom_slider.SetValue(0)
 
         # Set bounds to fully zoomed out
         self.ax.set_xlim(x_min, x_max)
         self.ax.set_ylim(y_min, y_max)
 
-        # Save bound variables
-        self.x_lo = x_min
-        self.x_hi = x_max
-        self.y_lo = y_min
-        self.y_hi = y_max
-
-        # Calculate center point
-        self.center_x = x_min + (x_max - x_min) / 2
-        self.center_y = y_min + (y_max - y_min) / 2
-
-        if self.square in self.ax.get_children():
-            self.square.remove()
+        if self.zoom.square in self.ax.get_children():
+            self.zoom.square.remove()
 
         self.reset_bounds = False
 
+        self.zoom.reset_zoom(x_min, x_max, y_min, y_max)
+
     def on_zoom_scroll(self, event):
-        self.disable_zoom
+        self.disable_zoom()
         self.do_plot(event)
 
     def disable_zoom(self):
         """Disable the button that allows user to draw a zoom box"""
-        if self.zoom.GetValue() > self.zoom_disable_value:
+        if self.zoom_slider.GetValue() > self.zoom.zoom_disable_value:
             self.zoom_box.Disable()
         else:
             self.zoom_box.Enable()
@@ -207,24 +168,16 @@ class LinRegDialog(wx.Frame):
         """Enable zoom controls if axis type is set to Zoom"""
         axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
         if axis_type == 'Zoom':
-            self.zoom.Enable()
+            self.zoom_slider.Enable()
             self.disable_zoom()
         else:
-            self.zoom.Disable()
+            self.zoom_slider.Disable()
             self.zoom_box.Disable()
-
-    def check_none(self, event):
-        """Check if mouse coordinates are outside of the graph bounds"""
-        if event.xdata is None:
-            return False
-        if event.ydata is None:
-            return False
-        return True
 
     def on_zoom_box_button(self, event):
         """Allow the user to draw a box on the graph"""
-        self.zoom_box_enabled = True
-        self.draw_zoom_box = True
+        self.zoom.zoom_box_enabled = True
+        self.zoom.draw_zoom_box = True
 
     # MOUSE METHODS MATPLOTLIB
 
@@ -232,35 +185,21 @@ class LinRegDialog(wx.Frame):
         """Get mouse position when moving"""
         ms = wx.GetMouseState()
         if ms.leftIsDown:
-            if self.check_none(event) and self.mouse_in_bounds:
-                self.mouse_x_diff = event.xdata - self.mouse_x
-                self.mouse_y_diff = event.ydata - self.mouse_y
+            self.zoom.set_mouse_diff(event.xdata, event.ydata)
             self.do_plot(event)
         else:
-            self.mouse_x_diff = 0
-            self.mouse_y_diff = 0
+            self.zoom.set_mouse_diff_zero()
 
     def on_mouse_press(self, event):
         """Get mouse position when left clicking"""
         ms = wx.GetMouseState()
         if ms.leftIsDown:
-            if self.check_none(event):
-                self.mouse_x = event.xdata
-                self.mouse_y = event.ydata
-                self.mouse_x_diff = 0
-                self.mouse_y_diff = 0
-                self.mouse_in_bounds = True
-            else:
-                self.mouse_in_bounds = False
+            self.zoom.set_mouse_diff_zero()
+            self.zoom.set_mouse_initial(event.xdata, event.ydata)
 
     def on_mouse_release(self, event):
         """Get mouse position when releasing a mouse press"""
-        if self.check_none(event) and self.mouse_in_bounds:
-            self.mouse_x_diff = event.xdata - self.mouse_x
-            self.mouse_y_diff = event.ydata - self.mouse_y
-        elif self.check_none(event):
-            self.mouse_in_bounds = False
-        self.draw_zoom_box = False
+        self.zoom.mouse_release(event.xdata, event.ydata)
         self.do_plot(event)
 
     # PLOTTING GRAPH
@@ -272,165 +211,19 @@ class LinRegDialog(wx.Frame):
         if self.reset_bounds:
             self.reset_graph(x_min, x_max, y_min, y_max)
 
-        # Current boundaries will be kept
-        keep_bounds = True
+        zoom_values = self.zoom.calculate_zoom(x_min, x_max, y_min, y_max, self.zoom_slider.GetValue())
 
-        # Size of boundaries
-        x_length = (x_max - x_min)
-        y_length = (y_max - y_min)
+        # If box should be drawn
+        if zoom_values[4]:
+            self.ax.add_patch(self.zoom.square)
+            self.ax.figure.canvas.draw()
 
-        # Divide sides for percentages
-        x_ticks = x_length / 100
-        y_ticks = y_length / 100
+        # Set zoom slider to given value
+        self.zoom_slider.SetValue(zoom_values[5])
+        self.disable_zoom()
 
-        # Set initial values
-        x_lo = self.x_lo
-        x_hi = self.x_hi
-        y_lo = self.y_lo
-        y_hi = self.y_hi
-        zoom_amt_x = 0
-        zoom_amt_y = 0
-
-        # User drawn box to zoom in to
-        if self.zoom_box_enabled:
-
-            # The length of the zoomed in bounds
-            x_length_current = abs(self.x_hi - self.x_lo)
-            y_length_current = abs(self.y_hi - self.y_lo)
-
-            # Percentage of the total bounds covered
-            x_percentage = self.mouse_x_diff / x_length_current
-            y_percentage = self.mouse_y_diff / y_length_current
-
-            # Figure out if the width or height is largest of the user's rectangle
-            if abs(x_percentage) >= abs(y_percentage):
-                zoom_value = ((x_length - abs(self.mouse_x_diff)) / 2) / x_ticks
-                x_box = (x_length_current * abs(x_percentage)) / 2
-                y_box = (y_length_current * abs(x_percentage)) / 2
-            else:
-                zoom_value = ((y_length - abs(self.mouse_y_diff)) / 2) / y_ticks
-                x_box = (x_length_current * abs(y_percentage)) / 2
-                y_box = (y_length_current * abs(y_percentage)) / 2
-
-            # Drawing a box on the graph
-            if self.draw_zoom_box:
-                self.ax.add_patch(self.square)
-
-                # Set length of box sides
-                self.square.set_width(x_box * 2)
-                self.square.set_height(y_box * 2)
-
-                # Draw corner of box depending on which direction the user is dragging
-                if (x_percentage >= 0) and (y_percentage >= 0):
-                    self.square.set_xy((self.mouse_x, self.mouse_y))
-                elif (x_percentage <= 0) and (y_percentage >= 0):
-                    self.square.set_xy((self.mouse_x - (x_box * 2), self.mouse_y))
-                elif (x_percentage <= 0) and (y_percentage <= 0):
-                    self.square.set_xy((self.mouse_x - (x_box * 2), self.mouse_y - (y_box * 2)))
-                else:
-                    self.square.set_xy((self.mouse_x, self.mouse_y - (y_box * 2)))
-
-                self.ax.figure.canvas.draw()
-
-            # Zooming into a drawn box
-            elif zoom_value < 50 and self.mouse_in_bounds:
-
-                self.zoom.SetValue(round(zoom_value))
-
-                if (x_percentage >= 0) and (y_percentage >= 0):
-                    x_lo = self.mouse_x
-                    y_lo = self.mouse_y
-                elif (x_percentage <= 0) and (y_percentage >= 0):
-                    x_lo = self.mouse_x - (x_box * 2)
-                    y_lo = self.mouse_y
-                elif (x_percentage <= 0) and (y_percentage <= 0):
-                    x_lo = self.mouse_x - (x_box * 2)
-                    y_lo = self.mouse_y - (y_box * 2)
-                else:
-                    x_lo = self.mouse_x
-                    y_lo = self.mouse_y - (y_box * 2)
-
-                zoom_amt_x = self.zoom.GetValue() * x_ticks
-                zoom_amt_y = self.zoom.GetValue() * y_ticks
-
-                x_hi = x_lo + (x_length - 2 * zoom_amt_x)
-
-                y_hi = y_lo + (y_length - 2 * zoom_amt_y)
-
-                self.center_x = x_lo + (x_length / 2 - zoom_amt_x)
-                self.center_y = y_lo + (y_length / 2 - zoom_amt_y)
-
-                if self.zoom.GetValue() > self.zoom_disable_value:
-                    self.zoom_box.Disable()
-                else:
-                    self.zoom_box.Enable()
-
-                keep_bounds = False
-
-            self.zoom_box_enabled = self.draw_zoom_box
-
-        else:
-            # Slows down shifting for the user
-            shift_amt = -1.5  # Sign is flipped or dragging will move opposite of what is expected
-
-            # Distance user dragged across screen to shift viewport
-            shift_x = self.mouse_x_diff / shift_amt
-            shift_y = self.mouse_y_diff / shift_amt
-
-            # Amount to zoom in by based on the value of the slider
-            zoom_amt_x = self.zoom.GetValue() * x_ticks
-            zoom_amt_y = self.zoom.GetValue() * y_ticks
-
-            # Shift the center by the amount user dragged
-            self.center_x += shift_x
-            self.center_y += shift_y
-
-            # Calculate bounds based on center and zoom amount
-
-            x_lo = self.center_x - (x_length / 2 - zoom_amt_x)
-            x_hi = self.center_x + (x_length / 2 - zoom_amt_x)
-
-            y_lo = self.center_y - (y_length / 2 - zoom_amt_y)
-            y_hi = self.center_y + (y_length / 2 - zoom_amt_y)
-
-            keep_bounds = False
-
-        if keep_bounds:
-            # Keep current bounds
-            self.ax.set_xlim(self.x_lo, self.x_hi)
-            self.ax.set_ylim(self.y_lo, self.y_hi)
-        else:
-            # Check if new bounds are within absolute bounds
-
-            # X axis
-            if x_lo < x_min:
-                x_lo = x_min
-                x_hi = x_max - (2 * zoom_amt_x)
-                self.center_x = x_min + (x_length / 2 - zoom_amt_x)
-            if x_hi > x_max:
-                x_hi = x_max
-                x_lo = x_min + (2 * zoom_amt_x)
-                self.center_x = x_max - (x_length / 2 - zoom_amt_x)
-
-            # Y axis
-            if y_lo < y_min:
-                y_lo = y_min
-                y_hi = y_max - (2 * zoom_amt_y)
-                self.center_y = y_min + (y_length / 2 - zoom_amt_y)
-            if y_hi > y_max:
-                y_hi = y_max
-                y_lo = y_min + (2 * zoom_amt_y)
-                self.center_y = y_max - (y_length / 2 - zoom_amt_y)
-
-            # Set new bounds
-            self.ax.set_xlim(x_lo, x_hi)
-            self.ax.set_ylim(y_lo, y_hi)
-
-            # Record bounds for later use
-            self.x_lo = x_lo
-            self.x_hi = x_hi
-            self.y_lo = y_lo
-            self.y_hi = y_hi
+        self.ax.set_xlim(zoom_values[0], zoom_values[1])
+        self.ax.set_ylim(zoom_values[2], zoom_values[3])
 
     def get_data(self, dname, data):
         try:
@@ -447,8 +240,8 @@ class LinRegDialog(wx.Frame):
         """Adjust the bounds of the current graph without redrawing it"""
         axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
 
-        if self.square in self.ax.get_children():
-            self.square.remove()
+        if self.zoom.square in self.ax.get_children():
+            self.zoom.square.remove()
 
         if axis_type == 'Zoom':
             self.plot_zoom_graph(x1, x2, y1, y2)
@@ -492,10 +285,7 @@ class LinRegDialog(wx.Frame):
             elif axis_type == 'Zoom':
                 self.plot_zoom_graph(iv[0]['min'], iv[0]['max'], dv[0]['min'], dv[0]['max'])
 
-            self.x_lo_absolute = iv[0]['min']
-            self.x_hi_absolute = iv[0]['max']
-            self.y_lo_absolute = dv[0]['min']
-            self.y_hi_absolute = dv[0]['max']
+            self.zoom.set_bounds_absolute(iv[0]['min'], iv[0]['max'], dv[0]['min'], dv[0]['max'])
 
             self.ax.grid()
 
@@ -582,8 +372,8 @@ class LinRegDialog(wx.Frame):
         self.disable_zoom_check()
 
         try:
-            if self.square in self.ax.get_children():
-                self.square.remove()
+            if self.zoom.square in self.ax.get_children():
+                self.zoom.square.remove()
         except AttributeError:
             pass
 
@@ -612,7 +402,8 @@ class LinRegDialog(wx.Frame):
                     event.Skip()  # pass to next handler
                 self.update_graph = False
         else:
-            self.plot_adjust(self.x_lo_absolute, self.x_hi_absolute, self.y_lo_absolute, self.y_hi_absolute)
+            self.plot_adjust(self.zoom.x_lo_absolute, self.zoom.x_hi_absolute, self.zoom.y_lo_absolute,
+                             self.zoom.y_hi_absolute)
 
     def on_close(self, event):
         get_main_window().Unbind(EVT_TIMELINE_CHANGED)
