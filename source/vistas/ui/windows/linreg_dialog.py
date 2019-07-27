@@ -22,7 +22,7 @@ class LinRegDialog(wx.Frame):
     def __init__(self, parent=None):
         super().__init__(parent, title='Linear Regression', size=(800, 800))
 
-        self.zoom = zoom_file.zoom()
+        self.zoom = zoom_file.Zoom()
 
         # Global variables
         self.reset_bounds = True  # True if bounds have been reset by changing variables

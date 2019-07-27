@@ -21,7 +21,7 @@ class PcaDialog(wx.Frame):
     def __init__(self, parent=None):
         super().__init__(parent, title='PCA', size=(800, 800))
 
-        self.zoom = zoom_file.zoom()
+        self.zoom = zoom_file.Zoom()
 
         # Global variables
         self.reset_bounds = True  # True if bounds have been reset by changing variables
@@ -52,9 +52,9 @@ class PcaDialog(wx.Frame):
         self.plot_type = wx.RadioBox(self.panel, choices=['scatterplot', 'heatmap'])
         ctl_sizer.Add(self.plot_type, flag=wx.LEFT | wx.RIGHT, border=10)
 
-        ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Axis type:'), flag=wx.TOP|wx.LEFT|wx.RIGHT, border=12)
+        ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Axis type:'), flag=wx.TOP | wx.LEFT | wx.RIGHT, border=12)
         self.axis_type = wx.RadioBox(self.panel, choices=['Fixed', 'Adaptive', 'Zoom'])
-        ctl_sizer.Add(self.axis_type, flag=wx.LEFT|wx.RIGHT, border=10)
+        ctl_sizer.Add(self.axis_type, flag=wx.LEFT | wx.RIGHT, border=10)
         self.Bind(wx.EVT_RADIOBOX, self.on_axis_change)
 
         # Blank spacer
@@ -74,7 +74,6 @@ class PcaDialog(wx.Frame):
         zoom_sizer.Add(self.zoom_slider, flag=wx.LEFT, border=10)
 
         self.zoom_slider.Bind(wx.EVT_SCROLL, self.on_zoom_scroll)
-
 
         self.fig = mpl.figure.Figure()
         self.canvas = wxagg.FigureCanvasWxAgg(self.panel, -1, self.fig)
@@ -255,9 +254,9 @@ class PcaDialog(wx.Frame):
 
     def create_graph(self, n_vars, pca, tx_data, var_names, x_data):
         try:
-          self.fig.delaxes(self.ax)
+            self.fig.delaxes(self.ax)
         except AttributeError:
-          pass
+            pass
 
         # plot first two components
         self.ax = self.fig.add_subplot(111)
@@ -270,9 +269,9 @@ class PcaDialog(wx.Frame):
             self.ax.set_xlim(-3, 3)
             self.ax.set_ylim(-3, 3)
         elif axis_type == 'Zoom':
-            self.plot_zoom_graph(-3,3,-3,3)
+            self.plot_zoom_graph(-3, 3, -3, 3)
 
-        self.zoom.set_bounds_absolute(-3,3,-3,3)
+        self.zoom.set_bounds_absolute(-3, 3, -3, 3)
 
         plot_type = self.plot_type.GetString(self.plot_type.GetSelection())
         if plot_type == 'scatterplot':
@@ -307,27 +306,27 @@ class PcaDialog(wx.Frame):
 
         # show stats in grid
         try:
-          self.grid.Destroy()
+            self.grid.Destroy()
         except AttributeError:
-          pass
+            pass
         self.grid = wx.grid.Grid(self.panel, -1)
         self.grid.CreateGrid(n_vars, n_vars + 1)  # extra column for explained variance
         grid_labels = ['Expl. var.'] + var_names
         grid_data = np.concatenate(
-          (np.expand_dims(pca.explained_variance_ratio_, axis=1), pca.components_),
-          axis=1)
+            (np.expand_dims(pca.explained_variance_ratio_, axis=1), pca.components_),
+            axis=1)
         for v in range(len(grid_labels)):
-          self.grid.SetColLabelValue(v, grid_labels[v])
-          # grid.SetColSize(v, cell_width+8)
-          self.grid.SetColFormatFloat(v, 6, 3)
+            self.grid.SetColLabelValue(v, grid_labels[v])
+            # grid.SetColSize(v, cell_width+8)
+            self.grid.SetColFormatFloat(v, 6, 3)
         vc = wx.ColourDatabase().Find('Light Blue')
         for row in range(n_vars):
-          self.grid.SetCellBackgroundColour(row, 0, vc)
-          for col in range(len(grid_labels)):
-            self.grid.SetCellValue(row, col, str(grid_data[row, col]))
-            self.grid.SetReadOnly(row, col)
+            self.grid.SetCellBackgroundColour(row, 0, vc)
+            for col in range(len(grid_labels)):
+                self.grid.SetCellValue(row, col, str(grid_data[row, col]))
+                self.grid.SetReadOnly(row, col)
         self.grid.AutoSize()
-        self.sizer.Add(self.grid, 2, flag=wx.TOP|wx.LEFT, border=10)
+        self.sizer.Add(self.grid, 2, flag=wx.TOP | wx.LEFT, border=10)
         self.sizer.AddStretchSpacer()
         self.panel.Layout()
 
@@ -345,7 +344,7 @@ class PcaDialog(wx.Frame):
             pass
 
         if self.update_graph:
-            try: # because we want to insure that we can pass to next handler
+            try:  # because we want to insure that we can pass to next handler
                 selections = self.chooser.GetSelections()
                 if len(selections) >= 2:
                     v_data = {}

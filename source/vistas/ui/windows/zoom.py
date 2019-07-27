@@ -1,7 +1,7 @@
 from matplotlib.patches import Rectangle
 
 
-class zoom:
+class Zoom:
     def __init__(self):
         # Global variables
         self.zoom_box_enabled = False  # User can draw a box if True
