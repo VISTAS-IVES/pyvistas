@@ -192,17 +192,17 @@ class PcaDialog(wx.Frame):
 
         zoom_values = self.zoom.calculate_zoom(x_min, x_max, y_min, y_max, self.zoom_slider.GetValue())
 
-        # If box should be drawn
-        if zoom_values[4]:
-            self.ax.add_patch(self.zoom.square)
-            self.ax.figure.canvas.draw()
-
         # Set zoom slider to given value
         self.zoom_slider.SetValue(zoom_values[5])
         self.disable_zoom()
 
+        # Set bounds
         self.ax.set_xlim(zoom_values[0], zoom_values[1])
         self.ax.set_ylim(zoom_values[2], zoom_values[3])
+
+        # If box should be drawn
+        if zoom_values[4]:
+            self.ax.add_patch(self.zoom.square)
 
     def get_data(self, dname, data):
         try:
