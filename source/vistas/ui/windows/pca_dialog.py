@@ -58,7 +58,7 @@ class PcaDialog(wx.Frame):
         self.Bind(wx.EVT_RADIOBOX, self.on_axis_change)
 
         # Blank spacer
-        ctl_sizer.AddSpacer(220)
+        ctl_sizer.AddSpacer(340)
 
         # Zoom controls
 
@@ -326,8 +326,8 @@ class PcaDialog(wx.Frame):
                 self.grid.SetCellValue(row, col, str(grid_data[row, col]))
                 self.grid.SetReadOnly(row, col)
         self.grid.AutoSize()
-        self.sizer.Add(self.grid, 2, flag=wx.TOP | wx.LEFT, border=10)
         self.sizer.AddStretchSpacer()
+        self.sizer.Add(self.grid, 2, flag=wx.BOTTOM | wx.LEFT, border=10)
         self.panel.Layout()
 
         self.panel.Thaw()
