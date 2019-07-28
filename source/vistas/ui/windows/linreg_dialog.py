@@ -63,7 +63,7 @@ class LinRegDialog(wx.Frame):
         # Plot type
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Plot type:'), flag=wx.TOP | wx.LEFT | wx.RIGHT, border=12)
 
-        self.plot_type = wx.RadioBox(self.panel, choices=['scatterplot', 'heatmap'])
+        self.plot_type = wx.RadioBox(self.panel, choices=['Scatterplot', 'Heatmap'])
         ctl_sizer.Add(self.plot_type, flag=wx.LEFT | wx.RIGHT, border=10)
 
         # Axis type
@@ -129,6 +129,7 @@ class LinRegDialog(wx.Frame):
         """Update graph and tables when the timeline changes"""
         self.update_graph = True
         self.update_table = True
+        self.zoom.zoom_box_drawing_disabled()
         self.do_plot(event)
 
     def on_var_change(self, event):
@@ -136,6 +137,7 @@ class LinRegDialog(wx.Frame):
         self.reset_bounds = True
         self.update_graph = True
         self.update_table = True
+        self.zoom.zoom_box_drawing_disabled()
         self.do_plot(event)
 
     def reset_graph(self, x_min, x_max, y_min, y_max):
@@ -155,6 +157,7 @@ class LinRegDialog(wx.Frame):
 
     def on_zoom_scroll(self, event):
         self.disable_zoom()
+        self.zoom.zoom_box_drawing_disabled()
         self.do_plot(event)
 
     def disable_zoom(self):
@@ -292,7 +295,7 @@ class LinRegDialog(wx.Frame):
             iv_plot_data = my_data[1]
 
             plot_type = self.plot_type.GetString(self.plot_type.GetSelection())
-            if plot_type == 'scatterplot':
+            if plot_type == 'Scatterplot':
                 # adjust marker size and alpha based on how many points we're plotting
                 marker_size = mpl.rcParams['lines.markersize'] ** 2
                 marker_size *= min(1, max(.12, 200 / len(iv_plot_data)))

@@ -40,6 +40,10 @@ class Zoom:
         self.zoom_box_enabled = True
         self.draw_zoom_box = True
 
+    def zoom_box_drawing_disabled(self):
+        self.zoom_box_enabled = False
+        self.draw_zoom_box = False
+
     def check_none(self, event_x, event_y):
         """Check if mouse coordinates are outside of the graph bounds"""
         if event_x is None:

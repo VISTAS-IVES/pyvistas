@@ -49,7 +49,7 @@ class PcaDialog(wx.Frame):
         ctl_sizer.Add(self.chooser, 0, flag=wx.LEFT | wx.RIGHT | wx.BOTTOM, border=20)
 
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Plot type:'), flag=wx.TOP | wx.LEFT | wx.RIGHT, border=12)
-        self.plot_type = wx.RadioBox(self.panel, choices=['scatterplot', 'heatmap'])
+        self.plot_type = wx.RadioBox(self.panel, choices=['Scatterplot', 'Heatmap'])
         ctl_sizer.Add(self.plot_type, flag=wx.LEFT | wx.RIGHT, border=10)
 
         ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Axis type:'), flag=wx.TOP | wx.LEFT | wx.RIGHT, border=12)
@@ -95,14 +95,10 @@ class PcaDialog(wx.Frame):
         self.panel.Layout()
         self.Show()
 
-    def on_plot_change(self, event):
-        self.update_graph = True
-        self.do_plot(event)
-        event.Skip()
-
     def on_axis_change(self, event):
         """Update graph when user selects a new axis type"""
         self.update_graph = True
+        self.zoom.zoom_box_drawing_disabled()
         self.do_plot(event)
 
     def on_timeline_change(self, event):
@@ -116,6 +112,7 @@ class PcaDialog(wx.Frame):
         self.reset_bounds = True
         self.update_graph = True
         self.update_table = True
+        self.zoom.zoom_box_drawing_disabled()
         self.do_plot(event)
 
     def reset_graph(self, x_min, x_max, y_min, y_max):
@@ -135,6 +132,7 @@ class PcaDialog(wx.Frame):
 
     def on_zoom_scroll(self, event):
         self.disable_zoom()
+        self.zoom.zoom_box_drawing_disabled()
         self.do_plot(event)
 
     def disable_zoom(self):
@@ -274,7 +272,7 @@ class PcaDialog(wx.Frame):
         self.zoom.set_bounds_absolute(-3, 3, -3, 3)
 
         plot_type = self.plot_type.GetString(self.plot_type.GetSelection())
-        if plot_type == 'scatterplot':
+        if plot_type == 'Scatterplot':
             # adjust marker size and alpha based on # of points
             marker_size = mpl.rcParams['lines.markersize'] ** 2
             marker_size *= min(1, max(.12, 200 / len(tx_data[:, 0])))
