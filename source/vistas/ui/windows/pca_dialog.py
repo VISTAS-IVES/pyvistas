@@ -23,6 +23,8 @@ class PcaDialog(wx.Frame):
 
         self.zoom = zoom_file.Zoom()
 
+        self.variable_amt = 0
+
         # Global variables
         self.reset_bounds = True  # True if bounds have been reset by changing variables
         self.update_graph = True  # True if graph needs to be updated
@@ -58,7 +60,7 @@ class PcaDialog(wx.Frame):
         self.Bind(wx.EVT_RADIOBOX, self.on_axis_change)
 
         # Blank spacer
-        ctl_sizer.AddSpacer(340)
+        ctl_sizer.AddSpacer(320)
 
         # Zoom controls
 
@@ -249,6 +251,9 @@ class PcaDialog(wx.Frame):
 
         if self.update_table:
             self.create_table(n_vars, pca, var_names)
+
+        self.variable_amt = n_vars
+        print(self.variable_amt)
 
     def create_graph(self, n_vars, pca, tx_data, var_names, x_data):
         try:

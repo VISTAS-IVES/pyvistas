@@ -123,13 +123,13 @@ class LinRegDialog(wx.Frame):
     def on_axis_change(self, event):
         """Update graph when user selects a new axis type"""
         self.update_graph = True
+        self.zoom.zoom_box_drawing_disabled()
         self.do_plot(event)
 
     def on_timeline_change(self, event):
         """Update graph and tables when the timeline changes"""
         self.update_graph = True
         self.update_table = True
-        self.zoom.zoom_box_drawing_disabled()
         self.do_plot(event)
 
     def on_var_change(self, event):
