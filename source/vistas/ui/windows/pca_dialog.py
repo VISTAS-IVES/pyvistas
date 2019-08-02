@@ -23,8 +23,6 @@ class PcaDialog(wx.Frame):
 
         self.zoom = zoom_file.Zoom()
 
-        self.variable_amt = 0
-
         # Global variables
         self.reset_bounds = True  # True if bounds have been reset by changing variables
         self.update_graph = True  # True if graph needs to be updated
@@ -60,7 +58,7 @@ class PcaDialog(wx.Frame):
         self.Bind(wx.EVT_RADIOBOX, self.on_axis_change)
 
         # Blank spacer
-        ctl_sizer.AddSpacer(320)
+        #ctl_sizer.AddSpacer(320)
 
         # Zoom controls
 
@@ -83,6 +81,8 @@ class PcaDialog(wx.Frame):
         self.right_sizer.Add(self.canvas, 1, wx.EXPAND)
         self.right_sizer.Add(zoom_sizer, flag=wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT, border=10)
         top_sizer.Add(self.right_sizer)
+
+        self.sizer.AddStretchSpacer()
 
         self.Bind(wx.EVT_LISTBOX, self.on_var_change)
         self.Bind(wx.EVT_CLOSE, self.on_close)
@@ -252,9 +252,6 @@ class PcaDialog(wx.Frame):
         if self.update_table:
             self.create_table(n_vars, pca, var_names)
 
-        self.variable_amt = n_vars
-        print(self.variable_amt)
-
     def create_graph(self, n_vars, pca, tx_data, var_names, x_data):
         try:
             self.fig.delaxes(self.ax)
@@ -312,6 +309,8 @@ class PcaDialog(wx.Frame):
             self.grid.Destroy()
         except AttributeError:
             pass
+
+
         self.grid = wx.grid.Grid(self.panel, -1)
         self.grid.CreateGrid(n_vars, n_vars + 1)  # extra column for explained variance
         grid_labels = ['Expl. var.'] + var_names
@@ -320,7 +319,6 @@ class PcaDialog(wx.Frame):
             axis=1)
         for v in range(len(grid_labels)):
             self.grid.SetColLabelValue(v, grid_labels[v])
-            # grid.SetColSize(v, cell_width+8)
             self.grid.SetColFormatFloat(v, 6, 3)
         vc = wx.ColourDatabase().Find('Light Blue')
         for row in range(n_vars):
@@ -329,8 +327,7 @@ class PcaDialog(wx.Frame):
                 self.grid.SetCellValue(row, col, str(grid_data[row, col]))
                 self.grid.SetReadOnly(row, col)
         self.grid.AutoSize()
-        self.sizer.AddStretchSpacer()
-        self.sizer.Add(self.grid, 2, flag=wx.BOTTOM | wx.LEFT, border=10)
+        self.sizer.Add(self.grid, flag=wx.BOTTOM | wx.LEFT, border=10)
         self.panel.Layout()
 
         self.panel.Thaw()
