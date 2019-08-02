@@ -310,7 +310,6 @@ class PcaDialog(wx.Frame):
         except AttributeError:
             pass
 
-
         self.grid = wx.grid.Grid(self.panel, -1)
         self.grid.CreateGrid(n_vars, n_vars + 1)  # extra column for explained variance
         grid_labels = ['Expl. var.'] + var_names
@@ -327,6 +326,9 @@ class PcaDialog(wx.Frame):
                 self.grid.SetCellValue(row, col, str(grid_data[row, col]))
                 self.grid.SetReadOnly(row, col)
         self.grid.AutoSize()
+        if n_vars > 3:
+            self.grid.SetRowLabelAlignment(wx.ALIGN_CENTER,wx.ALIGN_TOP)
+            self.grid.SetRowSize(self.grid.GetNumberRows()-1, 40)
         self.sizer.Add(self.grid, flag=wx.BOTTOM | wx.LEFT, border=10)
         self.panel.Layout()
 
