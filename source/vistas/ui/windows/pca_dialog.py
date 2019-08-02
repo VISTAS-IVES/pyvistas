@@ -326,9 +326,21 @@ class PcaDialog(wx.Frame):
                 self.grid.SetCellValue(row, col, str(grid_data[row, col]))
                 self.grid.SetReadOnly(row, col)
         self.grid.AutoSize()
+
+        grid_width = self.grid.GetRowLabelSize()
+        grid_height = self.grid.GetColLabelSize()
+
+        for i in range(self.grid.GetNumberCols()):
+            grid_width += self.grid.GetColSize(i)
+
+        for j in range(self.grid.GetNumberRows()):
+            grid_height += self.grid.GetRowSize(j)
+
         if n_vars > 3:
-            self.grid.SetRowLabelAlignment(wx.ALIGN_CENTER,wx.ALIGN_TOP)
-            self.grid.SetRowSize(self.grid.GetNumberRows()-1, 40)
+            self.grid.SetMinSize((grid_width, grid_height+17))
+        else:
+            self.grid.SetMinSize((grid_width, grid_height))
+
         self.sizer.Add(self.grid, flag=wx.BOTTOM | wx.LEFT, border=10)
         self.panel.Layout()
 
