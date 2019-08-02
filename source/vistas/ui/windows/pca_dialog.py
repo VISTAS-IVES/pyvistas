@@ -57,9 +57,6 @@ class PcaDialog(wx.Frame):
         ctl_sizer.Add(self.axis_type, flag=wx.LEFT | wx.RIGHT, border=10)
         self.Bind(wx.EVT_RADIOBOX, self.on_axis_change)
 
-        # Blank spacer
-        #ctl_sizer.AddSpacer(320)
-
         # Zoom controls
 
         # Zoom button for dragging a box
