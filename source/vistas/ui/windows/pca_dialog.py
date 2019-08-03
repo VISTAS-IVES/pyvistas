@@ -57,6 +57,36 @@ class PcaDialog(wx.Frame):
         ctl_sizer.Add(self.axis_type, flag=wx.LEFT | wx.RIGHT, border=10)
         self.Bind(wx.EVT_RADIOBOX, self.on_axis_change)
 
+        #User bounds
+        self.x_min = None
+        self.x_max = None
+        self.y_min = None
+        self.y_max = None
+
+        ctl_sizer.Add(wx.StaticText(self.panel, -1, 'X-axis:'), flag=wx.TOP | wx.LEFT, border=15)
+
+        x_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.box_x_min = wx.TextCtrl(self.panel, -1, size=(50,20), value="")
+        x_sizer.Add(self.box_x_min, flag = wx.RIGHT | wx.LEFT, border=10)
+        self.box_x_max = wx.TextCtrl(self.panel, -1, size=(50, 20), value="")
+        x_sizer.Add(self.box_x_max)
+
+        ctl_sizer.Add(x_sizer, flag=wx.LEFT | wx.TOP, border=10)
+
+        ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Y-axis:'), flag=wx.TOP | wx.LEFT, border=15)
+
+        y_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.box_y_min = wx.TextCtrl(self.panel, -1, size=(50, 20), value="")
+        y_sizer.Add(self.box_y_min, flag=wx.RIGHT | wx.LEFT, border=10)
+        self.box_y_max = wx.TextCtrl(self.panel, -1, size=(50, 20), value="")
+        y_sizer.Add(self.box_y_max)
+
+        ctl_sizer.Add(y_sizer, flag=wx.LEFT | wx.TOP, border=10)
+
+        self.Bind(wx.EVT_TEXT, self.on_enter)
+
         # Zoom controls
 
         # Zoom button for dragging a box
@@ -93,6 +123,9 @@ class PcaDialog(wx.Frame):
         self.CenterOnParent()
         self.panel.Layout()
         self.Show()
+
+    def on_enter(self, event):
+        self.do_plot(event)
 
     def on_axis_change(self, event):
         """Update graph when user selects a new axis type"""
@@ -151,6 +184,19 @@ class PcaDialog(wx.Frame):
             self.zoom_slider.Disable()
             self.zoom_box.Disable()
 
+    def disable_fixed_check(self):
+        axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
+        if axis_type == 'Fixed':
+            self.box_x_min.Enable()
+            self.box_x_max.Enable()
+            self.box_y_min.Enable()
+            self.box_y_max.Enable()
+        else:
+            self.box_x_min.Disable()
+            self.box_x_max.Disable()
+            self.box_y_min.Disable()
+            self.box_y_max.Disable()
+
     def on_zoom_box_button(self, event):
         """Allow the user to draw a box on the graph"""
         self.zoom.zoom_box_drawing_enabled()
@@ -201,6 +247,35 @@ class PcaDialog(wx.Frame):
         if zoom_values[4]:
             self.ax.add_patch(self.zoom.square)
 
+    def plot_fixed_graph(self, x_min, x_max, y_min, y_max):
+
+        # If variables have been changed, graph should be reset
+        if self.reset_bounds:
+            self.reset_graph(x_min, x_max, y_min, y_max)
+            self.box_x_min.SetValue(str(x_min))
+            self.box_x_max.SetValue(str(x_max))
+            self.box_y_min.SetValue(str(y_min))
+            self.box_y_max.SetValue(str(y_max))
+
+        new_x_min = self.get_int_from_box(self.box_x_min, x_min)
+        new_x_max = self.get_int_from_box(self.box_x_max, x_max)
+        new_y_min = self.get_int_from_box(self.box_y_min, y_min)
+        new_y_max = self.get_int_from_box(self.box_y_max, y_max)
+
+        # Set bounds
+        self.ax.set_xlim(new_x_min, new_x_max)
+        self.ax.set_ylim(new_y_min, new_y_max)
+
+    def get_int_from_box(self, box, default_value):
+        return_value = default_value
+
+        try:
+            return_value = int(box.GetValue())
+        except ValueError:
+            pass
+
+        return return_value
+
     def get_data(self, dname, data):
         try:
             node = data[[n.data.data_name for n in data].index(dname)]
@@ -219,6 +294,8 @@ class PcaDialog(wx.Frame):
 
         if axis_type == 'Zoom':
             self.plot_zoom_graph(x1, x2, y1, y2)
+        elif axis_type == 'Fixed':
+            self.plot_fixed_graph(x1,x2,y1,y2)
 
         self.ax.figure.canvas.draw()
 
@@ -263,8 +340,7 @@ class PcaDialog(wx.Frame):
 
         axis_type = self.axis_type.GetString(self.axis_type.GetSelection())
         if axis_type == 'Fixed':
-            self.ax.set_xlim(-3, 3)
-            self.ax.set_ylim(-3, 3)
+            self.plot_fixed_graph(-3, 3, -3, 3)
         elif axis_type == 'Zoom':
             self.plot_zoom_graph(-3, 3, -3, 3)
 
@@ -347,6 +423,7 @@ class PcaDialog(wx.Frame):
 
     def do_plot(self, event):
         self.disable_zoom_check()
+        self.disable_fixed_check()
 
         try:
             if self.zoom.square in self.ax.get_children():
