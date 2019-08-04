@@ -67,9 +67,13 @@ class PcaDialog(wx.Frame):
 
         x_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
+        bound_box_max_length = 6
+
         self.box_x_min = wx.TextCtrl(self.panel, -1, size=(50,20), value="")
+        self.box_x_min.SetMaxLength(bound_box_max_length)
         x_sizer.Add(self.box_x_min, flag = wx.RIGHT | wx.LEFT, border=10)
         self.box_x_max = wx.TextCtrl(self.panel, -1, size=(50, 20), value="")
+        self.box_x_max.SetMaxLength(bound_box_max_length)
         x_sizer.Add(self.box_x_max)
 
         ctl_sizer.Add(x_sizer, flag=wx.LEFT | wx.TOP, border=10)
@@ -79,8 +83,10 @@ class PcaDialog(wx.Frame):
         y_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.box_y_min = wx.TextCtrl(self.panel, -1, size=(50, 20), value="")
+        self.box_y_min.SetMaxLength(bound_box_max_length)
         y_sizer.Add(self.box_y_min, flag=wx.RIGHT | wx.LEFT, border=10)
         self.box_y_max = wx.TextCtrl(self.panel, -1, size=(50, 20), value="")
+        self.box_y_max.SetMaxLength(bound_box_max_length)
         y_sizer.Add(self.box_y_max)
 
         ctl_sizer.Add(y_sizer, flag=wx.LEFT | wx.TOP, border=10)
@@ -125,7 +131,9 @@ class PcaDialog(wx.Frame):
         self.Show()
 
     def on_enter(self, event):
-        self.do_plot(event)
+        selections = self.chooser.GetSelections()
+        if len(selections) >= 2:
+            self.do_plot(event)
 
     def on_axis_change(self, event):
         """Update graph when user selects a new axis type"""
@@ -262,15 +270,21 @@ class PcaDialog(wx.Frame):
         new_y_min = self.get_int_from_box(self.box_y_min, y_min)
         new_y_max = self.get_int_from_box(self.box_y_max, y_max)
 
-        # Set bounds
-        self.ax.set_xlim(new_x_min, new_x_max)
-        self.ax.set_ylim(new_y_min, new_y_max)
+        if new_x_min >= new_x_max:
+            self.ax.set_xlim(x_min, x_max)
+        else:
+            self.ax.set_xlim(new_x_min, new_x_max)
+
+        if new_y_min >= new_y_max:
+            self.ax.set_ylim(y_min, y_max)
+        else:
+            self.ax.set_ylim(new_y_min, new_y_max)
 
     def get_int_from_box(self, box, default_value):
         return_value = default_value
 
         try:
-            return_value = int(box.GetValue())
+            return_value = float(box.GetValue())
         except ValueError:
             pass
 
