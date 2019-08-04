@@ -63,35 +63,48 @@ class PcaDialog(wx.Frame):
         self.y_min = None
         self.y_max = None
 
-        ctl_sizer.Add(wx.StaticText(self.panel, -1, 'X-axis:'), flag=wx.TOP | wx.LEFT, border=15)
-
-        x_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        x_full_sizer = wx.BoxSizer(wx.VERTICAL)
+        x_full_sizer.Add(wx.StaticText(self.panel, -1, 'X-axis:'), flag=wx.TOP, border=15)
 
         bound_box_max_length = 6
 
+        x_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
         self.box_x_min = wx.TextCtrl(self.panel, -1, size=(50,20), value="")
         self.box_x_min.SetMaxLength(bound_box_max_length)
-        x_sizer.Add(self.box_x_min, flag = wx.RIGHT | wx.LEFT, border=10)
+        x_sizer.Add(self.box_x_min, flag = wx.LEFT, border=10)
         self.box_x_max = wx.TextCtrl(self.panel, -1, size=(50, 20), value="")
         self.box_x_max.SetMaxLength(bound_box_max_length)
-        x_sizer.Add(self.box_x_max)
+        x_sizer.Add(self.box_x_max, flag=wx.LEFT, border=5)
 
-        ctl_sizer.Add(x_sizer, flag=wx.LEFT | wx.TOP, border=10)
+        x_full_sizer.Add(x_sizer, flag=wx.LEFT | wx.TOP, border=0)
 
-        ctl_sizer.Add(wx.StaticText(self.panel, -1, 'Y-axis:'), flag=wx.TOP | wx.LEFT, border=15)
+        y_full_sizer = wx.BoxSizer(wx.VERTICAL)
+        y_full_sizer.Add(wx.StaticText(self.panel, -1, 'Y-axis:'), flag=wx.TOP, border=15)
 
         y_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.box_y_min = wx.TextCtrl(self.panel, -1, size=(50, 20), value="")
         self.box_y_min.SetMaxLength(bound_box_max_length)
-        y_sizer.Add(self.box_y_min, flag=wx.RIGHT | wx.LEFT, border=10)
+        y_sizer.Add(self.box_y_min, flag=wx.LEFT, border=10)
         self.box_y_max = wx.TextCtrl(self.panel, -1, size=(50, 20), value="")
         self.box_y_max.SetMaxLength(bound_box_max_length)
-        y_sizer.Add(self.box_y_max)
+        y_sizer.Add(self.box_y_max, flag=wx.LEFT, border=5)
 
-        ctl_sizer.Add(y_sizer, flag=wx.LEFT | wx.TOP, border=10)
+        y_full_sizer.Add(y_sizer)
+
+        text_box_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        text_box_sizer.Add(x_full_sizer, flag=wx.LEFT, border=15)
+        text_box_sizer.Add(y_full_sizer, flag=wx.LEFT, border=15)
+
+        ctl_sizer.Add(text_box_sizer)
 
         self.Bind(wx.EVT_TEXT, self.on_enter)
+
+        self.default_box = wx.Button(self.panel, label="Default")
+        ctl_sizer.Add(self.default_box, flag=wx.LEFT | wx.TOP, border = 15)
+
+        self.default_box.Bind(wx.EVT_BUTTON, self.on_default_box_button)
 
         # Zoom controls
 
@@ -129,6 +142,16 @@ class PcaDialog(wx.Frame):
         self.CenterOnParent()
         self.panel.Layout()
         self.Show()
+
+    def on_default_box_button(self, event):
+        self.box_x_min.SetValue(str(self.x_min))
+        self.box_x_max.SetValue(str(self.x_max))
+        self.box_y_min.SetValue(str(self.y_min))
+        self.box_y_max.SetValue(str(self.y_max))
+
+        selections = self.chooser.GetSelections()
+        if len(selections) >= 2:
+            self.do_plot(event)
 
     def on_enter(self, event):
         selections = self.chooser.GetSelections()
@@ -199,11 +222,13 @@ class PcaDialog(wx.Frame):
             self.box_x_max.Enable()
             self.box_y_min.Enable()
             self.box_y_max.Enable()
+            self.default_box.Enable()
         else:
             self.box_x_min.Disable()
             self.box_x_max.Disable()
             self.box_y_min.Disable()
             self.box_y_max.Disable()
+            self.default_box.Disable()
 
     def on_zoom_box_button(self, event):
         """Allow the user to draw a box on the graph"""
@@ -264,6 +289,10 @@ class PcaDialog(wx.Frame):
             self.box_x_max.SetValue(str(x_max))
             self.box_y_min.SetValue(str(y_min))
             self.box_y_max.SetValue(str(y_max))
+            self.x_min = x_min
+            self.x_max = x_max
+            self.y_min = y_min
+            self.y_max = y_max
 
         new_x_min = self.get_int_from_box(self.box_x_min, x_min)
         new_x_max = self.get_int_from_box(self.box_x_max, x_max)
