@@ -9,6 +9,15 @@ class Zoom:
         self.draw_zoom_box = False  # True if the zoom box should be drawn
         self.zoom_disable_value = 48  # User will be unable to draw a box if zoomed in past this value
 
+        self.zoom_x_diff = 0
+        self.zoom_y_diff = 0
+
+        # User bounds
+        self.x_min = None
+        self.x_max = None
+        self.y_min = None
+        self.y_max = None
+
         # Mouse initial position
         self.mouse_x = 0
         self.mouse_y = 0
@@ -96,6 +105,17 @@ class Zoom:
         self.center_x = x_min + (x_max - x_min) / 2
         self.center_y = y_min + (y_max - y_min) / 2
 
+        # self.zoom_update = False
+        # self.zoom_x = 0
+        # self.zoom_y = 0
+        #
+        # self.zoom_value_last = 0
+        #
+        # self.zoom_x_or_y = True
+
+        self.zoom_x_diff = 0
+        self.zoom_y_diff = 0
+
     def calculate_zoom(self, x_min, x_max, y_min, y_max, zoom_level_current):
         """Calculate the bounds of the graph when 'Zoom' axis type is selected"""
 
@@ -133,54 +153,69 @@ class Zoom:
             x_percentage = self.mouse_x_diff / x_length_current
             y_percentage = self.mouse_y_diff / y_length_current
 
-            # Figure out if the width or height is largest of the user's rectangle
-            if abs(x_percentage) >= abs(y_percentage):
+            # Figure out smallest side of rectangle
+            if abs(x_percentage) <= abs(y_percentage):
                 zoom_value = ((x_length - abs(self.mouse_x_diff)) / 2) / x_ticks
-                x_box = (x_length_current * abs(x_percentage)) / 2
-                y_box = (y_length_current * abs(x_percentage)) / 2
+                # x_box = (x_length_current * abs(x_percentage)) / 2
+                # y_box = (y_length_current * abs(x_percentage)) / 2
             else:
                 zoom_value = ((y_length - abs(self.mouse_y_diff)) / 2) / y_ticks
-                x_box = (x_length_current * abs(y_percentage)) / 2
-                y_box = (y_length_current * abs(y_percentage)) / 2
+                # x_box = (x_length_current * abs(y_percentage)) / 2
+                # y_box = (y_length_current * abs(y_percentage)) / 2
+
+            x_box = abs(self.mouse_x_diff)
+            y_box = abs(self.mouse_y_diff)
 
             # Drawing a box on the graph
             if self.draw_zoom_box:
                 draw_box = True
 
                 # Set length of box sides
-                self.square.set_width(x_box * 2)
-                self.square.set_height(y_box * 2)
+                self.square.set_width(x_box)
+                self.square.set_height(y_box)
 
                 # Draw corner of box depending on which direction the user is dragging
                 if (x_percentage >= 0) and (y_percentage >= 0):
                     self.square.set_xy((self.mouse_x, self.mouse_y))
                 elif (x_percentage <= 0) and (y_percentage >= 0):
-                    self.square.set_xy((self.mouse_x - (x_box * 2), self.mouse_y))
+                    self.square.set_xy((self.mouse_x - x_box, self.mouse_y))
                 elif (x_percentage <= 0) and (y_percentage <= 0):
-                    self.square.set_xy((self.mouse_x - (x_box * 2), self.mouse_y - (y_box * 2)))
+                    self.square.set_xy((self.mouse_x - x_box, self.mouse_y - y_box))
                 else:
-                    self.square.set_xy((self.mouse_x, self.mouse_y - (y_box * 2)))
+                    self.square.set_xy((self.mouse_x, self.mouse_y - y_box))
 
             # Zooming into a drawn box
             elif zoom_value < 50 and self.mouse_in_bounds:
 
-                zoom_level_final = round(zoom_value)
+                # Figure out if the width or height is largest of the user's rectangle
+                if abs(x_percentage) <= abs(y_percentage):
+                    zoom_value = round(((x_length - abs(self.mouse_x_diff)) / 2) / x_ticks)
+                    zoom_2 = round(((y_length - abs(self.mouse_y_diff)) / 2) / y_ticks)
+                    self.zoom_x_diff = 0
+                    self.zoom_y_diff = zoom_value - zoom_2
+                else:
+                    zoom_value = round(((y_length - abs(self.mouse_y_diff)) / 2) / y_ticks)
+                    zoom_2 = round(((x_length - abs(self.mouse_x_diff)) / 2) / x_ticks)
+                    self.zoom_y_diff = 0
+                    self.zoom_x_diff = zoom_value - zoom_2
+
+                zoom_level_final = zoom_value
 
                 if (x_percentage >= 0) and (y_percentage >= 0):
                     x_lo = self.mouse_x
                     y_lo = self.mouse_y
                 elif (x_percentage <= 0) and (y_percentage >= 0):
-                    x_lo = self.mouse_x - (x_box * 2)
+                    x_lo = self.mouse_x - x_box
                     y_lo = self.mouse_y
                 elif (x_percentage <= 0) and (y_percentage <= 0):
-                    x_lo = self.mouse_x - (x_box * 2)
-                    y_lo = self.mouse_y - (y_box * 2)
+                    x_lo = self.mouse_x - x_box
+                    y_lo = self.mouse_y - y_box
                 else:
                     x_lo = self.mouse_x
-                    y_lo = self.mouse_y - (y_box * 2)
+                    y_lo = self.mouse_y - y_box
 
-                zoom_amt_x = zoom_level_final * x_ticks
-                zoom_amt_y = zoom_level_final * y_ticks
+                zoom_amt_x = (zoom_level_final-self.zoom_x_diff) * x_ticks
+                zoom_amt_y = (zoom_level_final-self.zoom_y_diff) * y_ticks
 
                 x_hi = x_lo + (x_length - 2 * zoom_amt_x)
 
@@ -202,8 +237,15 @@ class Zoom:
             shift_y = self.mouse_y_diff / shift_amt
 
             # Amount to zoom in by based on the value of the slider
-            zoom_amt_x = zoom_level_current * x_ticks
-            zoom_amt_y = zoom_level_current * y_ticks
+            if (zoom_level_current-self.zoom_x_diff) < 0:
+                self.zoom_x_diff += zoom_level_current-self.zoom_x_diff
+                #print("X OVER ", zoom_level_current-self.zoom_x_diff)
+            if (zoom_level_current-self.zoom_y_diff) < 0:
+                self.zoom_y_diff += zoom_level_current - self.zoom_y_diff
+                #print("Y OVER ", zoom_level_current - self.zoom_y_diff)
+
+            zoom_amt_x = (zoom_level_current-self.zoom_x_diff) * x_ticks
+            zoom_amt_y = (zoom_level_current-self.zoom_y_diff) * y_ticks
 
             # Shift the center by the amount user dragged
             self.center_x += shift_x
@@ -252,4 +294,70 @@ class Zoom:
             self.y_hi = y_hi
 
             # Set new bounds
+            # print("ZOOM LEVEL", zoom_level_final, "Zoom X", zoom_level_final-self.zoom_x_diff, "Zoom Y",
+                  # zoom_level_final-self.zoom_y_diff)
             return x_lo, x_hi, y_lo, y_hi, draw_box, zoom_level_final
+
+    def calculate_zoom_user(self, x_min, x_max, y_min, y_max, user_x_min, user_x_max, user_y_min, user_y_max):
+
+        # Size of boundaries
+        x_length = (x_max - x_min)
+        y_length = (y_max - y_min)
+
+        # Divide sides for percentages
+        x_ticks = x_length / 100
+        y_ticks = y_length / 100
+
+        # Set initial values
+        x_lo = user_x_min
+        x_hi = user_x_max
+        y_lo = user_y_min
+        y_hi = user_y_max
+
+        if (user_x_min >= user_x_max):
+            x_lo = x_min
+            x_hi = x_max
+        elif (user_x_min < x_min):
+            x_lo = x_min
+        elif (user_x_max > x_max):
+            x_hi = x_max
+
+        if (user_y_min >= user_y_max):
+            y_lo = y_min
+            y_hi = y_max
+        elif (user_y_min < y_min):
+            y_lo = y_min
+        elif (user_y_max > y_max):
+            y_hi = y_max
+
+        # Percentage of the total bounds covered
+        x_percentage = (x_hi-x_lo) / x_length
+        y_percentage = (y_hi-y_lo) / y_length
+
+        # Figure out if the width or height is largest of the user's rectangle
+        if abs(x_percentage) <= abs(y_percentage):
+            zoom_value = round(((x_length - abs(x_hi-x_lo)) / 2) / x_ticks)
+            zoom_2 = round(((y_length - abs(y_hi-y_lo)) / 2) / y_ticks)
+            self.zoom_x_diff = 0
+            self.zoom_y_diff = zoom_value - zoom_2
+        else:
+            zoom_value = round(((y_length - abs(y_hi-y_lo)) / 2) / y_ticks)
+            zoom_2 = round(((x_length - abs(x_hi-x_lo)) / 2) / x_ticks)
+            self.zoom_y_diff = 0
+            self.zoom_x_diff = zoom_value - zoom_2
+
+        zoom_level_final = zoom_value
+
+        zoom_amt_x = (zoom_level_final - self.zoom_x_diff) * x_ticks
+        zoom_amt_y = (zoom_level_final - self.zoom_y_diff) * y_ticks
+
+        self.center_x = x_lo + (x_length / 2 - zoom_amt_x)
+        self.center_y = y_lo + (y_length / 2 - zoom_amt_y)
+
+        # Record bounds for later use
+        self.x_lo = x_lo
+        self.x_hi = x_hi
+        self.y_lo = y_lo
+        self.y_hi = y_hi
+
+        return x_lo, x_hi, y_lo, y_hi, False, zoom_level_final
