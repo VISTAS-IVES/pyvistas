@@ -135,7 +135,7 @@ class LinRegDialog(wx.Frame):
         self.zoom_box.Bind(wx.EVT_BUTTON, self.on_zoom_box_button)
 
         # Zoom slider
-        self.zoom_slider = wx.Slider(self.panel, value=0, minValue=0, maxValue=49*100, size=(600, -1),
+        self.zoom_slider = wx.Slider(self.panel, value=0, minValue=0, maxValue=49*self.zoom.zoom_multiple, size=(600, -1),
                                      style=wx.SL_HORIZONTAL)
         zoom_sizer.Add(self.zoom_slider, flag=wx.LEFT, border=10)
 
@@ -256,7 +256,7 @@ class LinRegDialog(wx.Frame):
 
     def disable_zoom(self):
         """Disable the button that allows user to draw a zoom box"""
-        if self.zoom_slider.GetValue()/100 > self.zoom.zoom_disable_value:
+        if self.zoom_slider.GetValue()/self.zoom.zoom_multiple > self.zoom.zoom_disable_value:
             self.zoom_box.Disable()
         else:
             self.zoom_box.Enable()
@@ -333,7 +333,7 @@ class LinRegDialog(wx.Frame):
                                                         new_y_max)
 
             # Set zoom slider to given value
-            self.zoom_slider.SetValue(zoom_values[5]*100)
+            self.zoom_slider.SetValue(zoom_values[5]*self.zoom.zoom_multiple)
             self.disable_zoom()
 
             # Set bounds
@@ -343,10 +343,11 @@ class LinRegDialog(wx.Frame):
             self.user_bounds = False
 
         else:
-            zoom_values = self.zoom.calculate_zoom(x_min, x_max, y_min, y_max, self.zoom_slider.GetValue()/100)
+            zoom_values = self.zoom.calculate_zoom(x_min, x_max, y_min, y_max, self.zoom_slider.GetValue(
+            )/self.zoom.zoom_multiple)
 
             # Set zoom slider to given value
-            self.zoom_slider.SetValue(zoom_values[5]*100)
+            self.zoom_slider.SetValue(zoom_values[5]*self.zoom.zoom_multiple)
             self.disable_zoom()
 
             # Set bounds

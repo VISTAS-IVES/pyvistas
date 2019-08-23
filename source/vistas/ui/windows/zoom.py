@@ -8,6 +8,7 @@ class Zoom:
         self.mouse_in_bounds = True  # False if mouse was out of bounds
         self.draw_zoom_box = False  # True if the zoom box should be drawn
         self.zoom_disable_value = 48  # User will be unable to draw a box if zoomed in past this value
+        self.zoom_multiple = 100  # This allows for the zoom slider to make more accurate approximations
 
         self.zoom_x_diff = 0
         self.zoom_y_diff = 0
