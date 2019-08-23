@@ -30,6 +30,7 @@ class LinRegDialog(wx.Frame):
         self.update_table = True  # True if data tables need to be updated
         self.user_bounds = False  # True if the user bounds should be used
         self.user_update = False  # True if the user bounds have been updated
+        self.box_dirty = False  # True if textboxes have been modified
 
         # Sizers
         self.panel = wx.Panel(self)
@@ -85,10 +86,10 @@ class LinRegDialog(wx.Frame):
 
         x_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.box_x_min = wx.TextCtrl(self.panel, -1, size=(50,20), value="", style = wx.TE_PROCESS_ENTER)
+        self.box_x_min = wx.TextCtrl(self.panel, -1, size=(50, 20), value="", style=wx.TE_PROCESS_ENTER)
         self.box_x_min.SetMaxLength(self.bound_box_max_length)
-        x_sizer.Add(self.box_x_min, flag = wx.LEFT, border=10)
-        self.box_x_max = wx.TextCtrl(self.panel, -1, size=(50, 20), value="", style = wx.TE_PROCESS_ENTER)
+        x_sizer.Add(self.box_x_min, flag=wx.LEFT, border=10)
+        self.box_x_max = wx.TextCtrl(self.panel, -1, size=(50, 20), value="", style=wx.TE_PROCESS_ENTER)
         self.box_x_max.SetMaxLength(self.bound_box_max_length)
         x_sizer.Add(self.box_x_max, flag=wx.LEFT, border=5)
 
@@ -99,10 +100,10 @@ class LinRegDialog(wx.Frame):
 
         y_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.box_y_min = wx.TextCtrl(self.panel, -1, size=(50, 20), value="", style = wx.TE_PROCESS_ENTER)
+        self.box_y_min = wx.TextCtrl(self.panel, -1, size=(50, 20), value="", style=wx.TE_PROCESS_ENTER)
         self.box_y_min.SetMaxLength(self.bound_box_max_length)
         y_sizer.Add(self.box_y_min, flag=wx.LEFT, border=10)
-        self.box_y_max = wx.TextCtrl(self.panel, -1, size=(50, 20), value="", style = wx.TE_PROCESS_ENTER)
+        self.box_y_max = wx.TextCtrl(self.panel, -1, size=(50, 20), value="", style=wx.TE_PROCESS_ENTER)
         self.box_y_max.SetMaxLength(self.bound_box_max_length)
         y_sizer.Add(self.box_y_max, flag=wx.LEFT, border=5)
 
@@ -114,15 +115,16 @@ class LinRegDialog(wx.Frame):
 
         ctl_sizer.Add(text_box_sizer)
 
+        self.Bind(wx.EVT_TEXT, self.on_text)
         self.Bind(wx.EVT_TEXT_ENTER, self.on_enter)
 
         self.default_box = wx.Button(self.panel, label="Default")
-        ctl_sizer.Add(self.default_box, flag=wx.LEFT | wx.TOP, border = 15)
+        ctl_sizer.Add(self.default_box, flag=wx.LEFT | wx.TOP, border=15)
 
         self.default_box.Bind(wx.EVT_BUTTON, self.on_default_box_button)
 
         # Blank spacer
-        ctl_sizer.AddSpacer(220)
+        ctl_sizer.AddSpacer(130)
 
         # Zoom controls
 
@@ -133,7 +135,7 @@ class LinRegDialog(wx.Frame):
         self.zoom_box.Bind(wx.EVT_BUTTON, self.on_zoom_box_button)
 
         # Zoom slider
-        self.zoom_slider = wx.Slider(self.panel, value=0, minValue=0, maxValue=49, size=(600, -1),
+        self.zoom_slider = wx.Slider(self.panel, value=0, minValue=0, maxValue=49*100, size=(600, -1),
                                      style=wx.SL_HORIZONTAL)
         zoom_sizer.Add(self.zoom_slider, flag=wx.LEFT, border=10)
 
@@ -168,17 +170,22 @@ class LinRegDialog(wx.Frame):
 
     def on_default_box_button(self, event):
         self.user_bounds = True
+        self.box_dirty = False
 
-        self.box_x_min.SetValue(str(self.round_to_box_length(self.zoom.x_min)))
-        self.box_x_max.SetValue(str(self.round_to_box_length(self.zoom.x_max)))
-        self.box_y_min.SetValue(str(self.round_to_box_length(self.zoom.y_min)))
-        self.box_y_max.SetValue(str(self.round_to_box_length(self.zoom.y_max)))
+        self.box_x_min.ChangeValue(str(self.round_to_box_length(self.zoom.x_min)))
+        self.box_x_max.ChangeValue(str(self.round_to_box_length(self.zoom.x_max)))
+        self.box_y_min.ChangeValue(str(self.round_to_box_length(self.zoom.y_min)))
+        self.box_y_max.ChangeValue(str(self.round_to_box_length(self.zoom.y_max)))
 
         if len(self.iv_chooser.GetSelections()) == 1 and self.dv_chooser.GetSelection() != wx.NOT_FOUND:
             self.do_plot(event)
 
+    def on_text(self, event):
+        self.box_dirty = True
+
     def on_enter(self, event):
         self.user_bounds = True
+        self.box_dirty = False
 
         if len(self.iv_chooser.GetSelections()) == 1 and self.dv_chooser.GetSelection() != wx.NOT_FOUND:
             dv_selection = self.dv_chooser.GetString(self.dv_chooser.GetSelection())
@@ -189,6 +196,7 @@ class LinRegDialog(wx.Frame):
     def on_axis_change(self, event):
         """Update graph when user selects a new axis type"""
         self.update_graph = True
+        self.box_dirty = False
         self.zoom.zoom_box_drawing_disabled()
         self.do_plot(event)
 
@@ -200,6 +208,7 @@ class LinRegDialog(wx.Frame):
 
     def on_var_change(self, event):
         """Reset the graph and tables when a new variable is chosen to plot"""
+        self.box_dirty = False
         if len(self.iv_chooser.GetSelections()) == 1 and self.dv_chooser.GetSelection() != wx.NOT_FOUND:
             self.reset_bounds = True
             self.update_graph = True
@@ -222,28 +231,32 @@ class LinRegDialog(wx.Frame):
 
         self.zoom.reset_zoom(x_min, x_max, y_min, y_max)
 
-        self.box_x_min.SetValue(str(self.round_to_box_length(x_min)))
-        self.box_x_max.SetValue(str(self.round_to_box_length(x_max)))
-        self.box_y_min.SetValue(str(self.round_to_box_length(y_min)))
-        self.box_y_max.SetValue(str(self.round_to_box_length(y_max)))
+        self.box_x_min.ChangeValue(str(self.round_to_box_length(x_min)))
+        self.box_x_max.ChangeValue(str(self.round_to_box_length(x_max)))
+        self.box_y_min.ChangeValue(str(self.round_to_box_length(y_min)))
+        self.box_y_max.ChangeValue(str(self.round_to_box_length(y_max)))
         self.zoom.x_min = x_min
         self.zoom.x_max = x_max
         self.zoom.y_min = y_min
         self.zoom.y_max = y_max
 
+        self.box_dirty = False
+
     def on_zoom_scroll(self, event):
         self.disable_zoom()
+        self.box_dirty = False
         self.zoom.zoom_box_drawing_disabled()
         self.do_plot(event)
 
     def on_zoom_release(self, event):
         self.user_update = True
+        self.box_dirty = False
 
         self.on_zoom_scroll(event)
 
     def disable_zoom(self):
         """Disable the button that allows user to draw a zoom box"""
-        if self.zoom_slider.GetValue() > self.zoom.zoom_disable_value:
+        if self.zoom_slider.GetValue()/100 > self.zoom.zoom_disable_value:
             self.zoom_box.Disable()
         else:
             self.zoom_box.Enable()
@@ -273,12 +286,14 @@ class LinRegDialog(wx.Frame):
     def on_zoom_box_button(self, event):
         """Allow the user to draw a box on the graph"""
         self.zoom.zoom_box_drawing_enabled()
+        self.box_dirty = False
 
     # MOUSE METHODS MATPLOTLIB
 
     def on_mouse_move(self, event):
         """Get mouse position when moving"""
         ms = wx.GetMouseState()
+        self.box_dirty = False
         if ms.leftIsDown:
             self.zoom.set_mouse_diff(event.xdata, event.ydata)
             self.do_plot(event)
@@ -288,12 +303,14 @@ class LinRegDialog(wx.Frame):
     def on_mouse_press(self, event):
         """Get mouse position when left clicking"""
         ms = wx.GetMouseState()
+        self.box_dirty = False
         if ms.leftIsDown:
             self.zoom.set_mouse_diff_zero()
             self.zoom.set_mouse_initial(event.xdata, event.ydata)
 
     def on_mouse_release(self, event):
         """Get mouse position when releasing a mouse press"""
+        self.box_dirty = False
         self.zoom.mouse_release(event.xdata, event.ydata)
         self.do_plot(event)
 
@@ -316,7 +333,7 @@ class LinRegDialog(wx.Frame):
                                                         new_y_max)
 
             # Set zoom slider to given value
-            self.zoom_slider.SetValue(zoom_values[5])
+            self.zoom_slider.SetValue(zoom_values[5]*100)
             self.disable_zoom()
 
             # Set bounds
@@ -326,10 +343,10 @@ class LinRegDialog(wx.Frame):
             self.user_bounds = False
 
         else:
-            zoom_values = self.zoom.calculate_zoom(x_min, x_max, y_min, y_max, self.zoom_slider.GetValue())
+            zoom_values = self.zoom.calculate_zoom(x_min, x_max, y_min, y_max, self.zoom_slider.GetValue()/100)
 
             # Set zoom slider to given value
-            self.zoom_slider.SetValue(zoom_values[5])
+            self.zoom_slider.SetValue(zoom_values[5]*100)
             self.disable_zoom()
 
             # Set bounds
@@ -340,10 +357,11 @@ class LinRegDialog(wx.Frame):
             if zoom_values[4]:
                 self.ax.add_patch(self.zoom.square)
 
-            self.box_x_min.SetValue(str(self.round_to_box_length(zoom_values[0])))
-            self.box_x_max.SetValue(str(self.round_to_box_length(zoom_values[1])))
-            self.box_y_min.SetValue(str(self.round_to_box_length(zoom_values[2])))
-            self.box_y_max.SetValue(str(self.round_to_box_length(zoom_values[3])))
+            if self.box_dirty is False:
+                self.box_x_min.ChangeValue(str(self.round_to_box_length(zoom_values[0])))
+                self.box_x_max.ChangeValue(str(self.round_to_box_length(zoom_values[1])))
+                self.box_y_min.ChangeValue(str(self.round_to_box_length(zoom_values[2])))
+                self.box_y_max.ChangeValue(str(self.round_to_box_length(zoom_values[3])))
 
     def get_int_from_box(self, box, default_value):
         return_value = default_value
@@ -358,7 +376,7 @@ class LinRegDialog(wx.Frame):
     def round_to_box_length(self, value):
         value_cut = round(value)
         if len(str(value_cut)) < (self.bound_box_max_length - 1):
-            decimal_places = (self.bound_box_max_length - len(str(value_cut))) - 1 # Account for decimal point
+            decimal_places = (self.bound_box_max_length - len(str(value_cut))) - 1  # Account for decimal point
             return round(value, decimal_places)
         else:
             return value_cut

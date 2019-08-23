@@ -189,13 +189,13 @@ class Zoom:
 
                 # Figure out if the width or height is largest of the user's rectangle
                 if abs(x_percentage) <= abs(y_percentage):
-                    zoom_value = round(((x_length - abs(self.mouse_x_diff)) / 2) / x_ticks)
-                    zoom_2 = round(((y_length - abs(self.mouse_y_diff)) / 2) / y_ticks)
+                    zoom_value = ((x_length - abs(self.mouse_x_diff)) / 2) / x_ticks
+                    zoom_2 = ((y_length - abs(self.mouse_y_diff)) / 2) / y_ticks
                     self.zoom_x_diff = 0
                     self.zoom_y_diff = zoom_value - zoom_2
                 else:
-                    zoom_value = round(((y_length - abs(self.mouse_y_diff)) / 2) / y_ticks)
-                    zoom_2 = round(((x_length - abs(self.mouse_x_diff)) / 2) / x_ticks)
+                    zoom_value = ((y_length - abs(self.mouse_y_diff)) / 2) / y_ticks
+                    zoom_2 = ((x_length - abs(self.mouse_x_diff)) / 2) / x_ticks
                     self.zoom_y_diff = 0
                     self.zoom_x_diff = zoom_value - zoom_2
 
@@ -336,13 +336,13 @@ class Zoom:
 
         # Figure out if the width or height is largest of the user's rectangle
         if abs(x_percentage) <= abs(y_percentage):
-            zoom_value = round(((x_length - abs(x_hi-x_lo)) / 2) / x_ticks)
-            zoom_2 = round(((y_length - abs(y_hi-y_lo)) / 2) / y_ticks)
+            zoom_value = ((x_length - abs(x_hi-x_lo)) / 2) / x_ticks
+            zoom_2 = ((y_length - abs(y_hi-y_lo)) / 2) / y_ticks
             self.zoom_x_diff = 0
             self.zoom_y_diff = zoom_value - zoom_2
         else:
-            zoom_value = round(((y_length - abs(y_hi-y_lo)) / 2) / y_ticks)
-            zoom_2 = round(((x_length - abs(x_hi-x_lo)) / 2) / x_ticks)
+            zoom_value = ((y_length - abs(y_hi-y_lo)) / 2) / y_ticks
+            zoom_2 = ((x_length - abs(x_hi-x_lo)) / 2) / x_ticks
             self.zoom_y_diff = 0
             self.zoom_x_diff = zoom_value - zoom_2
 
