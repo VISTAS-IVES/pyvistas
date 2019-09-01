@@ -129,7 +129,7 @@ class LinRegDialog(wx.Frame):
         # Zoom controls
 
         # Zoom button for dragging a box
-        self.zoom_box = wx.Button(self.panel, label="Box")
+        self.zoom_box = wx.Button(self.panel, label="Box Zoom")
         zoom_sizer.Add(self.zoom_box)
 
         self.zoom_box.Bind(wx.EVT_BUTTON, self.on_zoom_box_button)
@@ -299,6 +299,14 @@ class LinRegDialog(wx.Frame):
             self.do_plot(event)
         else:
             self.zoom.set_mouse_diff_zero()
+
+        if self.zoom.check_none(event.xdata, event.ydata):
+            if self.zoom.zoom_box_enabled:
+                self.panel.SetCursor(wx.StockCursor(wx.CURSOR_CROSS))
+            else:
+                self.panel.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+        else:
+            self.panel.SetCursor(wx.StockCursor(wx.CURSOR_ARROW))
 
     def on_mouse_press(self, event):
         """Get mouse position when left clicking"""
@@ -472,7 +480,7 @@ class LinRegDialog(wx.Frame):
             self.canvas.draw()
 
     def create_table(self, iv=None, result=None):
-        self.panel.Freeze()
+        self.panel.Freeze() #Frozen to avoid flickering effect as table is moved to correct position
 
         # show stats in grids
         try:
@@ -540,7 +548,7 @@ class LinRegDialog(wx.Frame):
                 dv_selection = self.dv_chooser.GetString(self.dv_chooser.GetSelection())
                 if dv_selection in iv_selections:
                     iv_selections.remove(dv_selection)
-                if len(iv_selections) > 0 and dv_selection != '-':  # good to go
+                if iv_selections and dv_selection != '-':  # good to go
                     data = {}
                     for v, sel in zip(['iv', 'dv'], [iv_selections, [dv_selection]]):
                         dd = []

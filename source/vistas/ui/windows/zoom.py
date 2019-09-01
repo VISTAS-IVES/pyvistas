@@ -56,11 +56,7 @@ class Zoom:
 
     def check_none(self, event_x, event_y):
         """Check if mouse coordinates are outside of the graph bounds"""
-        if event_x is None:
-            return False
-        if event_y is None:
-            return False
-        return True
+        return event_x is not None and event_y is not None
 
     def set_bounds_absolute(self, x_lo, x_hi, y_lo, y_hi):
         self.x_lo_absolute = x_lo

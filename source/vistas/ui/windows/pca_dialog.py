@@ -114,7 +114,7 @@ class PcaDialog(wx.Frame):
         # Zoom controls
 
         # Zoom button for dragging a box
-        self.zoom_box = wx.Button(self.panel, label="Box")
+        self.zoom_box = wx.Button(self.panel, label="Box Zoom")
         self.zoom_box.Disable()
         zoom_sizer.Add(self.zoom_box)
 
@@ -279,6 +279,14 @@ class PcaDialog(wx.Frame):
             self.do_plot(event)
         else:
             self.zoom.set_mouse_diff_zero()
+
+        if self.zoom.check_none(event.xdata, event.ydata):
+            if self.zoom.zoom_box_enabled:
+                self.panel.SetCursor(wx.StockCursor(wx.CURSOR_CROSS))
+            else:
+                self.panel.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+        else:
+            self.panel.SetCursor(wx.StockCursor(wx.CURSOR_ARROW))
 
     def on_mouse_press(self, event):
         """Get mouse position when left clicking"""
@@ -460,7 +468,7 @@ class PcaDialog(wx.Frame):
         self.panel.Layout()
 
     def create_table(self, n_vars, pca, var_names):
-        self.panel.Freeze()
+        self.panel.Freeze() #Frozen to avoid flickering effect as table is moved to correct position
 
         # show stats in grid
         try:
