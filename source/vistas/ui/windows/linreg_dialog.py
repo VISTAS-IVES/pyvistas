@@ -12,16 +12,19 @@ import matplotlib as mpl
 mpl.use('WXAgg')
 import matplotlib.backends.backend_wxagg as wxagg
 
+import logging
+
 from vistas.ui.project import Project
 from vistas.core.timeline import Timeline
 from vistas.ui.utils import get_main_window
 from vistas.ui.events import EVT_TIMELINE_CHANGED
 
+logger = logging.getLogger(__name__)
+
 
 class LinRegDialog(wx.Frame):
     def __init__(self, parent=None):
         super().__init__(parent, title='Linear Regression', size=(800, 800))
-
         self.zoom = zoom_file.Zoom()
 
         # Global variables
@@ -558,7 +561,7 @@ class LinRegDialog(wx.Frame):
                                 if thisdata is not None:
                                     dd.append(thisdata)
                             except Exception as ex:
-                                print(ex)
+                                logger.exception(ex)
                         data[v] = dd
                     if len(data['iv']) >= 1 and len(data['dv']) >= 1:
                         self.plot_lin_reg(**data)

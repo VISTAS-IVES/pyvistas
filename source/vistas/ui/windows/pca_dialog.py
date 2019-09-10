@@ -11,10 +11,14 @@ import matplotlib as mpl
 mpl.use('WXAgg')
 import matplotlib.backends.backend_wxagg as wxagg
 
+import logging
+
 from vistas.ui.project import Project
 from vistas.core.timeline import Timeline
 from vistas.ui.utils import get_main_window
 from vistas.ui.events import EVT_TIMELINE_CHANGED
+
+logger = logging.getLogger(__name__)
 
 
 class PcaDialog(wx.Frame):
@@ -535,7 +539,7 @@ class PcaDialog(wx.Frame):
                             if thisdata is not None:
                                 v_data[dname] = thisdata
                         except Exception as ex:
-                            print(ex)
+                            logger.exception(ex)
                     if len(v_data.keys()) >= 2:
                         self.plot_pca(data=v_data)
             finally:
