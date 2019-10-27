@@ -1,5 +1,4 @@
 import wx
-import vistas.ui.windows.zoom as zoom_file
 
 import numpy as np
 import numpy.ma as ma
@@ -18,6 +17,7 @@ from vistas.ui.project import Project
 from vistas.core.timeline import Timeline
 from vistas.ui.utils import get_main_window
 from vistas.ui.events import EVT_TIMELINE_CHANGED
+from vistas.ui.windows import zoom
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 class LinRegDialog(wx.Frame):
     def __init__(self, parent=None):
         super().__init__(parent, title='Linear Regression', size=(800, 800))
-        self.zoom = zoom_file.Zoom()
+        self.zoom = zoom.Zoom()
 
         # Global variables
         self.reset_bounds = True  # True if bounds have been reset by changing variables
